@@ -1,8 +1,8 @@
-const { createClient } = require('@supabase/supabase-js')
+import { createClient } from '@supabase/supabase-js'
+import 'dotenv/config'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-)
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
 
-module.exports = supabase
+// This is the "Named Export" your server is looking for
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
