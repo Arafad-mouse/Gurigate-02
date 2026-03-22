@@ -16,7 +16,12 @@ import {
   LogOut,
   Menu,
   Home,
+  LayersPlus,
+  ShieldUser,
+  BadgeQuestionMark,
 } from "lucide-react";
+import { PhoneModal } from "./LoginModal";
+import { EmailModal } from "./EmailModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,16 +36,16 @@ interface ProfileDropdownProps {
 
 function GuestDropdown({
   onClose,
-  onLogin,
+  onShowLogin,
 }: {
   onClose: () => void;
-  onLogin: () => void;
+  onShowLogin: () => void;
 }) {
   return (
     <div className="py-1">
       {/* Help Center */}
       <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
-        <HelpCircle size={16} className="text-gray-400" />
+        <BadgeQuestionMark size={16} className="text-gray-400" />
         Help Center
       </button>
 
@@ -86,13 +91,13 @@ function GuestDropdown({
 
       {/* Refer a Host */}
       <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
-        <UserPlus size={16} className="text-gray-400" />
+        <ShieldUser size={16} className="text-gray-400" />
         Refer a Host
       </button>
 
       {/* Find a co-host */}
       <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
-        <Users size={16} className="text-gray-400" />
+        <LayersPlus size={16} className="text-gray-400" />
         Find a co-host
       </button>
 
@@ -106,7 +111,7 @@ function GuestDropdown({
 
       {/* Log in or sign up */}
       <button
-        onClick={() => { onLogin(); onClose(); }}
+        onClick={() => { onShowLogin(); onClose(); }}
         className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors text-left"
       >
         Log in or sign up
@@ -236,7 +241,8 @@ function ProfileDropdown({
   onClose,
   onLogin,
   onLogout,
-}: ProfileDropdownProps) {
+  onShowLogin,
+}: ProfileDropdownProps & { onShowLogin: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -259,7 +265,7 @@ function ProfileDropdown({
         {isLoggedIn ? (
           <LoggedInDropdown onClose={onClose} onLogout={onLogout} />
         ) : (
-          <GuestDropdown onClose={onClose} onLogin={onLogin} />
+          <GuestDropdown onClose={onClose} onShowLogin={onShowLogin} />
         )}
       </div>
     </>
@@ -271,36 +277,66 @@ function ProfileDropdown({
 export function ProfileMenu() {
   const [open, setOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="relative">
+      {/* Profile button */}
       <button
-        onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-2 border rounded-full px-3 py-1.5 transition-all ${
-          open ? "border-gray-400 shadow-md" : "border-gray-200 hover:shadow-sm"
-        }`}
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 border rounded-full px-3 py-1.5 transition-all hover:shadow-sm"
+        style={{ borderColor: open ? "#d1d5db" : "#e5e7eb" }}
       >
-        <Menu size={15} className="text-gray-600" />
-        <div className="w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 overflow-hidden">
-          {isLoggedIn ? (
-            <span
-              className="w-full h-full flex items-center justify-center text-white text-xs font-bold"
-              style={{ background: "linear-gradient(135deg,#BA0036,#ff6b6b)" }}
-            >
-              P
-            </span>
-          ) : (
-            <User size={14} />
-          )}
+        <Menu size={15} />
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+          style={{ background: "linear-gradient(135deg,#BA0036,#ff6b6b)" }}
+        >
+          {isLoggedIn ? "P" : "?"}
         </div>
       </button>
 
+      {/* Dropdown */}
       {open && (
-        <ProfileDropdown
-          isLoggedIn={isLoggedIn}
-          onClose={() => setOpen(false)}
-          onLogin={() => setIsLoggedIn(true)}
-          onLogout={() => setIsLoggedIn(false)}
+        <div
+          ref={dropdownRef}
+          className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50"
+          style={{ animation: "ddIn .18s cubic-bezier(.16,1,.3,1) both" }}
+        >
+          <style>{`
+            @keyframes ddIn {
+              from { opacity:0; transform:translateY(-8px) scale(.98); }
+              to   { opacity:1; transform:translateY(0)    scale(1);   }
+            }
+          `}</style>
+
+          {isLoggedIn ? (
+            <LoggedInDropdown onClose={() => setOpen(false)} onLogout={() => setIsLoggedIn(false)} />
+          ) : (
+            <GuestDropdown onClose={() => setOpen(false)} onShowLogin={() => setShowPhoneModal(true)} />
+          )}
+        </div>
+      )}
+
+      {/* Phone Modal */}
+      {showPhoneModal && (
+        <PhoneModal
+          onClose={() => setShowPhoneModal(false)}
+          onSuccess={() => setIsLoggedIn(true)}
+          onShowEmail={() => {
+            setShowPhoneModal(false);
+            setShowEmailModal(true);
+          }}
+        />
+      )}
+
+      {/* Email Modal */}
+      {showEmailModal && (
+        <EmailModal
+          onClose={() => setShowEmailModal(false)}
+          onSuccess={() => setIsLoggedIn(true)}
         />
       )}
     </div>
