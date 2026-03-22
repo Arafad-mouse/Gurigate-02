@@ -41,6 +41,7 @@ import { WhenPicker } from "@/components/WhenPicker";
 import { WhereDropdown } from "@/components/WhereDropdown";
 import { WhoDropdown } from "@/components/WhoDropdown";
 import { PopularHomesSection } from "@/components/PopularHomesSection";
+import { ProfileMenu } from "@/components/ProfileMenu";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -824,22 +825,7 @@ export default function GuriGateLanding() {
               Become a host
             </button>
             <Globe size={20} className="text-gray-700 cursor-pointer hover:text-gray-900" />
-            <div className="relative">
-              <button
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className={`flex items-center gap-2 border rounded-full px-3 py-1.5 transition-all ${
-                  showProfileMenu
-                    ? "border-gray-400 shadow-md"
-                    : "border-gray-200 hover:shadow-sm"
-                }`}
-              >
-                <Menu size={15} />
-                <div className="w-7 h-7 bg-[#BA0036] rounded-full flex items-center justify-center">
-                  <UserRoundPen size={14} className="text-white" />
-                </div>
-              </button>
-              {showProfileMenu && <ProfileDropdown onClose={() => setShowProfileMenu(false)} onNavigateProfile={() => navigate("/profile")} />}
-            </div>
+            <ProfileMenu />
           </div>
         </div>
 
