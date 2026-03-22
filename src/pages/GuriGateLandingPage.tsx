@@ -843,8 +843,8 @@ export default function GuriGateLanding() {
         </div>
 
         {/* Search bar */}
-        {/* Search bar */}
-        <div className="relative max-w-2xl w-full" ref={pickerRef}>
+        <div className="flex justify-center px-4">
+          <div className="relative max-w-2xl w-full" ref={pickerRef}>
           <div className="flex items-center bg-white border border-gray-200 rounded-full shadow-sm w-full">
             {/* Where */}
             <div className="relative flex-1">
@@ -924,6 +924,7 @@ export default function GuriGateLanding() {
               </svg>
               <span className="hidden sm:inline">Search</span>
             </button>
+          </div>
           </div>
         </div>
       </nav>
