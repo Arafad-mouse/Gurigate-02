@@ -38,6 +38,7 @@ import {
   Key,
 } from "lucide-react";
 import { WhenPicker } from "@/components/WhenPicker";
+import { WhereDropdown } from "@/components/WhereDropdown";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -760,6 +761,8 @@ export default function GuriGateLanding() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showWhenPicker, setShowWhenPicker] = useState(false);
   const [whenLabel, setWhenLabel] = useState("");
+  const [showWhereDropdown, setShowWhereDropdown] = useState(false);
+  const [whereValue, setWhereValue] = useState("");
   const pickerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -841,12 +844,22 @@ export default function GuriGateLanding() {
         <div className="relative max-w-2xl w-full" ref={pickerRef}>
           <div className="flex items-center bg-white border border-gray-200 rounded-full shadow-sm w-full">
             {/* Where */}
-            <div className="flex-1 px-5 py-2.5 border-r border-gray-200">
-              <p className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">Where</p>
-              <input
-                placeholder="Search destinations"
-                className="text-sm text-gray-500 outline-none w-full bg-transparent placeholder:text-gray-400"
-              />
+            <div className="relative flex-1">
+              <button
+                onClick={() => setShowWhereDropdown(v => !v)}
+                className={`w-full px-5 py-2.5 border-r border-gray-200 text-left ${showWhereDropdown ? "bg-gray-50" : ""}`}
+              >
+                <p className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">Where</p>
+                <p className={`text-sm truncate ${whereValue ? "text-gray-800 font-medium" : "text-gray-400"}`}>
+                  {whereValue || "Search destinations"}
+                </p>
+              </button>
+              {showWhereDropdown && (
+                <WhereDropdown
+                  onClose={() => setShowWhereDropdown(false)}
+                  onSelect={(val) => { setWhereValue(val); setShowWhereDropdown(false); }}
+                />
+              )}
             </div>
 
             {/* When */}
