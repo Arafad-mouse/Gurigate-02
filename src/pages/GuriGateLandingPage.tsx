@@ -40,6 +40,7 @@ import {
 import { WhenPicker } from "@/components/WhenPicker";
 import { WhereDropdown } from "@/components/WhereDropdown";
 import { WhoDropdown } from "@/components/WhoDropdown";
+import { PopularHomesSection } from "@/components/PopularHomesSection";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -952,6 +953,11 @@ export default function GuriGateLanding() {
             </button>
           </div>
         </div>
+      </section>
+
+      {/* ── Popular Homes ── */}
+      <section className="max-w-7xl mx-auto px-6 py-12">
+        <PopularHomesSection />
       </section>
 
       {/* ── Main Content ── */}
