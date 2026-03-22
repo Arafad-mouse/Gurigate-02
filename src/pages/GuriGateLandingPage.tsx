@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { WhenPicker } from "@/components/WhenPicker";
 import { WhereDropdown } from "@/components/WhereDropdown";
+import { WhoDropdown } from "@/components/WhoDropdown";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -763,6 +764,8 @@ export default function GuriGateLanding() {
   const [whenLabel, setWhenLabel] = useState("");
   const [showWhereDropdown, setShowWhereDropdown] = useState(false);
   const [whereValue, setWhereValue] = useState("");
+  const [showWhoDropdown, setShowWhoDropdown] = useState(false);
+  const [whoSummary, setWhoSummary] = useState("");
   const pickerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -892,12 +895,25 @@ export default function GuriGateLanding() {
             </div>
 
             {/* Who */}
-            <div className="flex-1 px-5 py-2.5">
-              <p className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">Who</p>
-              <input
-                placeholder="Add guests"
-                className="text-sm text-gray-500 outline-none w-full bg-transparent placeholder:text-gray-400"
-              />
+            <div className="relative flex-1">
+              <button
+                onClick={() => setShowWhoDropdown(v => !v)}
+                className={`w-full px-5 py-2.5 text-left ${showWhoDropdown ? "bg-gray-50" : ""}`}
+              >
+                <p className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">Who</p>
+                <p className={`text-sm truncate ${whoSummary ? "text-gray-800 font-medium" : "text-gray-400"}`}>
+                  {whoSummary || "Add guests"}
+                </p>
+              </button>
+              {showWhoDropdown && (
+                <WhoDropdown
+                  onClose={() => setShowWhoDropdown(false)}
+                  onSelect={(summary, counts) => { 
+                    setWhoSummary(summary); 
+                    setShowWhoDropdown(false); 
+                  }}
+                />
+              )}
             </div>
 
             {/* Search button */}
