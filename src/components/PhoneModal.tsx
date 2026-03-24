@@ -184,8 +184,8 @@ function PhoneStep({
       <div className="flex flex-col gap-3">
         <SocialBtn icon={<GoogleIcon />} label="Continue with Google" />
         <SocialBtn icon={<AppleIcon />} label="Continue with Apple" />
-        <SocialBtn icon={<Mail size={18} className="text-gray-700" />} label="Continue with email" bold />
-        <SocialBtn icon={<FacebookIcon />} label="Continue with Facebook" bold />
+        <SocialBtn icon={<Mail size={18} className="text-gray-700" />} label="Continue with email" />
+        <SocialBtn icon={<FacebookIcon />} label="Continue with Facebook" />
       </div>
     </div>
   );

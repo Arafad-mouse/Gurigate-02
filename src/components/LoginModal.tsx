@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { X, ArrowLeft, ChevronDown, Mail } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -68,7 +69,10 @@ function PhoneStep({
   const [phone, setPhone] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
+  const supabase = createClient();
 
   const filtered = search
     ? COUNTRIES.filter((c) =>
@@ -90,6 +94,28 @@ function PhoneStep({
   }, []);
 
   const valid = phone.replace(/\D/g, "").length >= 6;
+
+  const handlePhoneContinue = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const fullPhone = `${country.code}${phone.replace(/\D/g, "")}`;
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: fullPhone,
+        options: {
+          shouldCreateUser: true,
+        },
+      });
+      
+      if (error) throw error;
+      onContinue(phone, country);
+    } catch (err: any) {
+      setError(err.message ?? "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="p-6">
@@ -166,14 +192,26 @@ function PhoneStep({
         </button>
       </p>
 
+      {/* Error display */}
+      {error && (
+        <p className="text-xs text-red-500 mb-4">{error}</p>
+      )}
+
       {/* Continue */}
       <button
-        onClick={() => valid && onContinue(phone, country)}
-        disabled={!valid}
+        onClick={handlePhoneContinue}
+        disabled={!valid || loading}
         className="w-full py-3.5 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed mb-5"
         style={{ background: "linear-gradient(135deg,#E8344E,#c9263f)" }}
       >
-        Continue
+        {loading ? (
+          <svg className="animate-spin w-4 h-4 mx-auto" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+            <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75" />
+          </svg>
+        ) : (
+          "Continue"
+        )}
       </button>
 
       {/* Divider */}
@@ -185,15 +223,14 @@ function PhoneStep({
 
       {/* Social buttons */}
       <div className="flex flex-col gap-3">
-        <SocialBtn icon={<GoogleIcon />} label="Continue with Google" />
-        <SocialBtn icon={<AppleIcon />} label="Continue with Apple" />
+        <SocialBtn icon={<GoogleIcon />} label="Continue with Google" onClick={handleGoogleAuth} />
+        <SocialBtn icon={<AppleIcon />} label="Continue with Apple" onClick={handleGoogleAuth} />
         <SocialBtn 
           icon={<Mail size={18} className="text-gray-700" />} 
           label="Continue with email" 
-          bold 
           onClick={onShowEmail}
         />
-        <SocialBtn icon={<FacebookIcon />} label="Continue with Facebook" bold />
+        <SocialBtn icon={<FacebookIcon />} label="Continue with Facebook" onClick={handleFacebookAuth} />
       </div>
     </div>
   );
@@ -213,6 +250,30 @@ function SocialBtn({ icon, label, bold = false, onClick }: { icon: React.ReactNo
   );
 }
 
+// ─── OAuth Handlers ─────────────────────────────────────────────────────────────
+
+const handleGoogleAuth = async () => {
+  const supabase = createClient();
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+    },
+  });
+  if (error) console.error("Google auth error:", error);
+};
+
+const handleFacebookAuth = async () => {
+  const supabase = createClient();
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "facebook",
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+    },
+  });
+  if (error) console.error("Facebook auth error:", error);
+};
+
 // ─── Step 2: OTP Verification ─────────────────────────────────────────────────
 
 function VerifyStep({
@@ -225,7 +286,10 @@ function VerifyStep({
   onSuccess: () => void;
 }) {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const refs = useRef<(HTMLInputElement | null)[]>([]);
+  const supabase = createClient();
 
   const handleChange = (i: number, val: string) => {
     if (!/^\d?$/.test(val)) return;
@@ -233,7 +297,34 @@ function VerifyStep({
     next[i] = val;
     setCode(next);
     if (val && i < 5) refs.current[i + 1]?.focus();
-    if (next.every((c) => c !== "")) setTimeout(onSuccess, 300);
+    if (next.every((c) => c !== "")) {
+      // Auto-verify when all digits are entered
+      verifyCode(next.join(""));
+    }
+  };
+
+  const verifyCode = async (fullCode: string) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const fullPhone = `${country.code}${phone.replace(/\D/g, "")}`;
+      const { error } = await supabase.auth.verifyOtp({
+        phone: fullPhone,
+        token: fullCode,
+        type: "sms",
+      });
+      
+      if (error) throw error;
+      setTimeout(onSuccess, 300);
+    } catch (err: any) {
+      setError(err.message ?? "Invalid code. Please try again.");
+      // Clear the code on error
+      setCode(["", "", "", "", "", ""]);
+      refs.current[0]?.focus();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleKeyDown = (i: number, e: React.KeyboardEvent) => {
@@ -246,10 +337,11 @@ function VerifyStep({
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     if (pasted.length === 6) {
       setCode(pasted.split(""));
-      setTimeout(onSuccess, 400);
+      verifyCode(pasted);
     }
   };
 
@@ -262,6 +354,11 @@ function VerifyStep({
         Enter the code we sent to{" "}
         <span className="font-semibold text-gray-900">{maskedPhone}</span>.
       </p>
+
+      {/* Error display */}
+      {error && (
+        <p className="text-xs text-red-500 mb-4">{error}</p>
+      )}
 
       {/* 6-box OTP */}
       <div className="flex gap-2 mb-6" onPaste={handlePaste}>
@@ -276,7 +373,10 @@ function VerifyStep({
             autoFocus={i === 0}
             onChange={(e) => handleChange(i, e.target.value)}
             onKeyDown={(e) => handleKeyDown(i, e)}
-            className="flex-1 h-14 text-center text-xl font-semibold border border-gray-300 rounded-xl outline-none focus:border-2 focus:border-gray-900 transition-all bg-white text-gray-900 caret-transparent"
+            disabled={loading}
+            className={`flex-1 h-14 text-center text-xl font-semibold border rounded-xl outline-none transition-all bg-white text-gray-900 caret-transparent ${
+              loading ? "border-gray-200 text-gray-400" : "border-gray-300 focus:border-2 focus:border-gray-900"
+            }`}
           />
         ))}
       </div>
@@ -284,8 +384,13 @@ function VerifyStep({
       <p className="text-sm text-gray-600">
         Didn't get a code?{" "}
         <button
-          onClick={() => { setCode(["", "", "", "", "", ""]); refs.current[0]?.focus(); }}
-          className="font-semibold underline underline-offset-2 hover:text-gray-900 transition-colors"
+          onClick={() => { 
+            setCode(["", "", "", "", "", ""]); 
+            setError(null); 
+            refs.current[0]?.focus(); 
+          }}
+          disabled={loading}
+          className="font-semibold underline underline-offset-2 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Try again
         </button>

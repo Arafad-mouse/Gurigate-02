@@ -21,6 +21,7 @@ import {
   BadgeQuestionMark,
 } from "lucide-react";
 import { PhoneModal } from "./LoginModal";
+import { useAuth } from "@/hooks/useAuth";
 import { EmailModal } from "./EmailModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -275,11 +276,21 @@ function ProfileDropdown({
 // ─── Trigger Button (drop into your Navbar) ───────────────────────────────────
 
 export function ProfileMenu() {
+  const { user, loading, signOut } = useAuth();
   const [open, setOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const isLoggedIn = !!user;
+  
+  // Get user display name
+  const displayName = user?.user_metadata?.full_name
+    ?? user?.email?.split("@")[0]
+    ?? user?.phone
+    ?? "Guest";
+  
+  const avatarLetter = displayName[0].toUpperCase();
 
   return (
     <div className="relative">
@@ -294,7 +305,7 @@ export function ProfileMenu() {
           className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
           style={{ background: "linear-gradient(135deg,#BA0036,#ff6b6b)" }}
         >
-          {isLoggedIn ? "P" : "?"}
+          {isLoggedIn ? avatarLetter : "?"}
         </div>
       </button>
 
@@ -313,7 +324,7 @@ export function ProfileMenu() {
           `}</style>
 
           {isLoggedIn ? (
-            <LoggedInDropdown onClose={() => setOpen(false)} onLogout={() => setIsLoggedIn(false)} />
+            <LoggedInDropdown onClose={() => setOpen(false)} onLogout={signOut} />
           ) : (
             <GuestDropdown onClose={() => setOpen(false)} onShowLogin={() => setShowPhoneModal(true)} />
           )}
@@ -324,7 +335,7 @@ export function ProfileMenu() {
       {showPhoneModal && (
         <PhoneModal
           onClose={() => setShowPhoneModal(false)}
-          onSuccess={() => setIsLoggedIn(true)}
+          onSuccess={() => setOpen(false)}
           onShowEmail={() => {
             setShowPhoneModal(false);
             setShowEmailModal(true);
@@ -336,7 +347,7 @@ export function ProfileMenu() {
       {showEmailModal && (
         <EmailModal
           onClose={() => setShowEmailModal(false)}
-          onSuccess={() => setIsLoggedIn(true)}
+          onSuccess={() => setOpen(false)}
         />
       )}
     </div>

@@ -3,27 +3,27 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  SlidersHorizontal,
+  X,
+  ChevronDown,
+  Heart,
+  Search,
   MapPin,
+  Star,
+  Calendar,
+  Home,
+  Building,
+  Building2,
   Bed,
   Bath,
   Maximize2,
-  Star,
-  Heart,
-  ChevronDown,
-  Home,
-  Building2,
-  Hotel,
-  X,
-  Map,
+  Car,
+  Armchair,
+  Trees,
+  Shield,
   ShieldCheck,
-  Compass,
-  Globe,
-  Menu,
+  Wifi,
+  Wind,
   UserRoundPen,
-  List,
-  Briefcase,
-  MessageCircle,
   Settings,
   HelpCircle,
   UserPlus,
@@ -36,12 +36,17 @@ import {
   BadgeQuestionMark,
   UserRoundSearch,
   Key,
+  Compass,
+  Globe,
+  SlidersHorizontal,
+  Hotel,
 } from "lucide-react";
 import { WhenPicker } from "@/components/WhenPicker";
 import { WhereDropdown } from "@/components/WhereDropdown";
 import { WhoDropdown } from "@/components/WhoDropdown";
 import { PopularHomesSection } from "@/components/PopularHomesSection";
 import { ProfileMenu } from "@/components/ProfileMenu";
+import PropertyPage from "@/pages/PropertyPage";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -59,7 +64,10 @@ interface Property {
   image: string;
   rating?: number;
   location?: string;
-  type?: string;
+  type: string;
+  city: string;
+  reviews?: number;
+  guests?: number;
 }
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -77,6 +85,8 @@ const FEATURED_PROPERTIES: Property[] = [
     badge: "FOR SALE",
     image:
       "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&q=80",
+    type: "Apartment",
+    city: "Nairobi",
   },
   {
     id: 2,
@@ -90,6 +100,8 @@ const FEATURED_PROPERTIES: Property[] = [
     badge: "FOR SALE",
     image:
       "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=80",
+    type: "Apartment",
+    city: "Nairobi",
   },
   {
     id: 3,
@@ -103,6 +115,8 @@ const FEATURED_PROPERTIES: Property[] = [
     badge: "FOR RENT",
     image:
       "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80",
+    type: "House",
+    city: "Nairobi",
   },
   {
     id: 4,
@@ -116,6 +130,8 @@ const FEATURED_PROPERTIES: Property[] = [
     badge: "FOR RENT",
     image:
       "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&q=80",
+    type: "House",
+    city: "Nairobi",
   },
   {
     id: 5,
@@ -130,6 +146,8 @@ const FEATURED_PROPERTIES: Property[] = [
     featured: true,
     image:
       "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&q=80",
+    type: "Penthouse",
+    city: "Nairobi",
   },
   {
     id: 6,
@@ -144,6 +162,8 @@ const FEATURED_PROPERTIES: Property[] = [
     featured: true,
     image:
       "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80",
+    type: "Penthouse",
+    city: "Nairobi",
   },
 ];
 
@@ -160,6 +180,7 @@ const NAIROBI_HOMES: Property[] = [
     badge: "SHORT STAY",
     rating: 5.0,
     address: "Kileleshwa, Nairobi",
+    city: "Nairobi",
     image:
       "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
   },
@@ -175,6 +196,7 @@ const NAIROBI_HOMES: Property[] = [
     badge: "SHORT STAY",
     rating: 5.0,
     address: "2172 18th Ave, Nairobi",
+    city: "Nairobi",
     image:
       "https://images.unsplash.com/photo-1560185127-6a12f9a26fe5?w=600&q=80",
   },
@@ -190,6 +212,7 @@ const NAIROBI_HOMES: Property[] = [
     badge: "SHORT STAY",
     rating: 4.92,
     address: "Karen, Nairobi",
+    city: "Nairobi",
     image:
       "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=600&q=80",
   },
@@ -208,6 +231,7 @@ const HARGEISA_HOMES: Property[] = [
     badge: "SHORT STAY",
     rating: 5.0,
     address: "Hargeisa",
+    city: "Hargeisa",
     image:
       "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=600&q=80",
   },
@@ -223,6 +247,7 @@ const HARGEISA_HOMES: Property[] = [
     badge: "SHORT STAY",
     rating: 5.0,
     address: "Hargeisa",
+    city: "Hargeisa",
     image:
       "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=600&q=80",
   },
@@ -238,6 +263,7 @@ const HARGEISA_HOMES: Property[] = [
     badge: "SHORT STAY",
     rating: 4.92,
     address: "Hargeisa",
+    city: "Hargeisa",
     image:
       "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=600&q=80",
   },
@@ -331,6 +357,7 @@ function ProfileDropdown({ onClose, onNavigateProfile }: { onClose: () => void; 
           <button
             onClick={onClose}
             className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-400"
+            title="Close"
           >
             <X size={13} />
           </button>
@@ -454,6 +481,7 @@ function FeaturedPropertyCard({ property }: { property: Property }) {
         <button
           onClick={() => setLiked(!liked)}
           className="absolute top-3 right-3 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow"
+          title="Toggle like"
         >
           <Heart
             size={14}
@@ -493,10 +521,10 @@ function FeaturedPropertyCard({ property }: { property: Property }) {
   );
 }
 
-function PopularPropertyCard({ property }: { property: Property }) {
+function PopularPropertyCard({ property, onClick }: { property: Property; onClick: () => void }) {
   const [liked, setLiked] = useState(false);
   return (
-    <div className="group cursor-pointer">
+    <div className="group cursor-pointer" onClick={onClick}>
       <div className="relative rounded-2xl overflow-hidden mb-2.5">
         <img
           src={property.image}
@@ -511,6 +539,7 @@ function PopularPropertyCard({ property }: { property: Property }) {
         <button
           onClick={() => setLiked(!liked)}
           className="absolute top-3 right-3"
+          title="Toggle favorite"
         >
           <Heart
             size={18}
@@ -565,7 +594,7 @@ function CustomerFilters() {
           <br />
           Filters
         </h2>
-        <button className="w-7 h-7 bg-[#E8344E] rounded-full flex items-center justify-center">
+        <button className="w-7 h-7 bg-[#E8344E] rounded-full flex items-center justify-center" title="Close filters">
           <X size={14} className="text-white" />
         </button>
       </div>
@@ -603,12 +632,16 @@ function CustomerFilters() {
             value={priceMin}
             onChange={(e) => setPriceMin(Number(e.target.value))}
             className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#E8344E]"
+            placeholder="Min price"
+            title="Minimum price"
           />
           <input
             type="number"
             value={priceMax}
             onChange={(e) => setPriceMax(Number(e.target.value))}
             className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#E8344E]"
+            placeholder="Max price"
+            title="Maximum price"
           />
         </div>
         <input
@@ -618,6 +651,8 @@ function CustomerFilters() {
           value={priceMax}
           onChange={(e) => setPriceMax(Number(e.target.value))}
           className="w-full accent-[#E8344E]"
+          title="Maximum price range"
+          placeholder="Price range"
         />
         <p className="text-right text-[10px] text-gray-400">${priceMax}</p>
       </div>
@@ -633,12 +668,16 @@ function CustomerFilters() {
             value={sqftMin}
             onChange={(e) => setSqftMin(Number(e.target.value))}
             className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#E8344E]"
+            placeholder="Min sqft"
+            title="Minimum square feet"
           />
           <input
             type="number"
             value={sqftMax}
             onChange={(e) => setSqftMax(Number(e.target.value))}
             className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#E8344E]"
+            placeholder="Max sqft"
+            title="Maximum square feet"
           />
         </div>
         <input
@@ -658,7 +697,7 @@ function CustomerFilters() {
         </label>
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <select className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none appearance-none focus:border-[#E8344E]">
+            <select className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none appearance-none focus:border-[#E8344E]" title="Minimum year built">
               <option>Min Year</option>
               {Array.from({ length: 30 }, (_, i) => 1995 + i).map((y) => (
                 <option key={y}>{y}</option>
@@ -670,7 +709,7 @@ function CustomerFilters() {
             />
           </div>
           <div className="relative flex-1">
-            <select className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none appearance-none focus:border-[#E8344E]">
+            <select className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none appearance-none focus:border-[#E8344E]" title="Maximum year built">
               <option>Max Year</option>
               {Array.from({ length: 30 }, (_, i) => 1995 + i).map((y) => (
                 <option key={y}>{y}</option>
@@ -768,6 +807,7 @@ export default function GuriGateLanding() {
   const [whereValue, setWhereValue] = useState("");
   const [showWhoDropdown, setShowWhoDropdown] = useState(false);
   const [whoSummary, setWhoSummary] = useState("");
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -785,6 +825,16 @@ export default function GuriGateLanding() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  // If a property is selected, show the PropertyPage
+  if (selectedProperty) {
+    return (
+      <PropertyPage
+        property={selectedProperty}
+        onBack={() => setSelectedProperty(null)}
+      />
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen font-sans">
@@ -805,8 +855,11 @@ export default function GuriGateLanding() {
             <button className="flex items-center gap-1.5 font-semibold text-gray-900 border-b-2 border-[#BA0036] pb-0.5">
               <Home size={14} /> Homes
             </button>
-            <button className="flex items-center gap-1.5 text-gray-500 hover:text-gray-900 transition-colors relative">
-              <Compass size={14} /> Experiences
+            <button 
+              onClick={() => navigate('/manage-property')}
+              className="flex items-center gap-1.5 text-gray-500 hover:text-gray-900 transition-colors relative"
+            >
+              <Compass size={14} /> Manage Property
               <span className="absolute -top-2 -right-5 text-[9px] bg-[#BA0036] text-white px-1 rounded-full">
                 NEW
               </span>
@@ -1011,7 +1064,7 @@ export default function GuriGateLanding() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {NAIROBI_HOMES.map((p) => (
-                  <PopularPropertyCard key={p.id} property={p} />
+                  <PopularPropertyCard key={p.id} property={p} onClick={() => setSelectedProperty(p)} />
                 ))}
               </div>
             </div>
@@ -1028,7 +1081,7 @@ export default function GuriGateLanding() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {HARGEISA_HOMES.map((p) => (
-                  <PopularPropertyCard key={p.id} property={p} />
+                  <PopularPropertyCard key={p.id} property={p} onClick={() => setSelectedProperty(p)} />
                 ))}
               </div>
             </div>

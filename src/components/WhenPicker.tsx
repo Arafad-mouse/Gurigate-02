@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Tab = "Dates" | "Months" | "Flexible";
@@ -155,6 +155,7 @@ function DatesTab({ onSelect }: { onSelect?: (s: Date, e: Date) => void }) {
         <button
           onClick={() => setLeftMonth(p => addMonths(p, -1))}
           className="p-1.5 hover:bg-gray-100 rounded-full text-gray-500 transition-colors flex-shrink-0"
+          title="Previous month"
         >
           <ChevLeft />
         </button>
@@ -165,6 +166,7 @@ function DatesTab({ onSelect }: { onSelect?: (s: Date, e: Date) => void }) {
         <button
           onClick={() => setLeftMonth(p => addMonths(p, 1))}
           className="p-1.5 hover:bg-gray-100 rounded-full text-gray-500 transition-colors flex-shrink-0"
+          title="Next month"
         >
           <ChevRight />
         </button>
@@ -181,6 +183,7 @@ function DatesTab({ onSelect }: { onSelect?: (s: Date, e: Date) => void }) {
                 ? "border-gray-800 bg-gray-900 text-white"
                 : "border-gray-300 text-gray-600 hover:border-gray-500"
             }`}
+            title={`Select ${t} option`}
           >
             {t}
           </button>
@@ -323,6 +326,22 @@ function FlexibleTab({ onSelect }: { onSelect?: (s: Date, e: Date) => void }) {
     );
   };
 
+  const handleConfirm = () => {
+    if (selectedMonths.length > 0) {
+      const sorted = selectedMonths.map(m => {
+        const [year, month] = m.split('-').map(Number);
+        return new Date(year, month, 1);
+      }).sort((a, b) => a.getTime() - b.getTime());
+      
+      const start = sorted[0];
+      const end = sorted[sorted.length - 1];
+      end.setMonth(end.getMonth() + 1);
+      end.setDate(end.getDate() - 1);
+      
+      onSelect?.(start, end);
+    }
+  };
+
   return (
     <div className="py-2">
       {/* Duration */}
@@ -352,6 +371,7 @@ function FlexibleTab({ onSelect }: { onSelect?: (s: Date, e: Date) => void }) {
           onClick={() => setOffset(o => Math.max(0, o - 1))}
           disabled={offset === 0}
           className="p-1.5 rounded-full border border-gray-200 text-gray-400 hover:border-gray-400 disabled:opacity-30 transition-colors flex-shrink-0"
+          title="Previous months"
         >
           <ChevLeft />
         </button>
@@ -378,15 +398,25 @@ function FlexibleTab({ onSelect }: { onSelect?: (s: Date, e: Date) => void }) {
           onClick={() => setOffset(o => Math.min(allMonths.length - VISIBLE_MONTHS, o + 1))}
           disabled={offset >= allMonths.length - VISIBLE_MONTHS}
           className="p-1.5 rounded-full border border-gray-200 text-gray-400 hover:border-gray-400 disabled:opacity-30 transition-colors flex-shrink-0"
+          title="Next months"
         >
           <ChevRight />
         </button>
       </div>
 
       {selectedMonths.length > 0 && (
-        <p className="text-center text-xs text-gray-500 mt-3">
-          {selectedMonths.length} month{selectedMonths.length !== 1 ? "s" : ""} selected
-        </p>
+        <div className="text-center mt-3">
+          <p className="text-xs text-gray-500 mb-2">
+            {selectedMonths.length} month{selectedMonths.length !== 1 ? "s" : ""} selected
+          </p>
+          <button
+            onClick={handleConfirm}
+            className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800 transition-colors"
+            title="Confirm month selection"
+          >
+            Confirm Selection
+          </button>
+        </div>
       )}
     </div>
   );

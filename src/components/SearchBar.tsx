@@ -102,13 +102,13 @@ function CalendarMonth({
     <div className="min-w-0">
       <div className="flex items-center justify-between mb-3">
         {showPrev ? (
-          <button onClick={onPrev} className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors">
+          <button onClick={onPrev} className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors" title="Previous month">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15,18 9,12 15,6"/></svg>
           </button>
         ) : <div className="w-7" />}
         <span className="text-sm font-semibold text-gray-900">{MONTHS[m]} {y}</span>
         {showNext ? (
-          <button onClick={onNext} className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors">
+          <button onClick={onNext} className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors" title="Next month">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9,18 15,12 9,6"/></svg>
           </button>
         ) : <div className="w-7" />}
