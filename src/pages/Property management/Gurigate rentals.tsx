@@ -30,20 +30,10 @@ const Icon = {
   MapPin: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>,
   Upload: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
   Filter: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
+  TrendUp: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+  TrendDown: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>,
+  Shapes: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><circle cx="17" cy="8" r="4"/><path d="M12 14l-5 5v5h10v-5l-5-5z"/></svg>,
 };
-
-const NAV_ITEMS = [
-  { label:"Dashboard",   icon:<Icon.Grid/>,        section:"main" },
-  { label:"Discover",    icon:<Icon.Compass/>,      section:"main" },
-  { label:"Property",    icon:<Icon.Building/>,     section:"main" },
-  { label:"Agents",      icon:<Icon.Users/>,        section:"main" },
-  { label:"Customer",    icon:<Icon.User/>,         section:"main" },
-  { label:"Analytics",   icon:<Icon.BarChart/>,     section:"main" },
-  { label:"Order",       icon:<Icon.ShoppingBag/>,  section:"main" },
-  { label:"Transaction", icon:<Icon.CreditCard/>,   section:"main" },
-  { label:"Inbox",       icon:<Icon.Inbox/>,        section:"apps" },
-  { label:"Calendar",    icon:<Icon.Calendar/>,     section:"apps" },
-];
 
 // ── Buildings & Tenants ───────────────────────────────────────────────────────
 const BUILDINGS = ["All", "Burjiomar A", "Burjiomar B", "Kulmiye Tower", "Sha'ab Complex"];
@@ -69,9 +59,38 @@ const STATUS_STYLE = {
   Overdue: { bg:"#FEF2F2", color:"#b91c1c", dot:"#E8344E" },
 };
 
-const ROOM_LABEL = { 1:"1 Room", 2:"2 Rooms", 3:"3 Rooms" };
+// Define types for the component
+interface Tenant {
+  id: string;
+  name: string;
+  phone: string;
+  rooms: number;
+  building: string;
+  unit: string;
+  rentDate: string;
+  nextDue: string;
+  amount: number;
+  status: string;
+  avatar: null;
+}
 
-function Avatar({ name, size=30, style={} }) {
+interface AddTenantModalProps {
+  onClose: () => void;
+  onAdd: (tenant: Tenant) => void;
+}
+
+interface PaymentModalProps {
+  tenant: Tenant;
+  onClose: () => void;
+  onUpdate: (id: string, status: string) => void;
+}
+
+interface AvatarProps {
+  size?: number;
+  style?: React.CSSProperties;
+}
+
+function Avatar({ size = 30, style = {} }: AvatarProps) {
   return (
     <div style={{ width:size, height:size, borderRadius:"50%", background:"#FEE2E2", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, ...style }}>
       <svg width={size*0.64} height={size*0.64} viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -84,9 +103,9 @@ function Avatar({ name, size=30, style={} }) {
 }
 
 // ── Add Tenant Modal ──────────────────────────────────────────────────────────
-function AddTenantModal({ onClose, onAdd }) {
+function AddTenantModal({ onClose, onAdd }: AddTenantModalProps) {
   const [form, setForm] = useState({ name:"", phone:"", rooms:"1", building:BUILDINGS[1], unit:"", amount:"", nextDue:"" });
-  const set = (k,v) => setForm(p=>({...p,[k]:v}));
+  const set = (k: string, v: string) => setForm(p=>({...p,[k]:v}));
   const handleAdd = () => {
     if (!form.name || !form.phone) return;
     onAdd({
@@ -116,7 +135,7 @@ function AddTenantModal({ onClose, onAdd }) {
           ].map(f => (
             <div key={f.key} style={{ gridColumn:f.full?"span 2":"span 1" }}>
               <label style={{ fontSize:11, fontWeight:600, color:"#64748b", display:"block", marginBottom:4 }}>{f.label}</label>
-              <input type={f.type||"text"} placeholder={f.placeholder} value={form[f.key]} onChange={e=>set(f.key,e.target.value)}
+              <input type={f.type||"text"} placeholder={f.placeholder} value={form[f.key as keyof typeof form]} onChange={e=>set(f.key,e.target.value)}
                 style={{ width:"100%", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"8px 12px", fontSize:12, outline:"none", fontFamily:"inherit", color:"#111827", transition:"border .15s" }}
                 onFocus={e=>e.target.style.borderColor="#E8344E"}
                 onBlur={e=>e.target.style.borderColor="#e2e8f0"}/>
@@ -124,7 +143,7 @@ function AddTenantModal({ onClose, onAdd }) {
           ))}
           <div>
             <label style={{ fontSize:11, fontWeight:600, color:"#64748b", display:"block", marginBottom:4 }}>Rooms</label>
-            <select value={form.rooms} onChange={e=>set("rooms",e.target.value)} style={{ width:"100%", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"8px 12px", fontSize:12, outline:"none", fontFamily:"inherit", appearance:"none", cursor:"pointer" }}>
+            <select value={form.rooms} onChange={e=>set("rooms",e.target.value)} title="Number of rooms" style={{ width:"100%", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"8px 12px", fontSize:12, outline:"none", fontFamily:"inherit", appearance:"none", cursor:"pointer" }}>
               <option value="1">1 Room</option>
               <option value="2">2 Rooms</option>
               <option value="3">3 Rooms</option>
@@ -147,7 +166,7 @@ function AddTenantModal({ onClose, onAdd }) {
 }
 
 // ── Mark Payment Modal ────────────────────────────────────────────────────────
-function PaymentModal({ tenant, onClose, onUpdate }) {
+function PaymentModal({ tenant, onClose, onUpdate }: PaymentModalProps) {
   const [status, setStatus] = useState(tenant.status);
   const save = () => { onUpdate(tenant.id, status); onClose(); };
   return (
@@ -158,7 +177,7 @@ function PaymentModal({ tenant, onClose, onUpdate }) {
         <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:20 }}>
           {["Paid","Pending","Overdue"].map(s=>(
             <button key={s} onClick={()=>setStatus(s)} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", borderRadius:10, border:`2px solid ${status===s?"#E8344E":"#e2e8f0"}`, background:status===s?"#FEF2F2":"white", cursor:"pointer", transition:"all .15s" }}>
-              <div style={{ width:12, height:12, borderRadius:"50%", background:STATUS_STYLE[s].dot, flexShrink:0 }}/>
+              <div style={{ width:12, height:12, borderRadius:"50%", background:STATUS_STYLE[s as keyof typeof STATUS_STYLE].dot, flexShrink:0 }}/>
               <span style={{ fontSize:13, fontWeight:600, color:status===s?"#E8344E":"#374151" }}>{s}</span>
               {status===s && <span style={{ marginLeft:"auto", color:"#E8344E" }}><Icon.Check/></span>}
             </button>
@@ -175,20 +194,19 @@ function PaymentModal({ tenant, onClose, onUpdate }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function GuriGateRentals() {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode] = useState(false);
   const [tenants, setTenants] = useState(INITIAL_TENANTS);
-  const [selectedTenant, setSelectedTenant] = useState(null);
+  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [buildingFilter, setBuildingFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [search, setSearch] = useState("");
 
-  const bg     = darkMode ? "#0F172A" : "#F8F9FC";
   const card   = darkMode ? "#1E293B" : "white";
   const bdr    = darkMode ? "#334155" : "#F1F5F9";
   const muted  = darkMode ? "#94A3B8" : "#9CA3AF";
   const text   = darkMode ? "#E2E8F0" : "#111827";
-  const rowHov = darkMode ? "#1e3a5f" : "#FEF2F2";
 
   const filtered = tenants.filter(t =>
     (buildingFilter === "All" || t.building === buildingFilter) &&
@@ -198,22 +216,30 @@ export default function GuriGateRentals() {
      t.unit.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const stats = {
-    total: tenants.length,
-    paid: tenants.filter(t=>t.status==="Paid").length,
-    overdue: tenants.filter(t=>t.status==="Overdue").length,
-    pending: tenants.filter(t=>t.status==="Pending").length,
-    revenue: tenants.filter(t=>t.status==="Paid").reduce((s,t)=>s+t.amount,0),
+  
+  const addTenant = (t: Tenant) => setTenants(p=>[...p,t]);
+  const updateStatus = (id: string, status: string) => {
+    setTenants(p=>p.map(t=>t.id===id?{...t,status}:t));
+    if (selectedTenant?.id===id) setSelectedTenant(p=>p?{...p,status}:null);
+  };
+  const deleteTenant = (id: string) => {
+    setTenants(p=>p.filter(t=>t.id!==id));
+    if (selectedTenant?.id===id) setSelectedTenant(tenants.find(t=>t.id!==id) || null);
   };
 
-  const addTenant = (t) => setTenants(p=>[...p,t]);
-  const updateStatus = (id, status) => {
-    setTenants(p=>p.map(t=>t.id===id?{...t,status}:t));
-    if (selectedTenant?.id===id) setSelectedTenant(p=>({...p,status}));
+  const handleAddTenant = (tenant: Tenant) => {
+    addTenant(tenant);
+    setSelectedTenant(tenant);
   };
-  const deleteTenant = (id) => {
-    setTenants(p=>p.filter(t=>t.id!==id));
-    if (selectedTenant?.id===id) setSelectedTenant(tenants.find(t=>t.id!==id)||null);
+
+  const handleUpdateStatus = (id: string, status: string) => {
+    updateStatus(id, status);
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this tenant?')) {
+      deleteTenant(id);
+    }
   };
 
   return (
@@ -260,7 +286,7 @@ export default function GuriGateRentals() {
       {/* Filters */}
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20, flexWrap:"wrap" }}>
         <div style={{ display:"flex", alignItems:"center", gap:6, background:card, border:`1px solid ${bdr}`, borderRadius:10, padding:"8px 12px" }}>
-          <Icon.Filter style={{ color:muted }}/>
+          <Icon.Filter />
           <select value={buildingFilter} onChange={e=>setBuildingFilter(e.target.value)} style={{ border:"none", outline:"none", background:"transparent", color:text, fontSize:13, cursor:"pointer" }}>
             {BUILDINGS.map(b => <option key={b} value={b}>{b}</option>)}
           </select>
@@ -274,7 +300,7 @@ export default function GuriGateRentals() {
           </select>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:6, background:card, border:`1px solid ${bdr}`, borderRadius:10, padding:"8px 12px", flex:1, maxWidth:300 }}>
-          <Icon.Search style={{ color:muted }}/>
+          <Icon.Search />
           <input placeholder="Search tenants..." value={search} onChange={e=>setSearch(e.target.value)} style={{ border:"none", outline:"none", background:"transparent", color:text, fontSize:13, width:"100%" }}/>
         </div>
       </div>
@@ -298,7 +324,7 @@ export default function GuriGateRentals() {
                   onMouseLeave={e=>{e.currentTarget.style.background="";}}>
                 <td style={{ padding:"12px 14px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                    <Avatar name={t.name} size={32}/>
+                    <Avatar size={32}/>
                     <div>
                       <p style={{ fontWeight:600, color:text, fontSize:13 }}>{t.name}</p>
                       <p style={{ fontSize:11, color:muted }}>{t.phone}</p>
@@ -307,7 +333,7 @@ export default function GuriGateRentals() {
                 </td>
                 <td style={{ padding:"12px 14px", color:muted }}>{t.building}</td>
                 <td style={{ padding:"12px 14px", color:muted }}>{t.unit}</td>
-                <td style={{ padding:"12px 14px", fontWeight:600, color:text }}>${t.rent}/mo</td>
+                <td style={{ padding:"12px 14px", fontWeight:600, color:text }}>${t.amount}/mo</td>
                 <td style={{ padding:"12px 14px" }}>
                   <span style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"3px 10px", borderRadius:12, fontSize:11, fontWeight:600,
                     background:t.status==="Active" ? "#F0FDF4" : t.status==="Pending" ? "#FEF3C7" : "#FEF2F2",
@@ -315,7 +341,7 @@ export default function GuriGateRentals() {
                     {t.status}
                   </span>
                 </td>
-                <td style={{ padding:"12px 14px", color:muted, fontSize:12 }}>{t.joinDate}</td>
+                <td style={{ padding:"12px 14px", color:muted, fontSize:12 }}>{t.rentDate}</td>
                 <td style={{ padding:"12px 14px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                     <button onClick={()=>setShowPaymentModal(true)} style={{ background:"none", border:"none", cursor:"pointer", color:muted, padding:4 }}>
@@ -334,7 +360,7 @@ export default function GuriGateRentals() {
 
       {/* Modals */}
       {showAddModal && (
-        <AddTenantModal onClose={()=>setShowAddModal(false)} onAdd={handleAddTenant} buildings={BUILDINGS.slice(1)} />
+        <AddTenantModal onClose={()=>setShowAddModal(false)} onAdd={handleAddTenant} />
       )}
       {showPaymentModal && selectedTenant && (
         <PaymentModal tenant={selectedTenant} onClose={()=>setShowPaymentModal(false)} onUpdate={handleUpdateStatus} />

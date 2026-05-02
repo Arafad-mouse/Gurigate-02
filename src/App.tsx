@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useParams, useNavigate } from 'react-router-dom'
 
+import GuriGateNavbar from '@/components/GuriGateNavbar'
+import GuriGateFooter from '@/components/GuriGateFooter'
 import HomePage from '@/pages/GuriGateLandingPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { NotificationsPage } from '@/pages/NotificationsPage'
@@ -8,6 +10,7 @@ import { IntegrationsPage } from '@/pages/IntegrationsPage'
 import PropertyPage from '@/pages/PropertyPage'
 import PaymentPage from '@/pages/PaymentPage'
 import GuriGateDashboard from '@/pages/Property management/Gurigate dashboard'
+import AllPropertiesPage from '@/pages/all-property'
 
 // Mock property data - in real app this would come from API
 const mockProperties = [
@@ -66,16 +69,23 @@ function PaymentPageWrapper() {
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/profile" element={<ProfilePage />} />
-      <Route path="/notifications" element={<NotificationsPage />} />
-      <Route path="/account/integrations" element={<IntegrationsPage />} />
-      <Route path="/property/:id" element={<PropertyPageWrapper />} />
-      <Route path="/payment" element={<PaymentPageWrapper />} />
-      <Route path="/manage-property" element={<GuriGateDashboard />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <div className="min-h-screen flex flex-col">
+      <GuriGateNavbar />
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/account/integrations" element={<IntegrationsPage />} />
+          <Route path="/property/:id" element={<PropertyPageWrapper />} />
+          <Route path="/payment" element={<PaymentPageWrapper />} />
+          <Route path="/all-property" element={<AllPropertiesPage />} />
+          <Route path="/manage-property" element={<GuriGateDashboard />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+      <GuriGateFooter />
+    </div>
   )
 }
 

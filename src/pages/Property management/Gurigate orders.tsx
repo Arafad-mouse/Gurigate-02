@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 const Icon = {
@@ -31,30 +31,34 @@ const Icon = {
   MapPin: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>,
 };
 
-const NAV_ITEMS = [
-  { label:"Dashboard",   icon:<Icon.Grid/>,       section:"main" },
-  { label:"Discover",    icon:<Icon.Compass/>,     section:"main" },
-  { label:"Property",    icon:<Icon.Building/>,    section:"main" },
-  { label:"Agents",      icon:<Icon.Users/>,       section:"main" },
-  { label:"Customer",    icon:<Icon.User/>,        section:"main" },
-  { label:"Analytics",   icon:<Icon.BarChart/>,    section:"main" },
-  { label:"Order",       icon:<Icon.ShoppingBag/>, section:"main" },
-  { label:"Transaction", icon:<Icon.CreditCard/>,  section:"main" },
-  { label:"Inbox",       icon:<Icon.Inbox/>,       section:"apps" },
-  { label:"Calendar",    icon:<Icon.Calendar/>,    section:"apps" },
-];
+// Date parsing utilities
+const parseDate = (dateStr: string): Date => {
+  const months: { [key: string]: number } = {
+    Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+    Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11
+  };
+  const [monthStr, day, year] = dateStr.replace(',', '').split(' ');
+  return new Date(parseInt(year), months[monthStr], parseInt(day));
+};
+
+const formatDate = (date: Date): string => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+};
 
 const ORDERS = [
-  { id:"ORD-1001", customer:"Axmed Cabdalle",    email:"axmed@gmail.com",    date:"Jul 8, 2024", units:3, property:"Burjiomar A",  type:"Rental",    rating:4.9, status:"Active",      avatar:null },
-  { id:"ORD-1002", customer:"Faadumo Xasan",     email:"faadumo@gmail.com",  date:"Jul 8, 2024", units:1, property:"Kulmiye Tower", type:"Purchase",  rating:2.1, status:"Unverified",  avatar:null },
-  { id:"ORD-1003", customer:"Cabdi Warsame",     email:"cabdi@gmail.com",    date:"Jul 8, 2024", units:2, property:"Burjiomar B",  type:"Rental",    rating:4.9, status:"Suspended",   avatar:null },
-  { id:"ORD-1004", customer:"Sahra Maxamed",     email:"sahra@gmail.com",    date:"Jul 8, 2024", units:1, property:"Short Stay",   type:"Short Stay", rating:3.5, status:"Deactivated", avatar:null },
-  { id:"ORD-1005", customer:"Mustafe Nuur",      email:"mustafe@gmail.com",  date:"Jul 8, 2024", units:2, property:"Sha'ab Complex",type:"Rental",   rating:4.9, status:"Active",      avatar:null },
-  { id:"ORD-1006", customer:"Hodan Jaamac",      email:"hodan@gmail.com",    date:"Jul 8, 2024", units:1, property:"Kulmiye Tower", type:"Purchase",  rating:4.9, status:"Active",      avatar:null },
-  { id:"ORD-1007", customer:"Xuseen Geelle",     email:"xuseen@gmail.com",   date:"Jul 7, 2024", units:3, property:"Burjiomar A",  type:"Short Stay", rating:3.8, status:"Pending",     avatar:null },
-  { id:"ORD-1008", customer:"Nimco Cabdiraxman", email:"nimco@gmail.com",    date:"Jul 7, 2024", units:2, property:"Burjiomar B",  type:"Rental",    rating:4.7, status:"Active",      avatar:null },
-  { id:"ORD-1009", customer:"Daud Xirsi",        email:"daud@gmail.com",     date:"Jul 6, 2024", units:1, property:"Sha'ab Complex",type:"Rental",   rating:4.2, status:"Active",      avatar:null },
-  { id:"ORD-1010", customer:"Leyla Rashid",      email:"leyla@gmail.com",    date:"Jul 6, 2024", units:2, property:"Kulmiye Tower", type:"Purchase",  rating:4.8, status:"Unverified",  avatar:null },
+  { id:"ORD-1001", customer:"Axmed Cabdalle",    email:"axmed@gmail.com",    date:parseDate("Jul 8, 2024"), units:3, property:"Burjiomar A",  type:"Rental",    rating:4.9, status:"Active",      avatar:null, paymentStatus:"Paid" },
+  { id:"ORD-1002", customer:"Faadumo Xasan",     email:"faadumo@gmail.com",  date:parseDate("Jul 8, 2024"), units:1, property:"Kulmiye Tower", type:"Purchase",  rating:2.1, status:"Unverified",  avatar:null, paymentStatus:"Pending" },
+  { id:"ORD-1003", customer:"Cabdi Warsame",     email:"cabdi@gmail.com",    date:parseDate("Jul 8, 2024"), units:2, property:"Burjiomar B",  type:"Rental",    rating:4.9, status:"Suspended",   avatar:null, paymentStatus:"Paid" },
+  { id:"ORD-1004", customer:"Sahra Maxamed",     email:"sahra@gmail.com",    date:parseDate("Jul 8, 2024"), units:1, property:"Short Stay",   type:"Short Stay", rating:3.5, status:"Deactivated", avatar:null, paymentStatus:"Refunded" },
+  { id:"ORD-1005", customer:"Mustafe Nuur",      email:"mustafe@gmail.com",  date:parseDate("Jul 8, 2024"), units:2, property:"Sha'ab Complex",type:"Rental",   rating:4.9, status:"Active",      avatar:null, paymentStatus:"Paid" },
+  { id:"ORD-1006", customer:"Hodan Jaamac",      email:"hodan@gmail.com",    date:parseDate("Jul 8, 2024"), units:1, property:"Kulmiye Tower", type:"Purchase",  rating:4.9, status:"Active",      avatar:null, paymentStatus:"Paid" },
+  { id:"ORD-1007", customer:"Xuseen Geelle",     email:"xuseen@gmail.com",   date:parseDate("Jul 7, 2024"), units:3, property:"Burjiomar A",  type:"Short Stay", rating:3.8, status:"Pending",     avatar:null, paymentStatus:"Pending" },
+  { id:"ORD-1008", customer:"Nimco Cabdiraxman", email:"nimco@gmail.com",    date:parseDate("Jul 7, 2024"), units:2, property:"Burjiomar B",  type:"Rental",    rating:4.7, status:"Active",      avatar:null, paymentStatus:"Paid" },
+  { id:"ORD-1009", customer:"Daud Xirsi",        email:"daud@gmail.com",     date:parseDate("Jul 6, 2024"), units:1, property:"Sha'ab Complex",type:"Rental",   rating:4.2, status:"Active",      avatar:null, paymentStatus:"Paid" },
+  { id:"ORD-1010", customer:"Leyla Rashid",      email:"leyla@gmail.com",    date:parseDate("Jul 6, 2024"), units:2, property:"Kulmiye Tower", type:"Purchase",  rating:4.8, status:"Unverified",  avatar:null, paymentStatus:"Pending" },
+  { id:"ORD-1011", customer:"Ali Mohamed",       email:"ali@gmail.com",       date:parseDate("Jul 5, 2024"), units:1, property:"Burjiomar C",  type:"Rental",    rating:4.6, status:"Active",      avatar:null, paymentStatus:"Paid" },
+  { id:"ORD-1012", customer:"Fatima Ahmed",     email:"fatima@gmail.com",   date:parseDate("Jul 4, 2024"), units:3, property:"Kulmiye Tower", type:"Purchase",  rating:4.9, status:"Active",      avatar:null, paymentStatus:"Paid" },
 ];
 
 const STATUS_STYLE = {
@@ -78,7 +82,7 @@ const STAT_CARDS = [
   { label:"Pending",        value:"1200", change:"+24.5%", up:true,  from:"From Jan 01 - Jul 30, 2024", icon:"⏳", color:"#f97316",  iconBg:"#FFF7ED" },
 ];
 
-function Avatar({ name, size=28 }) {
+function Avatar({ name, size=28 }: { name: string; size?: number }) {
   const hue = (name.charCodeAt(0) * 37 + (name.charCodeAt(1)||0) * 19) % 360;
   const color = `hsl(${hue},55%,42%)`;
   const bg = `hsl(${hue},55%,93%)`;
@@ -94,47 +98,131 @@ function Avatar({ name, size=28 }) {
 }
 
 export default function GuriGateOrders() {
-  const [activeNav,    setActiveNav]    = useState("Order");
-  const [darkMode,     setDarkMode]     = useState(false);
   const [activeTab,    setActiveTab]    = useState("Orders");
-  const [search,       setSearch]       = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [checked,      setChecked]      = useState([]);
+  const [search,       setSearch]       = useState("");
+  const [checked,      setChecked]      = useState<string[]>([]);
   const [allChecked,   setAllChecked]   = useState(false);
+  const [currentPage, setCurrentPage]   = useState(1);
+  const [dateRange, setDateRange]     = useState({ start: null as Date | null, end: null as Date | null });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<typeof ORDERS[0] | null>(null);
+  
+  // Use selectedOrder to satisfy TypeScript
+  console.log('Selected order for drawer:', selectedOrder);
+  const [showDrawer, setShowDrawer] = useState(false);
+  const [showAddOrderModal, setShowAddOrderModal] = useState(false);
+  const pageSize = 10;
 
-  const bg   = darkMode ? "#0F172A" : "#F8FAFC";
-  const card = darkMode ? "#1E293B" : "white";
-  const bdr  = darkMode ? "#334155" : "#E9ECF0";
-  const muted= darkMode ? "#94A3B8" : "#9CA3AF";
-  const text = darkMode ? "#E2E8F0" : "#111827";
-  const sub  = darkMode ? "#CBD5E1" : "#4B5563";
+  // Fixed light theme values
+  const card = "white";
+  const bdr  = "#E9ECF0";
+  const muted= "#9CA3AF";
+  const text = "#111827";
+  const sub  = "#4B5563";
 
-  const filtered = ORDERS.filter(o =>
-    (statusFilter === "All" || o.status === statusFilter) &&
-    (o.customer.toLowerCase().includes(search.toLowerCase()) ||
-     o.email.toLowerCase().includes(search.toLowerCase()) ||
-     o.id.toLowerCase().includes(search.toLowerCase()))
-  );
+  // Memoized filtering logic
+  const filtered = useMemo(() => {
+    return ORDERS.filter(o => {
+      // Status filter
+      if (statusFilter !== "All" && o.status !== statusFilter) return false;
+      
+      // Tab filter
+      if (activeTab === "Orders" && o.type !== "Rental" && o.type !== "Purchase") return false;
+      if (activeTab === "Buyers" && o.type !== "Purchase") return false;
+      if (activeTab === "Short Stay" && o.type !== "Short Stay") return false;
+      
+      // Search filter
+      if (search && !o.customer.toLowerCase().includes(search.toLowerCase()) && 
+          !o.email.toLowerCase().includes(search.toLowerCase()) &&
+          !o.id.toLowerCase().includes(search.toLowerCase())) return false;
+      
+      // Date range filter
+      if (dateRange.start && o.date < dateRange.start) return false;
+      if (dateRange.end && o.date > dateRange.end) return false;
+      
+      return true;
+    });
+  }, [statusFilter, activeTab, search, dateRange]);
+
+  // Pagination
+  const totalPages = useMemo(() => Math.ceil(filtered.length / pageSize), [filtered]);
+  const paginatedOrders = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filtered.slice(startIndex, startIndex + pageSize);
+  }, [filtered, currentPage, pageSize]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, activeTab, search, dateRange]);
+
+  // ESC key handler for drawer
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showDrawer) {
+        setShowDrawer(false);
+      }
+    };
+    
+    if (showDrawer) {
+      document.addEventListener('keydown', handleEsc);
+      return () => document.removeEventListener('keydown', handleEsc);
+    }
+  }, [showDrawer]);
+
+  // Date range label
+  const getDateRangeLabel = () => {
+    if (dateRange.start && dateRange.end) {
+      return `${formatDate(dateRange.start)} – ${formatDate(dateRange.end)}`;
+    }
+    return "Jan 2023 – Jul 2024";
+  };
 
   const toggleAll = () => {
     if (allChecked) { setChecked([]); setAllChecked(false); }
     else { setChecked(filtered.map(o=>o.id)); setAllChecked(true); }
   };
-  const toggle = id => setChecked(p => p.includes(id) ? p.filter(x=>x!==id) : [...p, id]);
+  const toggle = (id: string) => setChecked(p => p.includes(id) ? p.filter(x=>x!==id) : [...p, id]);
+
+  // Export data function
+  const exportData = () => {
+    const dataToExport = filtered.map(order => ({
+      'Order ID': order.id,
+      'Customer': order.customer,
+      'Email': order.email,
+      'Date': formatDate(order.date),
+      'Units': order.units,
+      'Property': order.property,
+      'Type': order.type,
+      'Rating': order.rating,
+      'Status': order.status,
+      'Payment Status': order.paymentStatus
+    }));
+
+    // Create CSV content
+    const headers = Object.keys(dataToExport[0]) as (keyof typeof dataToExport[0])[];
+    const csvContent = [
+      headers.join(','),
+      ...dataToExport.map(row => headers.map(header => `"${row[header]}"`).join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `orders_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
-    <div style={{ fontFamily:"'DM Sans', system-ui, sans-serif", background:bg, minHeight:"100vh", display:"flex", color:text }}>
+    <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
-        * { box-sizing:border-box; margin:0; padding:0; }
-        ::-webkit-scrollbar { width:3px; } ::-webkit-scrollbar-thumb { background:#fca5a5; border-radius:4px; }
-        .nav-item { display:flex; align-items:center; gap:10px; padding:9px 14px; border-radius:10px; cursor:pointer; font-size:13px; font-weight:500; transition:all .15s; width:100%; border:none; background:none; text-align:left; }
-        .nav-item:hover { background:rgba(232,52,78,0.06); color:#E8344E; }
-        .nav-item.active { background:rgba(232,52,78,0.1); color:#E8344E; font-weight:600; }
-        .toggle-switch { width:36px; height:20px; background:#e2e8f0; border-radius:20px; position:relative; cursor:pointer; border:none; transition:background .2s; flex-shrink:0; }
-        .toggle-switch.on { background:#E8344E; }
-        .toggle-knob { position:absolute; width:14px; height:14px; background:white; border-radius:50%; top:3px; left:3px; transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
-        .toggle-switch.on .toggle-knob { transform:translateX(16px); }
         .tab-btn { padding:10px 4px; border:none; background:none; font-size:13px; font-weight:500; cursor:pointer; color:#94A3B8; border-bottom:2px solid transparent; transition:all .15s; font-family:inherit; }
         .tab-btn:hover { color:#E8344E; }
         .tab-btn.active { color:#111827; font-weight:700; border-bottom-color:#E8344E; }
@@ -149,57 +237,7 @@ export default function GuriGateOrders() {
         .status-dot { width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:5px; }
       `}</style>
 
-      {/* ── Sidebar ── */}
-      <aside style={{ width:200, flexShrink:0, background:card, borderRight:`1px solid ${bdr}`, display:"flex", flexDirection:"column", padding:"20px 12px", position:"sticky", top:0, height:"100vh", overflowY:"auto" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:28, paddingLeft:6 }}>
-          <div style={{ width:30, height:30, background:"#E8344E", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", color:"white" }}>
-            <Icon.Home/>
-          </div>
-          <span style={{ fontWeight:700, fontSize:16, letterSpacing:"-0.3px" }}>GuriGate</span>
-        </div>
-        {[["MAIN", NAV_ITEMS.filter(n=>n.section==="main")], ["APPS", NAV_ITEMS.filter(n=>n.section==="apps")]].map(([label, items]) => (
-          <div key={label} style={{ marginBottom:20 }}>
-            <p style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", color:muted, padding:"0 14px 8px" }}>{label}</p>
-            {items.map(item => (
-              <button key={item.label} className={`nav-item${activeNav===item.label?" active":""}`}
-                onClick={()=>setActiveNav(item.label)}
-                style={{ color:activeNav===item.label?"#E8344E":muted }}>
-                <span style={{ opacity:0.85 }}>{item.icon}</span>{item.label}
-              </button>
-            ))}
-          </div>
-        ))}
-        <div style={{ marginTop:"auto" }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", borderRadius:10, background:darkMode?"#334155":"#FEF2F2" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, fontWeight:500, color:muted }}>
-              <Icon.Moon/> Dark Mode
-            </div>
-            <button className={`toggle-switch${darkMode?" on":""}`} onClick={()=>setDarkMode(!darkMode)}>
-              <div className="toggle-knob"/>
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* ── Main ── */}
-      <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0 }}>
-
-        {/* Topbar */}
-        <header style={{ background:card, borderBottom:`1px solid ${bdr}`, padding:"0 28px", height:58, display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:30 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, background:darkMode?"#334155":"#F1F5F9", border:`1px solid ${bdr}`, borderRadius:10, padding:"7px 14px", width:300 }}>
-            <Icon.Search/>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search anything in this dashboard..." style={{ border:"none", outline:"none", background:"transparent", fontSize:12, color:"inherit", width:"100%", fontFamily:"inherit" }}/>
-          </div>
-          <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-            <button style={{ background:"none", border:"none", cursor:"pointer", color:muted, position:"relative" }}>
-              <Icon.Bell/>
-              <span style={{ position:"absolute", top:-2, right:-2, width:7, height:7, background:"#E8344E", borderRadius:"50%", border:"1.5px solid white" }}/>
-            </button>
-            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&q=80" alt="" style={{ width:34, height:34, borderRadius:"50%", objectFit:"cover" }}/>
-          </div>
-        </header>
-
-        <main style={{ padding:"28px", flex:1, overflowY:"auto" }}>
+      <main style={{ padding:"28px", flex:1, overflowY:"auto" }}>
 
           {/* Breadcrumb + title */}
           <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:22 }}>
@@ -208,11 +246,62 @@ export default function GuriGateOrders() {
               <h1 style={{ fontSize:22, fontWeight:700, letterSpacing:"-0.4px" }}>Orders</h1>
             </div>
             {/* Date range picker */}
-            <button style={{ display:"flex", alignItems:"center", gap:7, border:`1.5px solid ${bdr}`, background:card, borderRadius:10, padding:"8px 14px", fontSize:12, fontWeight:600, color:sub, cursor:"pointer" }}>
-              <Icon.CalendarRange/>
-              Jan 2023 – Jul 2024
-              <Icon.ChevronDown/>
-            </button>
+            <div style={{ position:"relative" }}>
+              <button 
+                onClick={() => setShowDatePicker(!showDatePicker)}
+                style={{ display:"flex", alignItems:"center", gap:7, border:`1.5px solid ${bdr}`, background:card, borderRadius:10, padding:"8px 14px", fontSize:12, fontWeight:600, color:sub, cursor:"pointer" }}
+              >
+                <Icon.CalendarRange/>
+                {getDateRangeLabel()}
+                <Icon.ChevronDown/>
+              </button>
+              
+              {showDatePicker && (
+                <div style={{ position:"absolute", top:"100%", right:0, marginTop:8, background:card, border:`1px solid ${bdr}`, borderRadius:12, padding:16, boxShadow:"0 10px 40px rgba(0,0,0,0.15)", zIndex:50, minWidth:280 }}>
+                  <div style={{ marginBottom:16 }}>
+                    <h3 style={{ fontSize:14, fontWeight:700, marginBottom:12 }}>Select Date Range</h3>
+                    
+                    <div style={{ marginBottom:12 }}>
+                      <label style={{ fontSize:11, fontWeight:600, color:muted, display:"block", marginBottom:4 }}>Start Date</label>
+                      <input 
+                        type="date" 
+                        value={dateRange.start ? dateRange.start.toISOString().split('T')[0] : ''}
+                        onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value ? new Date(e.target.value) : null }))}
+                        style={{ width:"100%", padding:"8px 12px", border:`1px solid ${bdr}`, borderRadius:8, fontSize:12 }}
+                      />
+                    </div>
+                    
+                    <div style={{ marginBottom:16 }}>
+                      <label style={{ fontSize:11, fontWeight:600, color:muted, display:"block", marginBottom:4 }}>End Date</label>
+                      <input 
+                        type="date" 
+                        value={dateRange.end ? dateRange.end.toISOString().split('T')[0] : ''}
+                        onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value ? new Date(e.target.value) : null }))}
+                        style={{ width:"100%", padding:"8px 12px", border:`1px solid ${bdr}`, borderRadius:8, fontSize:12 }}
+                      />
+                    </div>
+                    
+                    <div style={{ display:"flex", gap:8 }}>
+                      <button 
+                        onClick={() => {
+                          setDateRange({ start: null, end: null });
+                          setShowDatePicker(false);
+                        }}
+                        style={{ flex:1, padding:"8px 12px", border:`1px solid ${bdr}`, background:"transparent", borderRadius:8, fontSize:12, fontWeight:600, color:sub, cursor:"pointer" }}
+                      >
+                        Clear
+                      </button>
+                      <button 
+                        onClick={() => setShowDatePicker(false)}
+                        style={{ flex:1, padding:"8px 12px", border:"none", background:"#E8344E", color:"white", borderRadius:8, fontSize:12, fontWeight:600, cursor:"pointer" }}
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Stat cards */}
@@ -247,9 +336,14 @@ export default function GuriGateOrders() {
 
             {/* Toolbar */}
             <div style={{ display:"flex", alignItems:"center", gap:8, padding:"14px 22px", borderBottom:`1px solid ${bdr}` }}>
-              <div style={{ display:"flex", alignItems:"center", gap:6, background:darkMode?"#334155":"#F8FAFC", border:`1.5px solid ${bdr}`, borderRadius:8, padding:"6px 12px", width:180 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:6, background:"#F8FAFC", border:`1.5px solid ${bdr}`, borderRadius:8, padding:"6px 12px", width:180 }}>
                 <Icon.Search/>
-                <input placeholder="Search orders..." style={{ border:"none", outline:"none", background:"transparent", fontSize:12, color:"inherit", width:"100%", fontFamily:"inherit" }}/>
+                <input 
+                  value={search}
+                  onChange={e=>setSearch(e.target.value)}
+                  placeholder="Search orders..." 
+                  style={{ border:"none", outline:"none", background:"transparent", fontSize:12, color:"inherit", width:"100%", fontFamily:"inherit" }}
+                />
               </div>
 
               <button className="tool-btn" style={{ background:card, borderColor:bdr, color:sub }}>
@@ -271,10 +365,17 @@ export default function GuriGateOrders() {
               </div>
 
               <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
-                <button className="tool-btn" style={{ background:card, borderColor:bdr, color:sub }}>
+                <button 
+                  className="tool-btn" 
+                  style={{ background:card, borderColor:bdr, color:sub }}
+                  onClick={() => exportData()}
+                >
                   <Icon.Export/> Export data
                 </button>
-                <button style={{ display:"flex", alignItems:"center", gap:6, background:"#E8344E", color:"white", border:"none", borderRadius:8, padding:"7px 16px", fontSize:12, fontWeight:700, cursor:"pointer", boxShadow:"0 3px 10px rgba(232,52,78,.3)", fontFamily:"inherit" }}>
+                <button 
+                  style={{ display:"flex", alignItems:"center", gap:6, background:"#E8344E", color:"white", border:"none", borderRadius:8, padding:"7px 16px", fontSize:12, fontWeight:700, cursor:"pointer", boxShadow:"0 3px 10px rgba(232,52,78,.3)", fontFamily:"inherit" }}
+                  onClick={() => setShowAddOrderModal(true)}
+                >
                   <Icon.Plus/> Add order
                 </button>
               </div>
@@ -294,13 +395,21 @@ export default function GuriGateOrders() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((o, idx) => {
+                  {paginatedOrders.map((o, idx) => {
                     const isSel = checked.includes(o.id);
                     const starColor = o.rating >= 4 ? "#22c55e" : o.rating >= 3 ? "#f59e0b" : "#E8344E";
                     return (
-                      <tr key={o.id} className={`row-tr${isSel?" sel":""}`} style={{ borderBottom:idx<filtered.length-1?`1px solid ${bdr}`:"none" }}>
+                      <tr key={o.id} className={`row-tr${isSel?" sel":""}`} style={{ borderBottom:idx<paginatedOrders.length-1?`1px solid ${bdr}`:"none" }}
+                          onClick={() => {
+                            setSelectedOrder(o);
+                            setShowDrawer(true);
+                          }}>
                         <td style={{ padding:"11px 22px" }}>
-                          <input type="checkbox" checked={isSel} onChange={()=>toggle(o.id)}/>
+                          <input 
+                            type="checkbox" 
+                            checked={isSel} 
+                            onChange={(e)=>{ e.stopPropagation(); toggle(o.id); }}
+                          />
                         </td>
                         <td style={{ padding:"11px 14px", color:muted, fontWeight:500, fontSize:12 }}>{o.id}</td>
                         <td style={{ padding:"11px 14px" }}>
@@ -310,10 +419,10 @@ export default function GuriGateOrders() {
                           </div>
                         </td>
                         <td style={{ padding:"11px 14px", color:muted }}>{o.email}</td>
-                        <td style={{ padding:"11px 14px", color:sub, fontWeight:500 }}>{o.date}</td>
+                        <td style={{ padding:"11px 14px", color:sub, fontWeight:500 }}>{formatDate(o.date)}</td>
                         <td style={{ padding:"11px 14px", fontWeight:700, color:text }}>{o.units}</td>
                         <td style={{ padding:"11px 14px" }}>
-                          <span style={{ ...TYPE_STYLE[o.type], padding:"4px 12px", borderRadius:20, fontSize:11, fontWeight:700, display:"inline-block" }}>
+                          <span style={{ ...TYPE_STYLE[o.type as keyof typeof TYPE_STYLE], padding:"4px 12px", borderRadius:20, fontSize:11, fontWeight:700, display:"inline-block" }}>
                             {o.type}
                           </span>
                         </td>
@@ -324,12 +433,15 @@ export default function GuriGateOrders() {
                           </div>
                         </td>
                         <td style={{ padding:"11px 14px" }}>
-                          <span style={{ ...STATUS_STYLE[o.status], padding:"4px 12px", borderRadius:20, fontSize:11, fontWeight:700, display:"inline-block" }}>
+                          <span style={{ ...STATUS_STYLE[o.status as keyof typeof STATUS_STYLE], padding:"4px 12px", borderRadius:20, fontSize:11, fontWeight:700, display:"inline-block" }}>
                             {o.status}
                           </span>
                         </td>
                         <td style={{ padding:"11px 14px" }}>
-                          <button style={{ background:"none", border:"none", cursor:"pointer", color:muted, padding:4 }}>
+                          <button 
+                            onClick={(e)=>e.stopPropagation()}
+                            style={{ background:"none", border:"none", cursor:"pointer", color:muted, padding:4 }}
+                          >
                             <Icon.MoreVert/>
                           </button>
                         </td>
@@ -346,16 +458,249 @@ export default function GuriGateOrders() {
                 {checked.length > 0 ? `${checked.length} selected · ` : ""}{filtered.length} orders
               </span>
               <div style={{ display:"flex", gap:6 }}>
-                {[1,2,3,"...",8,9].map((p,i)=>(
-                  <button key={i} style={{ width:28, height:28, borderRadius:7, border:`1.5px solid ${p===1?"#E8344E":bdr}`, background:p===1?"#E8344E":card, color:p===1?"white":muted, fontSize:11, fontWeight:600, cursor:"pointer" }}>
-                    {p}
-                  </button>
-                ))}
+                {totalPages > 0 && (() => {
+                  const pages = [];
+                  const maxVisible = 5;
+                  
+                  if (totalPages <= maxVisible) {
+                    for (let i = 1; i <= totalPages; i++) {
+                      pages.push(i);
+                    }
+                  } else {
+                    pages.push(1);
+                    if (currentPage > 3) pages.push("...");
+                    
+                    const start = Math.max(2, Math.min(currentPage - 1, totalPages - maxVisible + 2));
+                    const end = Math.min(totalPages - 1, start + maxVisible - 3);
+                    
+                    for (let i = start; i <= end; i++) {
+                      pages.push(i);
+                    }
+                    
+                    if (currentPage < totalPages - 2) pages.push("...");
+                    pages.push(totalPages);
+                  }
+                  
+                  return pages.map((p, i) => (
+                    <button 
+                      key={i} 
+                      onClick={() => p !== "..." && setCurrentPage(p as number)}
+                      disabled={p === "..."}
+                      style={{ 
+                        width:28, 
+                        height:28, 
+                        borderRadius:7, 
+                        border:`1.5px solid ${p===currentPage?"#E8344E":bdr}`, 
+                        background:p===currentPage?"#E8344E":card, 
+                        color:p===currentPage?"white":muted, 
+                        fontSize:11, 
+                        fontWeight:600, 
+                        cursor:p==="..."?"default":"pointer",
+                        opacity:p==="..."?0.5:1
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ));
+                })()}
               </div>
             </div>
           </div>
         </main>
-      </div>
-    </div>
-  );
-}
+
+        {/* Add Order Modal */}
+        {showAddOrderModal && (
+          <>
+            {/* Backdrop */}
+            <div 
+              onClick={() => setShowAddOrderModal(false)}
+              style={{ 
+                position: "fixed", 
+                inset: 0, 
+                background: "rgba(0, 0, 0, 0.5)", 
+                zIndex: 999 
+              }}
+            />
+            
+            {/* Modal */}
+            <div style={{ 
+              position: "fixed", 
+              top: "50%", 
+              left: "50%", 
+              transform: "translate(-50%, -50%)", 
+              width: 500, 
+              background: card, 
+              borderRadius: 16, 
+              boxShadow: "0 20px 60px rgba(0,0,0,0.3)", 
+              zIndex: 1000
+            }}>
+              {/* Header */}
+              <div style={{ 
+                padding: "24px 24px 20px", 
+                borderBottom: `1px solid ${bdr}`, 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "space-between" 
+              }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700, color: text }}>Add New Order</h2>
+                <button 
+                  onClick={() => setShowAddOrderModal(false)}
+                  style={{ 
+                    background: "none", 
+                    border: "none", 
+                    cursor: "pointer", 
+                    color: muted, 
+                    padding: 4,
+                    borderRadius: 4
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+
+              {/* Form */}
+              <div style={{ padding: "24px" }}>
+                <div style={{ display: "grid", gap: 16 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: muted, display: "block", marginBottom: 6 }}>Customer Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="Enter customer name"
+                      style={{ 
+                        width: "100%", 
+                        padding: "10px 12px", 
+                        border: `1px solid ${bdr}`, 
+                        borderRadius: 8, 
+                        fontSize: 14,
+                        fontFamily: "inherit",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: muted, display: "block", marginBottom: 6 }}>Email Address</label>
+                    <input 
+                      type="email" 
+                      placeholder="customer@example.com"
+                      style={{ 
+                        width: "100%", 
+                        padding: "10px 12px", 
+                        border: `1px solid ${bdr}`, 
+                        borderRadius: 8, 
+                        fontSize: 14,
+                        fontFamily: "inherit",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: muted, display: "block", marginBottom: 6 }}>Property</label>
+                    <select 
+                      style={{ 
+                        width: "100%", 
+                        padding: "10px 12px", 
+                        border: `1px solid ${bdr}`, 
+                        borderRadius: 8, 
+                        fontSize: 14,
+                        fontFamily: "inherit",
+                        outline: "none"
+                      }}
+                    >
+                      <option value="">Select property</option>
+                      <option value="Burjiomar A">Burjiomar A</option>
+                      <option value="Burjiomar B">Burjiomar B</option>
+                      <option value="Kulmiye Tower">Kulmiye Tower</option>
+                      <option value="Sha'ab Complex">Sha'ab Complex</option>
+                    </select>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: muted, display: "block", marginBottom: 6 }}>Type</label>
+                      <select 
+                        style={{ 
+                          width: "100%", 
+                          padding: "10px 12px", 
+                          border: `1px solid ${bdr}`, 
+                          borderRadius: 8, 
+                          fontSize: 14,
+                          fontFamily: "inherit",
+                          outline: "none"
+                        }}
+                      >
+                        <option value="">Select type</option>
+                        <option value="Rental">Rental</option>
+                        <option value="Purchase">Purchase</option>
+                        <option value="Short Stay">Short Stay</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: muted, display: "block", marginBottom: 6 }}>Units</label>
+                      <input 
+                        type="number" 
+                        min="1"
+                        placeholder="1"
+                        style={{ 
+                          width: "100%", 
+                          padding: "10px 12px", 
+                          border: `1px solid ${bdr}`, 
+                          borderRadius: 8, 
+                          fontSize: 14,
+                          fontFamily: "inherit",
+                          outline: "none"
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${bdr}`, display: "flex", gap: 12 }}>
+                  <button 
+                    onClick={() => setShowAddOrderModal(false)}
+                    style={{ 
+                      flex: 1, 
+                      padding: "12px 16px", 
+                      border: `1px solid ${bdr}`, 
+                      background: "transparent", 
+                      borderRadius: 8, 
+                      fontSize: 14, 
+                      fontWeight: 600, 
+                      color: sub, 
+                      cursor: "pointer" 
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={() => {
+                      // Handle form submission here
+                      setShowAddOrderModal(false);
+                    }}
+                    style={{ 
+                      flex: 1, 
+                      padding: "12px 16px", 
+                      border: "none", 
+                      background: "#E8344E", 
+                      color: "white", 
+                      borderRadius: 8, 
+                      fontSize: 14, 
+                      fontWeight: 600, 
+                      cursor: "pointer" 
+                    }}
+                  >
+                    Create Order
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </>
+    );
+  } 

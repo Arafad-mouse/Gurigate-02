@@ -16,17 +16,13 @@ function FullPageStatus({ title, message }: { title: string; message: string }) 
 
 export function ProtectedRoute() {
   const location = useLocation()
-  const { error, isLoading, session } = useAuth()
+  const { loading, user } = useAuth()
 
-  if (isLoading) {
+  if (loading) {
     return <FullPageStatus title="Loading your workspace" message="We’re syncing your session and profile details." />
   }
 
-  if (error) {
-    return <FullPageStatus title="Supabase setup required" message={error} />
-  }
-
-  if (!session) {
+  if (!user) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   }
 
@@ -34,13 +30,13 @@ export function ProtectedRoute() {
 }
 
 export function PublicOnlyRoute() {
-  const { isLoading, session } = useAuth()
+  const { loading, user } = useAuth()
 
-  if (isLoading) {
+  if (loading) {
     return <FullPageStatus title="Checking your session" message="One moment while we load your account state." />
   }
 
-  if (session) {
+  if (user) {
     return <Navigate to="/dashboard" replace />
   }
 

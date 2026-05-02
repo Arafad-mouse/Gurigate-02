@@ -9,19 +9,16 @@ import {
   User,
   Settings,
   Globe,
-  HelpCircle,
   UserPlus,
   Users,
   Gift,
   LogOut,
   Menu,
-  Home,
-  LayersPlus,
+  Layers,
   ShieldUser,
   BadgeQuestionMark,
 } from "lucide-react";
 import { PhoneModal } from "./LoginModal";
-import { useAuth } from "@/hooks/useAuth";
 import { EmailModal } from "./EmailModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -31,16 +28,17 @@ interface ProfileDropdownProps {
   onClose: () => void;
   onLogin: () => void;
   onLogout: () => void;
+  onNavigate?: (path: string) => void;
 }
 
 // ─── Guest Dropdown (logged out) ─────────────────────────────────────────────
 
 function GuestDropdown({
   onClose,
-  onShowLogin,
+  onLogin,
 }: {
   onClose: () => void;
-  onShowLogin: () => void;
+  onLogin: () => void;
 }) {
   return (
     <div className="py-1">
@@ -69,7 +67,7 @@ function GuestDropdown({
             <line x1="20" y1="40" x2="18" y2="50" stroke="#c8a882" strokeWidth="2.5" strokeLinecap="round"/>
             <line x1="26" y1="40" x2="28" y2="50" stroke="#c8a882" strokeWidth="2.5" strokeLinecap="round"/>
             {/* Torso / jacket */}
-            <path d="M16 28 Q24 24 32 28 L30 42 Q24 44 18 42 Z" fill="#BA0036"/>
+            <path d="M16 28 Q24 24 32 28 L30 42 Q24 44 18 42 Z" fill="#e8344e"/>
             {/* Left arm raised */}
             <path d="M16 30 Q10 24 8 18" stroke="#c8a882" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
             {/* Right arm down */}
@@ -92,13 +90,13 @@ function GuestDropdown({
 
       {/* Refer a Host */}
       <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
-        <ShieldUser size={16} className="text-gray-400" />
+        <Layers size={16} className="text-gray-400" />
         Refer a Host
       </button>
 
       {/* Find a co-host */}
       <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
-        <LayersPlus size={16} className="text-gray-400" />
+        <ShieldUser size={16} className="text-gray-400" />
         Find a co-host
       </button>
 
@@ -112,7 +110,7 @@ function GuestDropdown({
 
       {/* Log in or sign up */}
       <button
-        onClick={() => { onShowLogin(); onClose(); }}
+        onClick={() => { onLogin(); onClose(); }}
         className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors text-left"
       >
         Log in or sign up
@@ -126,9 +124,11 @@ function GuestDropdown({
 function LoggedInDropdown({
   onClose,
   onLogout,
+  onNavigate,
 }: {
   onClose: () => void;
   onLogout: () => void;
+  onNavigate?: (path: string) => void;
 }) {
   return (
     <div>
@@ -137,7 +137,7 @@ function LoggedInDropdown({
         <div className="flex items-center gap-2.5">
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-            style={{ background: "linear-gradient(135deg,#BA0036,#ff6b6b)" }}
+            style={{ background: "linear-gradient(135deg,#E8344E,#ff6b6b)" }}
           >
             P
           </div>
@@ -166,11 +166,17 @@ function LoggedInDropdown({
             key={label}
             className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
               active
-                ? "bg-red-50 text-[#BA0036] font-semibold"
+                ? "bg-red-50 text-[#E8344E] font-semibold"
                 : "text-gray-700 hover:bg-gray-50"
             }`}
+            onClick={() => {
+              if (label === "Profile" && onNavigate) {
+                onNavigate("/profile");
+                onClose();
+              }
+            }}
           >
-            <span className={active ? "text-[#BA0036]" : "text-gray-400"}>
+            <span className={active ? "text-[#E8344E]" : "text-gray-400"}>
               {icon}
             </span>
             {label}
@@ -185,7 +191,7 @@ function LoggedInDropdown({
         {[
           { icon: <Settings size={15} />, label: "Account Settings" },
           { icon: <Globe size={15} />, label: "Language & Currency" },
-          { icon: <HelpCircle size={15} />, label: "Help Center" },
+          { icon: <BadgeQuestionMark size={15} />, label: "Help Center" },
         ].map(({ icon, label }) => (
           <button
             key={label}
@@ -225,9 +231,9 @@ function LoggedInDropdown({
       <div className="py-1.5">
         <button
           onClick={() => { onLogout(); onClose(); }}
-          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#BA0036] hover:bg-red-50 transition-colors font-medium"
+          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#E8344E] hover:bg-red-50 transition-colors font-medium"
         >
-          <LogOut size={15} className="text-[#BA0036]" />
+          <LogOut size={15} className="text-[#E8344E]" />
           Log Out
         </button>
       </div>
@@ -242,8 +248,8 @@ function ProfileDropdown({
   onClose,
   onLogin,
   onLogout,
-  onShowLogin,
-}: ProfileDropdownProps & { onShowLogin: () => void }) {
+  onNavigate,
+}: ProfileDropdownProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -264,9 +270,9 @@ function ProfileDropdown({
       >
         <style>{`@keyframes ddIn{from{opacity:0;transform:translateY(-8px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}`}</style>
         {isLoggedIn ? (
-          <LoggedInDropdown onClose={onClose} onLogout={onLogout} />
+          <LoggedInDropdown onClose={onClose} onLogout={onLogout} onNavigate={onNavigate} />
         ) : (
-          <GuestDropdown onClose={onClose} onShowLogin={onShowLogin} />
+          <GuestDropdown onClose={onClose} onLogin={onLogin} />
         )}
       </div>
     </>
@@ -275,67 +281,50 @@ function ProfileDropdown({
 
 // ─── Trigger Button (drop into your Navbar) ───────────────────────────────────
 
-export function ProfileMenu() {
-  const { user, loading, signOut } = useAuth();
+export function ProfileMenu({ onNavigate }: { onNavigate?: (path: string) => void } = {}) {
   const [open, setOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const isLoggedIn = !!user;
-  
-  // Get user display name
-  const displayName = user?.user_metadata?.full_name
-    ?? user?.email?.split("@")[0]
-    ?? user?.phone
-    ?? "Guest";
-  
-  const avatarLetter = displayName[0].toUpperCase();
 
   return (
     <div className="relative">
-      {/* Profile button */}
       <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 border rounded-full px-3 py-1.5 transition-all hover:shadow-sm"
-        style={{ borderColor: open ? "#d1d5db" : "#e5e7eb" }}
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-2 border rounded-full px-3 py-1.5 transition-all ${
+          open ? "border-gray-400 shadow-md" : "border-gray-200 hover:shadow-sm"
+        }`}
       >
-        <Menu size={15} />
-        <div
-          className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-          style={{ background: "linear-gradient(135deg,#BA0036,#ff6b6b)" }}
-        >
-          {isLoggedIn ? avatarLetter : "?"}
+        <Menu size={15} className="text-gray-600" />
+        <div className="w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 overflow-hidden">
+          {isLoggedIn ? (
+            <span
+              className="w-full h-full flex items-center justify-center text-white text-xs font-bold"
+              style={{ background: "linear-gradient(135deg,#E8344E,#ff6b6b)" }}
+            >
+              P
+            </span>
+          ) : (
+            <User size={14} />
+          )}
         </div>
       </button>
 
-      {/* Dropdown */}
       {open && (
-        <div
-          ref={dropdownRef}
-          className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50"
-          style={{ animation: "ddIn .18s cubic-bezier(.16,1,.3,1) both" }}
-        >
-          <style>{`
-            @keyframes ddIn {
-              from { opacity:0; transform:translateY(-8px) scale(.98); }
-              to   { opacity:1; transform:translateY(0)    scale(1);   }
-            }
-          `}</style>
-
-          {isLoggedIn ? (
-            <LoggedInDropdown onClose={() => setOpen(false)} onLogout={signOut} />
-          ) : (
-            <GuestDropdown onClose={() => setOpen(false)} onShowLogin={() => setShowPhoneModal(true)} />
-          )}
-        </div>
+        <ProfileDropdown
+          isLoggedIn={isLoggedIn}
+          onClose={() => setOpen(false)}
+          onLogin={() => setShowPhoneModal(true)}
+          onLogout={() => setIsLoggedIn(false)}
+          onNavigate={onNavigate}
+        />
       )}
 
       {/* Phone Modal */}
       {showPhoneModal && (
         <PhoneModal
           onClose={() => setShowPhoneModal(false)}
-          onSuccess={() => setOpen(false)}
+          onSuccess={() => setIsLoggedIn(true)}
           onShowEmail={() => {
             setShowPhoneModal(false);
             setShowEmailModal(true);
@@ -347,7 +336,7 @@ export function ProfileMenu() {
       {showEmailModal && (
         <EmailModal
           onClose={() => setShowEmailModal(false)}
-          onSuccess={() => setOpen(false)}
+          onSuccess={() => setIsLoggedIn(true)}
         />
       )}
     </div>

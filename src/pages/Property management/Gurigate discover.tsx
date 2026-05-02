@@ -26,103 +26,20 @@ const Icon = {
   Map: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>,
 };
 
-const NAV_ITEMS = [
-  { label:"Dashboard", icon:<Icon.Grid/>, section:"main" },
-  { label:"Discover", icon:<Icon.Compass/>, section:"main" },
-  { label:"Property", icon:<Icon.Building/>, section:"main" },
-  { label:"Agents", icon:<Icon.Users/>, section:"main" },
-  { label:"Customer", icon:<Icon.User/>, section:"main" },
-  { label:"Analytics", icon:<Icon.BarChart/>, section:"main" },
-  { label:"Order", icon:<Icon.ShoppingBag/>, section:"main" },
-  { label:"Transaction", icon:<Icon.CreditCard/>, section:"main" },
-  { label:"Inbox", icon:<Icon.Inbox/>, section:"apps" },
-  { label:"Calendar", icon:<Icon.Calendar/>, section:"apps" },
-];
-
 const PROPERTIES = [
   { id:1, name:"Willow Brook Valley", address:"1668 Lincoln Drive, USA", rating:4.5, reviews:187, beds:4, baths:2, sqft:"1400ft", priceRange:"$80,675–$86,564", img:"https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80" },
-  { id:2, name:"Serent Residence", address:"1668 Lincoln Drive, USA", rating:4.5, reviews:187, beds:4, baths:2, sqft:"1400ft", priceRange:"$80,675–$86,564", img:"https://images.unsplash.com/photo-1560185127-6a12f9a26fe5?w=600&q=80" },
+  { id:2, name:"Serent Residence", address:"1668 Lincoln Drive, USA", rating:4.5, reviews:187, beds:4, baths:2, sqft:"1400ft", priceRange:"$80,675–$86,564", img:"https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&q=80" },
   { id:3, name:"Riverbend Retreat", address:"1668 Lincoln Drive, USA", rating:4.5, reviews:187, beds:4, baths:2, sqft:"1400ft", priceRange:"$80,675–$86,564", img:"https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&q=80" },
   { id:4, name:"Tranquil Meadows", address:"1668 Lincoln Drive, USA", rating:4.5, reviews:187, beds:4, baths:2, sqft:"1400ft", priceRange:"$80,675–$86,564", img:"https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80" },
   { id:5, name:"Hearthstone Mansion", address:"1668 Lincoln Drive, USA", rating:4.5, reviews:187, beds:4, baths:2, sqft:"1400ft", priceRange:"$80,675–$86,564", img:"https://images.unsplash.com/photo-1598928636135-d146006ff4be?w=600&q=80" },
   { id:6, name:"Dreamweaver House", address:"1668 Lincoln Drive, USA", rating:4.5, reviews:187, beds:4, baths:2, sqft:"1400ft", priceRange:"$80,675–$86,564", img:"https://images.unsplash.com/photo-1600210492493-0946911123ea?w=600&q=80" },
   { id:7, name:"Sunrise Manor", address:"1668 Lincoln Drive, USA", rating:4.5, reviews:187, beds:4, baths:2, sqft:"1400ft", priceRange:"$80,675–$86,564", img:"https://images.unsplash.com/photo-1600607688969-a5bfcd646154?w=600&q=80" },
   { id:8, name:"Azure Horizon Loft", address:"1668 Lincoln Drive, USA", rating:4.5, reviews:187, beds:4, baths:2, sqft:"1400ft", priceRange:"$80,675–$86,564", img:"https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=600&q=80" },
-  { id:9, name:"Cedar Ridge Estate", address:"1668 Lincoln Drive, USA", rating:4.5, reviews:187, beds:4, baths:2, sqft:"1400ft", priceRange:"$80,675–$86,564", img:"https://images.unsplash.com/photo-1502005097973-6a7082348e28?w=600&q=80" },
+  { id:9, name:"Cedar Ridge Estate", address:"1668 Lincoln Drive, USA", rating:4.5, reviews:187, beds:4, baths:2, sqft:"1400ft", priceRange:"$80,675–$86,564", img:"https://images.unsplash.com/photo-1502005097973-6a7082348e28?w=600&q=80" }
 ];
 
-function PropertyCard({ property, dark }) {
-  const border = dark ? "#334155" : "#EEEFF2";
-  const bg = dark ? "#1E293B" : "white";
-  const muted = dark ? "#94A3B8" : "#9CA3AF";
-  const text = dark ? "#E2E8F0" : "#111827";
-  const facilityBg = dark ? "#334155" : "#F8F9FC";
-
-  return (
-    <div style={{ background:bg, border:`1px solid ${border}`, borderRadius:16, overflow:"hidden", display:"flex", flexDirection:"column", transition:"transform .2s, box-shadow .2s", cursor:"pointer" }}
-      onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow=dark?"0 12px 32px rgba(0,0,0,.4)":"0 12px 32px rgba(0,0,0,.09)";}}
-      onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="";}}>
-
-      {/* Image */}
-      <div style={{ position:"relative", height:180, overflow:"hidden", flexShrink:0 }}>
-        <img src={property.img} alt={property.name} style={{ width:"100%", height:"100%", objectFit:"cover", transition:"transform .4s" }}
-          onMouseEnter={e=>e.target.style.transform="scale(1.05)"}
-          onMouseLeave={e=>e.target.style.transform="scale(1)"}/>
-      </div>
-
-      {/* Body */}
-      <div style={{ padding:"16px 16px 18px", flex:1, display:"flex", flexDirection:"column" }}>
-        {/* Title + rating */}
-        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:6 }}>
-          <h3 style={{ fontSize:14, fontWeight:700, color:text, lineHeight:1.3, flex:1, marginRight:8 }}>{property.name}</h3>
-          <div style={{ display:"flex", alignItems:"center", gap:4, flexShrink:0 }}>
-            <Icon.Star/>
-            <span style={{ fontSize:12, fontWeight:600, color:text }}>{property.rating}</span>
-            <span style={{ fontSize:11, color:muted }}>({property.reviews})</span>
-          </div>
-        </div>
-
-        {/* Address */}
-        <div style={{ display:"flex", alignItems:"center", gap:4, marginBottom:14, color:muted }}>
-          <Icon.MapPin/>
-          <span style={{ fontSize:11 }}>{property.address}</span>
-        </div>
-
-        {/* Facilities */}
-        <div style={{ marginBottom:14 }}>
-          <p style={{ fontSize:10, fontWeight:600, color:muted, marginBottom:7, textTransform:"uppercase", letterSpacing:"0.06em" }}>Facilities</p>
-          <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-            {[
-              { icon:<Icon.Bed/>, label:`${property.beds} Bed` },
-              { icon:<Icon.Bath/>, label:`${property.baths} Bath` },
-              { icon:<Icon.Maximize/>, label:property.sqft },
-            ].map((f,i) => (
-              <div key={i} style={{ display:"flex", alignItems:"center", gap:5, background:facilityBg, border:`1px solid ${border}`, borderRadius:8, padding:"5px 10px", fontSize:11, color:text, fontWeight:500 }}>
-                <span style={{ color:muted }}>{f.icon}</span>{f.label}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Price + Map button */}
-        <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", marginTop:"auto" }}>
-          <div>
-            <p style={{ fontSize:10, fontWeight:600, color:muted, marginBottom:3, textTransform:"uppercase", letterSpacing:"0.06em" }}>Price Range</p>
-            <p style={{ fontSize:15, fontWeight:700, color:text, letterSpacing:"-0.3px" }}>{property.priceRange}</p>
-          </div>
-          <button style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, fontWeight:600, color:"#E8344E", background:"transparent", border:"1.5px solid #E8344E", borderRadius:8, padding:"7px 14px", cursor:"pointer", transition:"all .15s" }}
-            onMouseEnter={e=>{e.currentTarget.style.background="#E8344E";e.currentTarget.style.color="white";}}
-            onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color="#E8344E";}}>
-            <Icon.Map/> Open Map
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function GuriGateDiscover() {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode] = useState(false);
 
   const bg = darkMode ? "#0F172A" : "#F8F9FC";
   const card = darkMode ? "#1E293B" : "white";
@@ -176,7 +93,7 @@ export default function GuriGateDiscover() {
             <div style={{ height:200, position:"relative", overflow:"hidden" }}>
               <img src={property.img} alt={property.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
               <div style={{ position:"absolute", top:10, right:10, background:"rgba(232,52,78,0.9)", color:"white", borderRadius:20, padding:"4px 8px", fontSize:11, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
-                <Icon.Star size={12} fill="white"/>
+                <Icon.Star/>
                 {property.rating}
               </div>
             </div>
@@ -185,7 +102,7 @@ export default function GuriGateDiscover() {
             <div style={{ padding:20 }}>
               <h3 style={{ fontSize:16, fontWeight:700, color:text, marginBottom:8, lineHeight:1.3 }}>{property.name}</h3>
               <p style={{ fontSize:13, color:muted, marginBottom:12, display:"flex", alignItems:"center", gap:4 }}>
-                <Icon.MapPin size={14} />
+                <Icon.MapPin />
                 {property.address}
               </p>
               
@@ -208,7 +125,7 @@ export default function GuriGateDiscover() {
               {/* Reviews */}
               <div style={{ display:"flex", alignItems:"center", gap:4, marginBottom:12 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:2 }}>
-                  <Icon.Star size={14} fill="#F97316" stroke="#F97316" strokeWidth="1"/>
+                  <Icon.Star/>
                   <span style={{ fontSize:14, fontWeight:600, color:text }}>{property.rating}</span>
                 </div>
                 <span style={{ fontSize:13, color:muted }}>({property.reviews} reviews)</span>

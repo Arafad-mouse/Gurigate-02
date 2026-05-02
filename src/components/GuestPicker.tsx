@@ -153,7 +153,7 @@ export function GuestPicker({
       <CounterRow
         label="Pets"
         sub="Bringing a service animal?"
-        subLink
+        subLink="Learn more"
         count={counts.pets}
         onInc={() => update("pets", 1)}
         onDec={() => update("pets", -1)}

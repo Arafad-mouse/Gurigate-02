@@ -22,18 +22,6 @@ const Icon = {
   TrendUp: () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
 };
 
-const NAV_ITEMS = [
-  { label:"Dashboard",   icon:<Icon.Grid/>,       section:"main" },
-  { label:"Discover",    icon:<Icon.Compass/>,     section:"main" },
-  { label:"Property",    icon:<Icon.Building/>,    section:"main" },
-  { label:"Agents",      icon:<Icon.Users/>,       section:"main" },
-  { label:"Customer",    icon:<Icon.User/>,        section:"main" },
-  { label:"Analytics",   icon:<Icon.BarChart/>,    section:"main" },
-  { label:"Order",       icon:<Icon.ShoppingBag/>, section:"main" },
-  { label:"Transaction", icon:<Icon.CreditCard/>,  section:"main" },
-  { label:"Inbox",       icon:<Icon.Inbox/>,       section:"apps" },
-  { label:"Calendar",    icon:<Icon.Calendar/>,    section:"apps" },
-];
 
 function genTxnId() {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -61,7 +49,7 @@ const STATUS_STYLE = {
   Returned: { bg:"#FEF2F2", color:"#E8344E" },
 };
 
-function Avatar({ name, size=36 }) {
+function Avatar({ name, size = 36 }: { name: string; size?: number }) {
   const hue = (name.charCodeAt(0) * 37 + (name.charCodeAt(1)||0) * 19) % 360;
   const color = `hsl(${hue},52%,42%)`;
   const bg = `hsl(${hue},52%,93%)`;
@@ -76,141 +64,40 @@ function Avatar({ name, size=36 }) {
   );
 }
 
+const SortTh = ({ label }: { label: string }) => (
+  <th style={{ padding:"14px 16px", textAlign:"left", fontWeight:600, fontSize:12, color:"#9CA3AF", cursor:"pointer", whiteSpace:"nowrap", userSelect:"none" }}>
+    <span style={{ display:"inline-flex", alignItems:"center", gap:4 }}>
+      {label}
+      <span style={{ opacity:0.4, color:"#9CA3AF" }}><Icon.ChevronsUpDown/></span>
+    </span>
+  </th>
+);
+
 export default function GuriGateTransaction() {
-  const [activeNav, setActiveNav]   = useState("Transaction");
-  const [darkMode, setDarkMode]     = useState(false);
-  const [search, setSearch]         = useState("");
-  const [sortField, setSortField]   = useState(null);
-  const [sortDir, setSortDir]       = useState("asc");
   const [statusFilter, setStatus]   = useState("All");
 
-  const bg   = darkMode ? "#0F172A" : "#F0F2F8";
-  const card = darkMode ? "#1E293B" : "white";
-  const bdr  = darkMode ? "#334155" : "#E9ECF0";
-  const muted= darkMode ? "#94A3B8" : "#9CA3AF";
-  const text = darkMode ? "#E2E8F0" : "#111827";
-  const sub  = darkMode ? "#CBD5E1" : "#4B5563";
+  // Fixed light theme values to match global layout
+  const card = "white";
+  const bdr  = "#E9ECF0";
+  const muted= "#9CA3AF";
+  const text = "#111827";
+  const sub  = "#4B5563";
 
-  const handleSort = (f) => {
-    if (sortField === f) setSortDir(d => d === "asc" ? "desc" : "asc");
-    else { setSortField(f); setSortDir("asc"); }
-  };
-
-  const filtered = TRANSACTIONS.filter(t =>
-    (statusFilter === "All" || t.status === statusFilter) &&
-    (t.name.toLowerCase().includes(search.toLowerCase()) ||
-     t.txn.toLowerCase().includes(search.toLowerCase()))
-  );
-
-  const STAT_CARDS = [
-    {
-      label:"Total Revenue", value:"$522,000", sub:null,
-      extra:null, accent:"#E8344E",
-    },
-    {
-      label:"Invoices", value:"$239,000",
-      right:[{l:"Left to plan", v:"$261,000", c:"#E8344E"},{l:"%Planned", v:"51%", c:sub}],
-      accent:"#E8344E",
-    },
-    {
-      label:"Total saves", value:"$110,000",
-      right:[{l:"Left to plan", v:"$139,000", c:"#E8344E"},{l:"%Spent", v:"49%", c:sub}],
-      accent:"#E8344E",
-    },
-    {
-      label:"Daily", value:"$12,320",
-      right:[{l:"Planned", v:"$11,000", c:"#E8344E"},{l:"%Spent", v:"49%", c:sub}],
-      accent:"#E8344E",
-    },
-  ];
-
-  const SortTh = ({ label, field }) => (
-    <th onClick={()=>handleSort(field)} style={{ padding:"14px 16px", textAlign:"left", fontWeight:600, fontSize:12, color:muted, cursor:"pointer", whiteSpace:"nowrap", userSelect:"none" }}>
-      <span style={{ display:"inline-flex", alignItems:"center", gap:4 }}>
-        {label}
-        <span style={{ opacity:sortField===field?1:0.4, color:sortField===field?"#E8344E":muted }}><Icon.ChevronsUpDown/></span>
-      </span>
-    </th>
-  );
+  const filtered = TRANSACTIONS;
 
   return (
-    <div style={{ fontFamily:"'DM Sans', system-ui, sans-serif", background:bg, minHeight:"100vh", display:"flex", color:text }}>
+    <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
         * { box-sizing:border-box; margin:0; padding:0; }
         ::-webkit-scrollbar { width:3px; } ::-webkit-scrollbar-thumb { background:#fca5a5; border-radius:4px; }
-        .nav-item { display:flex; align-items:center; gap:10px; padding:9px 14px; border-radius:10px; cursor:pointer; font-size:13px; font-weight:500; transition:all .15s; width:100%; border:none; background:none; text-align:left; }
-        .nav-item:hover { background:rgba(232,52,78,0.06); color:#E8344E; }
-        .nav-item.active { background:rgba(232,52,78,0.1); color:#E8344E; font-weight:600; }
-        .toggle-switch { width:36px; height:20px; background:#e2e8f0; border-radius:20px; position:relative; cursor:pointer; border:none; transition:background .2s; flex-shrink:0; }
-        .toggle-switch.on { background:#E8344E; }
-        .toggle-knob { position:absolute; width:14px; height:14px; background:white; border-radius:50%; top:3px; left:3px; transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
-        .toggle-switch.on .toggle-knob { transform:translateX(16px); }
         .txn-row { transition:background .1s; }
         .txn-row:hover td { background:rgba(232,52,78,0.025); }
         .status-sel { appearance:none; border:1.5px solid #E9ECF0; border-radius:8px; padding:7px 28px 7px 10px; font-size:12px; font-weight:600; color:#4B5563; cursor:pointer; font-family:inherit; outline:none; background:white; }
         .stat-card { background:white; border-radius:12px; padding:18px 20px; border:1px solid #E9ECF0; flex:1; min-width:0; }
       `}</style>
 
-      {/* ── Sidebar ── */}
-      <aside style={{ width:200, flexShrink:0, background:card, borderRight:`1px solid ${bdr}`, display:"flex", flexDirection:"column", padding:"20px 12px", position:"sticky", top:0, height:"100vh", overflowY:"auto" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:28, paddingLeft:6 }}>
-          <div style={{ width:30, height:30, background:"#E8344E", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", color:"white" }}>
-            <Icon.Home/>
-          </div>
-          <span style={{ fontWeight:700, fontSize:16, letterSpacing:"-0.3px" }}>GuriGate</span>
-        </div>
-        {[["MAIN", NAV_ITEMS.filter(n=>n.section==="main")], ["APPS", NAV_ITEMS.filter(n=>n.section==="apps")]].map(([label, items]) => (
-          <div key={label} style={{ marginBottom:20 }}>
-            <p style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", color:muted, padding:"0 14px 8px" }}>{label}</p>
-            {items.map(item => (
-              <button key={item.label} className={`nav-item${activeNav===item.label?" active":""}`}
-                onClick={()=>setActiveNav(item.label)}
-                style={{ color:activeNav===item.label?"#E8344E":muted }}>
-                <span style={{ opacity:0.85 }}>{item.icon}</span>{item.label}
-              </button>
-            ))}
-          </div>
-        ))}
-        <div style={{ marginTop:"auto" }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", borderRadius:10, background:darkMode?"#334155":"#FEF2F2" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, fontWeight:500, color:muted }}>
-              <Icon.Moon/> Dark Mode
-            </div>
-            <button className={`toggle-switch${darkMode?" on":""}`} onClick={()=>setDarkMode(!darkMode)}>
-              <div className="toggle-knob"/>
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* ── Main ── */}
-      <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0 }}>
-
-        {/* Topbar */}
-        <header style={{ background:card, borderBottom:`1px solid ${bdr}`, padding:"0 28px", height:60, display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:30 }}>
-          <h1 style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.5px" }}>Payments</h1>
-
-          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-            {/* Search */}
-            <div style={{ display:"flex", alignItems:"center", gap:8, background:darkMode?"#334155":"#F1F5F9", border:`1.5px solid ${bdr}`, borderRadius:10, padding:"7px 16px", width:260 }}>
-              <Icon.Search/>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search" style={{ border:"none", outline:"none", background:"transparent", fontSize:13, color:"inherit", width:"100%", fontFamily:"inherit" }}/>
-            </div>
-
-            <button style={{ background:"none", border:"none", cursor:"pointer", color:muted, position:"relative" }}>
-              <Icon.Mail/>
-              <span style={{ position:"absolute", top:-2, right:-2, width:7, height:7, background:"#E8344E", borderRadius:"50%", border:"1.5px solid white" }}/>
-            </button>
-            <button style={{ background:"none", border:"none", cursor:"pointer", color:muted, position:"relative" }}>
-              <Icon.Bell/>
-              <span style={{ position:"absolute", top:-2, right:-2, width:7, height:7, background:"#E8344E", borderRadius:"50%", border:"1.5px solid white" }}/>
-            </button>
-            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&q=80" alt="" style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover" }}/>
-          </div>
-        </header>
-
-        <main style={{ padding:"24px 28px", flex:1, overflowY:"auto" }}>
+      <main style={{ padding:"28px", flex:1, overflowY:"auto" }}>
 
           {/* ── Stat cards ── */}
           <div style={{ display:"flex", gap:14, marginBottom:24 }}>
@@ -290,7 +177,7 @@ export default function GuriGateTransaction() {
             {/* Table toolbar */}
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 20px", borderBottom:`1px solid ${bdr}` }}>
               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:6, background:darkMode?"#334155":"#F8FAFC", border:`1.5px solid ${bdr}`, borderRadius:8, padding:"6px 12px", width:180 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6, background:"#F8FAFC", border:`1.5px solid ${bdr}`, borderRadius:8, padding:"6px 12px", width:180 }}>
                   <Icon.Search/>
                   <input placeholder="Search transactions…" style={{ border:"none", outline:"none", background:"transparent", fontSize:12, color:"inherit", width:"100%", fontFamily:"inherit" }}/>
                 </div>
@@ -307,7 +194,7 @@ export default function GuriGateTransaction() {
               <div style={{ display:"flex", gap:6 }}>
                 {["Paid","Pending","Returned"].map(s => {
                   const cnt = TRANSACTIONS.filter(t=>t.status===s).length;
-                  const st = STATUS_STYLE[s];
+                  const st = STATUS_STYLE[s as keyof typeof STATUS_STYLE];
                   return (
                     <span key={s} style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 10px", borderRadius:20, fontSize:11, fontWeight:700, background:st.bg, color:st.color }}>
                       {cnt} {s}
@@ -322,12 +209,12 @@ export default function GuriGateTransaction() {
               <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
                 <thead>
                   <tr style={{ borderBottom:`1.5px solid ${bdr}` }}>
-                    <SortTh label="Name of user" field="name"/>
-                    <SortTh label="Date" field="date"/>
-                    <SortTh label="Time" field="time"/>
-                    <SortTh label="Transaction" field="txn"/>
-                    <SortTh label="Total" field="total"/>
-                    <SortTh label="Status" field="status"/>
+                    <SortTh label="Name of user"/>
+                    <SortTh label="Date"/>
+                    <SortTh label="Time"/>
+                    <SortTh label="Transaction"/>
+                    <SortTh label="Total"/>
+                    <SortTh label="Status"/>
                     <th style={{ padding:"14px 16px", width:40 }}/>
                   </tr>
                 </thead>
@@ -353,7 +240,7 @@ export default function GuriGateTransaction() {
                       <td style={{ padding:"13px 16px", fontWeight:700, color:text, fontSize:13 }}>{row.total}</td>
                       {/* Status */}
                       <td style={{ padding:"13px 16px" }}>
-                        <span style={{ ...STATUS_STYLE[row.status], display:"inline-block", padding:"4px 14px", borderRadius:20, fontSize:11.5, fontWeight:700 }}>
+                        <span style={{ ...STATUS_STYLE[row.status as keyof typeof STATUS_STYLE], display:"inline-block", padding:"4px 14px", borderRadius:20, fontSize:11.5, fontWeight:700 }}>
                           {row.status}
                         </span>
                       </td>
@@ -385,7 +272,6 @@ export default function GuriGateTransaction() {
           </div>
 
         </main>
-      </div>
-    </div>
+    </>
   );
 }

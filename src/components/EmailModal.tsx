@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X, ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { X, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -356,7 +356,6 @@ function SocialBtn({ icon, label, bold = false, onClick }: { icon: React.ReactNo
 export function EmailModal({ onClose, onSuccess }: EmailModalProps) {
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const ref = useRef<HTMLDivElement>(null);
 
   // Close on backdrop click
@@ -434,8 +433,7 @@ export function EmailModal({ onClose, onSuccess }: EmailModalProps) {
         {step === "password" && (
           <PasswordStep
             email={email}
-            onContinue={(p) => {
-              setPassword(p);
+            onContinue={() => {
               setStep("verify");
             }}
           />

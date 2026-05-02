@@ -30,24 +30,11 @@ const Icon = {
   Layers: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
 };
 
-const NAV_ITEMS = [
-  { label:"Dashboard", icon:<Icon.Grid/>, section:"main" },
-  { label:"Discover", icon:<Icon.Compass/>, section:"main" },
-  { label:"Property", icon:<Icon.Building/>, section:"main", active:true },
-  { label:"Agents", icon:<Icon.Users/>, section:"main" },
-  { label:"Customer", icon:<Icon.User/>, section:"main" },
-  { label:"Analytics", icon:<Icon.BarChart/>, section:"main" },
-  { label:"Orders", icon:<Icon.ShoppingBag/>, section:"main" },
-  { label:"Transaction", icon:<Icon.CreditCard/>, section:"main" },
-  { label:"Inbox", icon:<Icon.Inbox/>, section:"apps" },
-  { label:"Calendar", icon:<Icon.Calendar/>, section:"apps" },
-];
-
 const ALL_PROPERTIES = [
   { id:1, name:"New York", type:"House", size:"1400ft", status:"Sale", beds:5, location:"France", price:"$250,00 USD", img:"https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=60&q=80" },
   { id:2, name:"Washington Residence", type:"Villa", size:"1600ft", status:"Rent", beds:3, location:"Canada", price:"$87,00 USD", img:"https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=60&q=80" },
   { id:3, name:"London Residence", type:"House", size:"1600ft", status:"Rent", beds:4, location:"England", price:"$200,00 USD", img:"https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=60&q=80" },
-  { id:4, name:"Grand Resort Villa", type:"Villa", size:"1600ft", status:"Sold", beds:5, location:"Canada", price:"$350,00 USD", img:"https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=60&q=80" },
+  { id:4, name:"Grand Resort Villa", type:"Villa", size:"1600ft", status:"Sold", beds:5, location:"Canada", price:"$350,00 USD", img:"https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=60&q=80", },
   { id:5, name:"House Residence", type:"House", size:"1400ft", status:"Rent", beds:3, location:"France", price:"$350,00 USD", img:"https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=60&q=80" },
   { id:6, name:"Paris Square", type:"Villa", size:"1200ft", status:"Sold", beds:3, location:"German", price:"$250,00 USD", img:"https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=60&q=80" },
   { id:7, name:"Canada Residence", type:"Villa", size:"2400ft", status:"Rent", beds:6, location:"Portugal", price:"$150,00 USD", img:"https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=60&q=80" },
@@ -55,35 +42,18 @@ const ALL_PROPERTIES = [
   { id:9, name:"Duplex Bungalow", type:"Bungalow", size:"2200ft", status:"Rent", beds:6, location:"America", price:"$1500 USD", img:"https://images.unsplash.com/photo-1484154218962-a197022b5858?w=60&q=80" },
 ];
 
-const STATUS_STYLE = {
-  Sale: { bg:"#FEF2F2", text:"#E8344E" },
-  Rent: { bg:"#ECFDF5", text:"#059669" },
-  Sold: { bg:"#FEF9C3", text:"#D97706" },
-};
-
-const STAT_CARDS = [
-  { label:"Total Income", value:"$12,7812.12", change:"+12%", up:true, icon:<Icon.Wallet/> },
-  { label:"Total Properties", value:"15,780 Unit", change:"-8%", up:false, icon:<Icon.Package/> },
-  { label:"Unit Sold", value:"893 Unit", change:"-16%", up:false, icon:<Icon.Tag/> },
-  { label:"Unit Rent", value:"490 Unit", change:"+12%", up:true, icon:<Icon.Layers/> },
-];
-
-const PAGE_SIZE = 9;
-const TOTAL_PAGES = 10;
-
 export default function GuriGateProperty() {
-  const [darkMode, setDarkMode] = useState(false);
-  const [checked, setChecked] = useState([]);
+  const [darkMode] = useState(false);
+  const [checked, setChecked] = useState<number[]>([]);
 
-  const bg = darkMode ? "#0F172A" : "#F8F9FC";
   const card = darkMode ? "#1E293B" : "white";
   const border = darkMode ? "#334155" : "#F1F5F9";
   const text = darkMode ? "#E2E8F0" : "#111827";
   const muted = darkMode ? "#94A3B8" : "#6B7280";
 
-  const toggle = (id: any) => setChecked((p: any[]) => p.includes(id) ? p.filter((x: any)=>x!==id) : [...p, id]);
+  const toggle = (id: number) => setChecked((p: number[]) => p.includes(id) ? p.filter((x: number)=>x!==id) : [...p, id]);
   const allChecked = checked.length === ALL_PROPERTIES.length;
-  const toggleAll = () => setChecked(allChecked ? [] : ALL_PROPERTIES.map((p: any) => p.id));
+  const toggleAll = () => setChecked(allChecked ? [] : ALL_PROPERTIES.map((p) => p.id));
 
   return (
     <div style={{ padding:"28px", flex:1, overflowY:"auto" }}>

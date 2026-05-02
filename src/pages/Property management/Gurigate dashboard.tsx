@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // Import page components
 import GuriGateRentals from "./Gurigate rentals";
@@ -6,6 +6,9 @@ import GuriGateOrders from "./Gurigate orders";
 import GuriGateTransaction from "./Gurigate transaction";
 import GuriGateDiscover from "./Gurigate discover";
 import GuriGateProperty from "./Gurigate property";
+
+// Import modal
+import { AddPropertyModal } from "@/components/AddPropertyModal";
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 const Icon = {
@@ -21,6 +24,7 @@ const Icon = {
   Inbox: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>,
   Calendar: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
   Plus: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  Menu: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
   Search: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
   Bell: () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>,
   Smile: () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
@@ -32,7 +36,7 @@ const Icon = {
 };
 
 // ── Sparkline (mini area chart via SVG) ───────────────────────────────────────
-function Sparkline({ data, color, filled = true }) {
+function Sparkline({ data, color, filled = true }: { data: number[]; color: string; filled?: boolean }) {
   const W = 80, H = 32;
   const min = Math.min(...data), max = Math.max(...data);
   const pts = data.map((v, i) => {
@@ -51,7 +55,7 @@ function Sparkline({ data, color, filled = true }) {
 }
 
 // ── Bar Sparkline ─────────────────────────────────────────────────────────────
-function BarSparkline({ data, color }) {
+function BarSparkline({ data, color }: { data: number[]; color: string }) {
   const W = 80, H = 32;
   const max = Math.max(...data);
   const barW = (W / data.length) * 0.5;
@@ -68,39 +72,7 @@ function BarSparkline({ data, color }) {
   );
 }
 
-// ── Donut Chart ───────────────────────────────────────────────────────────────
-function DonutChart({ segments, total }) {
-  const R = 46, cx = 56, cy = 56, strokeW = 12;
-  const circ = 2 * Math.PI * R;
-  let offset = 0;
-  const colors = ["#E8344E", "#F59E0B", "#3B82F6"];
-  return (
-    <svg width={112} height={112} viewBox="0 0 112 112">
-      <circle cx={cx} cy={cy} r={R} fill="none" stroke="#F3F4F6" strokeWidth={strokeW} />
-      {segments.map((pct, i) => {
-        const dash = (pct / 100) * circ;
-        const el = (
-          <circle
-            key={i}
-            cx={cx} cy={cy} r={R}
-            fill="none"
-            stroke={colors[i]}
-            strokeWidth={strokeW}
-            strokeDasharray={`${dash} ${circ - dash}`}
-            strokeDashoffset={-offset}
-            strokeLinecap="butt"
-            style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
-          />
-        );
-        offset += dash;
-        return el;
-      })}
-      <text x={cx} y={cy - 5} textAnchor="middle" fontSize="14" fontWeight="700" fill="#111827">{total.toLocaleString()}</text>
-      <text x={cx} y={cy + 11} textAnchor="middle" fontSize="8" fill="#9CA3AF">Total Income</text>
-    </svg>
-  );
-}
-
+          
 // ── Sales Analytics Line Chart ────────────────────────────────────────────────
 function SalesChart() {
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -110,8 +82,8 @@ function SalesChart() {
   const chartW = W - PL - PR, chartH = H - PT - PB;
   const maxV = Math.max(...income);
 
-  const toX = i => PL + (i / (months.length - 1)) * chartW;
-  const toY = v => PT + chartH - (v / maxV) * chartH;
+  const toX = (i: number) => PL + (i / (months.length - 1)) * chartW;
+  const toY = (v: number) => PT + chartH - (v / maxV) * chartH;
 
   const incomePts = income.map((v,i)=>`${toX(i)},${toY(v)}`);
   const expPts = expenses.map((v,i)=>`${toX(i)},${toY(v)}`);
@@ -168,9 +140,7 @@ const NAV_ITEMS = [
   { label:"Discover", icon:<Icon.Compass/>, section:"main" },
   { label:"Property", icon:<Icon.Building/>, section:"main" },
   { label:"Rentals", icon:<Icon.Home/>, section:"main" },
-  { label:"Agents", icon:<Icon.Users/>, section:"main" },
   { label:"Customer", icon:<Icon.User/>, section:"main" },
-  { label:"Analytics", icon:<Icon.BarChart/>, section:"main" },
   { label:"Orders", icon:<Icon.ShoppingBag/>, section:"main" },
   { label:"Transaction", icon:<Icon.CreditCard/>, section:"main", active:true },
   { label:"Inbox", icon:<Icon.Inbox/>, section:"apps" },
@@ -183,14 +153,73 @@ const STATUS_COLORS = {
   PENDING: { bg:"#FFFBEB", text:"#D97706" },
 };
 
+// ── Coming Soon Page Component ───────────────────────────────────────────────────
+function ComingSoonPage({ title, icon, description }: { title: string; icon: React.ReactNode; description: string }) {
+  return (
+    <div style={{ padding:"40px 20px", textAlign:"center", minHeight:"60vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ width:80, height:80, background:"#E8344E20", borderRadius:20, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:24, fontSize:32, color:"#E8344E" }}>
+        {icon}
+      </div>
+      <h1 style={{ fontSize:28, fontWeight:700, color:"#111827", marginBottom:12 }}>{title}</h1>
+      <p style={{ fontSize:16, color:"#9CA3AF", marginBottom:32, maxWidth:400, lineHeight:1.5 }}>{description}</p>
+      <div style={{ background:"#F8F9FC", border:"1px solid #F1F5F9", borderRadius:12, padding:24, maxWidth:500 }}>
+        <h2 style={{ fontSize:18, fontWeight:600, color:"#111827", marginBottom:16 }}>Coming Soon</h2>
+        <p style={{ fontSize:14, color:"#6B7280", lineHeight:1.6, marginBottom:20 }}>
+          We're working hard to bring you the {title.toLowerCase()} feature. This will include powerful tools to {description.toLowerCase()}.
+        </p>
+        <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 16px", background:"#E8344E10", borderRadius:8, color:"#E8344E", fontSize:13, fontWeight:500 }}>
+            <Icon.Check/> Advanced Features
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 16px", background:"#10B98110", borderRadius:8, color:"#10B981", fontSize:13, fontWeight:500 }}>
+            <Icon.Check/> User-Friendly Interface
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 16px", background:"#F59E0B10", borderRadius:8, color:"#F59E0B", fontSize:13, fontWeight:500 }}>
+            <Icon.Check/> Real-time Updates
+          </div>
+        </div>
+      </div>
+      <div style={{ marginTop:32 }}>
+        <button style={{ background:"#E8344E", color:"white", border:"none", borderRadius:10, padding:"12px 24px", fontSize:14, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", gap:8, margin:"0 auto" }}>
+          <Icon.Bell/> Notify Me When Available
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function GuriGateDashboard() {
   const [activeNav, setActiveNav] = useState("Dashboard");
-  const [darkMode, setDarkMode] = useState(false);
-  const [period, setPeriod] = useState("Last Month");
-  const [checked, setChecked] = useState([]);
+  const [checked, setChecked] = useState<number[]>([]);
+  const [showAddPropertyModal, setShowAddPropertyModal] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1440,
+  );
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const toggle = (id: any) => setChecked((p: any[]) => p.includes(id) ? p.filter((x: any)=>x!==id) : [...p, id]);
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const isMobile = viewportWidth < 1024;
+  const isTablet = viewportWidth < 1280;
+
+  const toggle = (id: number) => setChecked((p: number[]) => p.includes(id) ? p.filter((x: number)=>x!==id) : [...p, id]);
+
+  useEffect(() => {
+    if (!isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [isMobile]);
+
+  const handleAddPropertySuccess = (property: any) => {
+    console.log('Property created successfully:', property);
+    // You can add additional logic here like refreshing the property list
+  };
 
   // Routing function to render different pages
   const renderPage = () => {
@@ -205,30 +234,44 @@ export default function GuriGateDashboard() {
         return <GuriGateDiscover />;
       case "Property":
         return <GuriGateProperty />;
+      case "Agents":
+        return <ComingSoonPage title="Agents" icon={<Icon.Users/>} description="Manage your real estate agents and their performance" />;
+      case "Customer":
+        return <ComingSoonPage title="Customer" icon={<Icon.User/>} description="View and manage customer profiles and interactions" />;
+      case "Analytics":
+        return <ComingSoonPage title="Analytics" icon={<Icon.BarChart/>} description="Detailed insights and analytics for your properties" />;
+      case "Inbox":
+        return <ComingSoonPage title="Inbox" icon={<Icon.Inbox/>} description="Messages and communications hub" />;
+      case "Calendar":
+        return <ComingSoonPage title="Calendar" icon={<Icon.Calendar/>} description="Schedule appointments and manage your calendar" />;
       default:
         // Default Dashboard content
         return (
           <>
             {/* Page heading */}
-            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:24 }}>
+            <div style={{ display:"flex", alignItems:isMobile ? "stretch" : "flex-start", justifyContent:"space-between", flexDirection:isMobile ? "column" : "row", gap:isMobile ? 12 : 0, marginBottom:24 }}>
               <div>
                 <h1 style={{ fontSize:22, fontWeight:700, letterSpacing:"-0.4px" }}>Dashboard</h1>
                 <p style={{ fontSize:12, color:"#9CA3AF", marginTop:2 }}>Welcome, Let's dive into your personalized setup guide.</p>
               </div>
-              <button style={{ display:"flex", alignItems:"center", gap:6, background:"#E8344E", color:"white", border:"none", borderRadius:10, padding:"10px 18px", fontSize:13, fontWeight:600, cursor:"pointer" }}>
+              <button 
+                onClick={() => setShowAddPropertyModal(true)}
+                style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, background:"#E8344E", color:"white", border:"none", borderRadius:10, padding:"10px 18px", fontSize:13, fontWeight:600, cursor:"pointer", width:isMobile ? "100%" : "auto" }}
+                title="Add a new property to your portfolio"
+              >
                 <Icon.Plus/> Add Property
               </button>
             </div>
 
             {/* Stat cards */}
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:14, marginBottom:20 }}>
+            <div style={{ display:"grid", gridTemplateColumns:isMobile ? "1fr" : isTablet ? "repeat(2,1fr)" : "repeat(4,1fr)", gap:14, marginBottom:20 }}>
               {[
-                { label:"No. Of Properties", value:"2,454", change:"+7.0%", data:[20,35,25,45,30,60,40,55,42,65,50,70], type:"bar", color:"#E8344E" },
-                { label:"Register Agents", value:"1,854", change:"+7.0%", data:[30,25,40,35,50,30,45,55,40,60,50,65], type:"line", color:"#E8344E" },
+                { label:"No. Of Rooms", value:"2,454", change:"+7.0%", data:[20,35,25,45,30,60,40,55,42,65,50,70], type:"bar", color:"#E8344E" },
+                { label:"Register Rooms", value:"1,854", change:"+7.0%", data:[30,25,40,35,50,30,45,55,40,60,50,65], type:"line", color:"#E8344E" },
                 { label:"Customers", value:"2,454", change:"+7.0%", data:[25,40,30,50,35,55,40,60,45,65,50,70], type:"bar", color:"#E8344E" },
                 { label:"Revenue", value:"$78.02M", change:"+9.0%", data:[40,35,45,30,50,40,55,45,60,50,65,55], type:"line", color:"#E8344E" },
               ].map((card: any) => (
-                <div key={card.label} className="stat-card" style={{ background:darkMode?"#1E293B":"white", border:`1px solid ${darkMode?"#334155":"#F1F5F9"}` }}>
+                <div key={card.label} className="stat-card" style={{ background:"white", border:"1px solid #F1F5F9" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
                     <div style={{ width:32, height:32, background:"#FEF2F2", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center" }}>
                       {card.label.includes("Revenue") ? <Icon.CreditCard/> : card.label.includes("Agent") ? <Icon.Users/> : card.label.includes("Customer") ? <Icon.User/> : <Icon.Building/>}
@@ -250,13 +293,13 @@ export default function GuriGateDashboard() {
             </div>
 
             {/* Charts row */}
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 280px", gap:14, marginBottom:20 }}>
+            <div style={{ display:"grid", gridTemplateColumns:isMobile ? "1fr" : "minmax(0,1fr) 280px", gap:14, marginBottom:20 }}>
               {/* Sales Analytics */}
-              <div className="chart-card" style={{ background:darkMode?"#1E293B":"white", border:`1px solid ${darkMode?"#334155":"#F1F5F9"}` }}>
+              <div className="chart-card" style={{ background:"white", border:"1px solid #F1F5F9" }}>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
                   <h2 style={{ fontSize:15, fontWeight:700 }}>Sales Analytics</h2>
-                  <button style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:"#6B7280", background:darkMode?"#334155":"#F8F9FC", border:"none", borderRadius:8, padding:"6px 12px", cursor:"pointer" }}>
-                    {period} <Icon.ChevronDown/>
+                  <button style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:"#6B7280", background:"#F8F9FC", border:"none", borderRadius:8, padding:"6px 12px", cursor:"pointer" }}>
+                    Last Month <Icon.ChevronDown/>
                   </button>
                 </div>
                 <div style={{ display:"flex", gap:16, marginBottom:14 }}>
@@ -275,20 +318,17 @@ export default function GuriGateDashboard() {
               </div>
 
               {/* Goals donut */}
-              <div className="chart-card" style={{ background:darkMode?"#1E293B":"white", border:`1px solid ${darkMode?"#334155":"#F1F5F9"}` }}>
+              <div className="chart-card" style={{ background:"white", border:"1px solid #F1F5F9" }}>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
                   <h2 style={{ fontSize:15, fontWeight:700 }}>Goals</h2>
-                  <button style={{ background:"none", border:"none", cursor:"pointer", color:"#9CA3AF" }}><Icon.MoreVert/></button>
+                  <button style={{ background:"none", border:"none", cursor:"pointer", color:"#9CA3AF" }} title="More options"><Icon.MoreVert/></button>
                 </div>
-                <div style={{ display:"flex", justifyContent:"center", marginBottom:16 }}>
-                  <DonutChart segments={[54, 12, 34]} total={32021}/>
-                </div>
-                <div style={{ display:"flex", gap:8 }}>
+                <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                   {[
                     { icon:"💼", value:"$12,167", label:"From January", color:"#E8344E" },
                     { icon:"💼", value:"$14,900", label:"From June", color:"#F59E0B" },
                   ].map((g: any, i: number) => (
-                    <div key={i} style={{ flex:1, background:darkMode?"#334155":"#F8F9FC", borderRadius:10, padding:"10px 12px" }}>
+                    <div key={i} style={{ flex:1, background:"#F8F9FC", borderRadius:10, padding:"10px 12px" }}>
                       <div style={{ width:26, height:26, background:g.color+"20", borderRadius:7, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:6, fontSize:13 }}>💰</div>
                       <p style={{ fontSize:13, fontWeight:700 }}>{g.value}</p>
                       <p style={{ fontSize:10, color:"#9CA3AF" }}>{g.label}</p>
@@ -311,19 +351,19 @@ export default function GuriGateDashboard() {
             </div>
 
             {/* Transaction Table */}
-            <div style={{ background:darkMode?"#1E293B":"white", borderRadius:16, border:`1px solid ${darkMode?"#334155":"#F1F5F9"}`, overflow:"hidden" }}>
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"18px 20px 14px" }}>
+            <div style={{ background:"white", borderRadius:16, border:"1px solid #F1F5F9", overflow:"hidden" }}>
+              <div style={{ display:"flex", alignItems:isMobile ? "stretch" : "center", justifyContent:"space-between", flexDirection:isMobile ? "column" : "row", gap:isMobile ? 10 : 0, padding:"18px 20px 14px" }}>
                 <h2 style={{ fontSize:15, fontWeight:700 }}>Recent Transaction History</h2>
-                <button style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:"#6B7280", background:darkMode?"#334155":"#F8F9FC", border:"none", borderRadius:8, padding:"6px 12px", cursor:"pointer" }}>
+                <button style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:"#6B7280", background:"#F8F9FC", border:"none", borderRadius:8, padding:"6px 12px", cursor:"pointer" }}>
                   Last Month <Icon.ChevronDown/>
                 </button>
               </div>
               <div style={{ overflowX:"auto" }}>
                 <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
                   <thead>
-                    <tr style={{ borderBottom:`1px solid ${darkMode?"#334155":"#F1F5F9"}` }}>
+                    <tr style={{ borderBottom:"1px solid #F1F5F9" }}>
                       <th style={{ padding:"10px 20px", textAlign:"left", fontWeight:600, fontSize:12, color:"#9CA3AF" }}>
-                        <input type="checkbox"/>
+                        <input type="checkbox" title="Select all transactions"/>
                       </th>
                       {["Properties Name","Properties Type","Transaction","Customer","Date","Status",""].map((h: any) => (
                         <th key={h} style={{ padding:"10px 12px", textAlign:"left", fontWeight:600, fontSize:12, color:"#9CA3AF", whiteSpace:"nowrap" }}>{h}</th>
@@ -332,7 +372,7 @@ export default function GuriGateDashboard() {
                   </thead>
                   <tbody>
                     {TRANSACTIONS.map((row: any) => (
-                      <tr key={row.id} className="txn-row" style={{ borderBottom:`1px solid ${darkMode?"#334155":"#F9FAFB"}`, transition:"background .1s" }}>
+                      <tr key={row.id} className="txn-row" style={{ borderBottom:"1px solid #F9FAFB", transition:"background .1s" }}>
                         <td style={{ padding:"12px 20px" }}>
                           <input type="checkbox" checked={checked.includes(row.id)} onChange={()=>toggle(row.id)}/>
                         </td>
@@ -359,7 +399,7 @@ export default function GuriGateDashboard() {
                           </span>
                         </td>
                         <td style={{ padding:"12px 12px" }}>
-                          <button style={{ background:"none", border:"none", cursor:"pointer", color:"#9CA3AF", padding:4 }}>
+                          <button style={{ background:"none", border:"none", cursor:"pointer", color:"#9CA3AF", padding:4 }} title="More options">
                             <Icon.MoreVert/>
                           </button>
                         </td>
@@ -369,13 +409,14 @@ export default function GuriGateDashboard() {
                 </table>
               </div>
             </div>
+
           </>
         );
     }
   };
 
   return (
-    <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif", background: darkMode ? "#0F172A" : "#F8F9FC", minHeight: "100vh", display: "flex", color: darkMode ? "#E2E8F0" : "#111827" }}>
+    <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif", background: "#F8F9FC", minHeight: "100vh", display: "flex", flexDirection: isMobile ? "column" : "row", color: "#111827", overflowX: "hidden" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -396,14 +437,35 @@ export default function GuriGateDashboard() {
         input[type=checkbox] { accent-color:#E8344E; width:14px; height:14px; cursor:pointer; }
       `}</style>
 
+      {isMobile && sidebarOpen ? (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.45)", zIndex: 59 }}
+        />
+      ) : null}
+
+      {isMobile ? (
+        <div style={{ position:"sticky", top:0, zIndex:60, display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, padding:"14px 16px", background: "white", borderBottom:"1px solid #F1F5F9" }}>
+          <button
+            onClick={() => setSidebarOpen(true)}
+            style={{ display:"flex", alignItems:"center", gap:8, border:"none", background:"none", cursor:"pointer", color: "#111827", fontSize:13, fontWeight:600 }}
+          >
+            <Icon.Menu /> Menu
+          </button>
+          <span style={{ fontSize:13, fontWeight:700 }}>{activeNav}</span>
+          <button
+            onClick={() => setShowAddPropertyModal(true)}
+            style={{ display:"flex", alignItems:"center", gap:6, border:"none", borderRadius:999, background:"#E8344E", color:"white", cursor:"pointer", fontSize:12, fontWeight:700, padding:"8px 12px" }}
+          >
+            <Icon.Plus /> Add
+          </button>
+        </div>
+      ) : null}
+
       {/* ── Sidebar ── */}
-      <aside style={{ width:200, flexShrink:0, background: darkMode?"#1E293B":"white", borderRight:`1px solid ${darkMode?"#334155":"#F1F5F9"}`, display:"flex", flexDirection:"column", padding:"20px 12px", position:"sticky", top:0, height:"100vh", overflowY:"auto" }}>
+      <aside style={{ width:250, flexShrink:0, background: "white", borderRight:"1px solid #F1F5F9", display:"flex", flexDirection:"column", padding:"20px 12px", position:isMobile ? "fixed" : "sticky", left:isMobile ? (sidebarOpen ? 0 : -266) : "auto", top:0, zIndex:isMobile ? 60 : "auto", height:"100vh", overflowY:"auto", transition:isMobile ? "left .2s ease" : "none" }}>
         {/* Logo */}
         <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:28, paddingLeft:6 }}>
-          <div style={{ width:30, height:30, background:"#E8344E", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", color:"white" }}>
-            <Icon.Home/>
-          </div>
-          <span style={{ fontWeight:700, fontSize:16, letterSpacing:"-0.3px" }}>GuriGate</span>
         </div>
 
         {/* Nav sections */}
@@ -412,61 +474,29 @@ export default function GuriGateDashboard() {
             <p style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", color:"#9CA3AF", padding:"0 14px 8px" }}>{label}</p>
             {items.map((item: any) => (
               <button key={item.label} className={`nav-item${activeNav===item.label?" active":""}`} onClick={()=>setActiveNav(item.label)}
-                style={{ color: activeNav===item.label?"#E8344E":darkMode?"#94A3B8":"#6B7280" }}>
+                style={{ color: activeNav===item.label?"#E8344E":"#6B7280" }}>
                 <span style={{ opacity:0.8 }}>{item.icon}</span>{item.label}
               </button>
             ))}
           </div>
         ))}
-
-        <div style={{ marginTop:"auto" }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", borderRadius:10, background:darkMode?"#334155":"#F8F9FC" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, fontWeight:500, color:darkMode?"#94A3B8":"#6B7280" }}>
-              <Icon.Moon/> Dark Mode
-            </div>
-            <button className={`toggle-switch${darkMode?" on":""}`} onClick={()=>setDarkMode(!darkMode)}>
-              <div className="toggle-knob"/>
-            </button>
-          </div>
-        </div>
       </aside>
 
       {/* ── Main Area ── */}
       <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0, overflowX:"hidden" }}>
-        {/* Top bar */}
-        <header style={{ background:darkMode?"#1E293B":"white", borderBottom:`1px solid ${darkMode?"#334155":"#F1F5F9"}`, padding:"0 28px", height:60, display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:30 }}>
-          {/* Search */}
-          <div style={{ display:"flex", alignItems:"center", gap:8, background:darkMode?"#334155":"#F8F9FC", border:`1px solid ${darkMode?"#475569":"#E5E7EB"}`, borderRadius:10, padding:"7px 14px", width:260 }}>
-            <Icon.Search/>
-            <input placeholder="Search..." style={{ border:"none", outline:"none", background:"transparent", fontSize:13, color:"inherit", width:"100%" }}/>
-            <span style={{ fontSize:10, color:"#9CA3AF", background:darkMode?"#475569":"#E5E7EB", padding:"2px 6px", borderRadius:5 }}>⌘K</span>
-          </div>
-
-          {/* Right actions */}
-          <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-            <button style={{ background:"none", border:"none", cursor:"pointer", color:darkMode?"#94A3B8":"#6B7280", position:"relative" }}>
-              <Icon.Smile/>
-            </button>
-            <button style={{ background:"none", border:"none", cursor:"pointer", color:darkMode?"#94A3B8":"#6B7280", position:"relative" }}>
-              <Icon.Bell/>
-              <span style={{ position:"absolute", top:-2, right:-2, width:7, height:7, background:"#E8344E", borderRadius:"50%", border:"1.5px solid white" }}/>
-            </button>
-            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&q=80" alt="" style={{ width:34, height:34, borderRadius:"50%", objectFit:"cover" }}/>
-              <div>
-                <p style={{ fontSize:13, fontWeight:600, lineHeight:1.2 }}>Ralph Edwards</p>
-                <p style={{ fontSize:11, color:"#9CA3AF" }}>edwards@gmail.com</p>
-              </div>
-              <Icon.ChevronDown/>
-            </div>
-          </div>
-        </header>
-
         {/* Content */}
-        <main style={{ padding:"28px", flex:1, overflowY:"auto" }}>
+        <main style={{ padding:isMobile ? "16px" : "28px", flex:1, overflowY:"auto" }}>
           {renderPage()}
         </main>
       </div>
+
+      {/* Add Property Modal */}
+      {showAddPropertyModal && (
+        <AddPropertyModal
+          onClose={() => setShowAddPropertyModal(false)}
+          onSuccess={handleAddPropertySuccess}
+        />
+      )}
     </div>
   );
 }

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Star, Heart } from "lucide-react";
+import { applyImageFallback } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,7 +42,7 @@ const DEFAULT_PROPERTIES: Property[] = [
     price: "$120",
     priceUnit: "for 2 nights",
     rating: 5.0,
-    image: "https://images.unsplash.com/photo-1560185127-6a12f9a26fe5?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
   },
   {
     id: 3,
@@ -65,6 +67,7 @@ function PropertyCard({ property }: { property: Property }) {
         <img
           src={property.image}
           alt={property.title}
+          onError={(event) => applyImageFallback(event.currentTarget, property.title)}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
         />
 
@@ -124,14 +127,23 @@ export function PopularHomesSection({
   total = 142,
   properties = DEFAULT_PROPERTIES,
 }: PopularHomesSectionProps) {
+  const navigate = useNavigate();
+
+  const handleShowAll = () => {
+    navigate('/manage-property');
+  };
+
   return (
     <section>
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <h2 className="text-2xl font-bold text-gray-900">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">
           Popular homes in {city}
         </h2>
-        <button className="text-sm font-medium text-gray-600 hover:text-gray-900 hover:underline underline-offset-2 transition-colors whitespace-nowrap">
+        <button 
+          onClick={handleShowAll}
+          className="self-start whitespace-nowrap text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 hover:underline underline-offset-2 sm:self-auto"
+        >
           Show all ({total})
         </button>
       </div>

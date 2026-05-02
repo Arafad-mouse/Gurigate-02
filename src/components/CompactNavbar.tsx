@@ -1,16 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Search, Globe, Menu, User, Home } from "lucide-react";
+import { useState } from "react";
+import { Search, Globe, Home } from "lucide-react";
+import { ProfileMenu } from "./ProfileMenu";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface CompactNavbarProps {
-  onLoginClick?: () => void;
-  isLoggedIn?: boolean;
-  onLogout?: () => void;
-  userName?: string;
-}
+// Props can be added later if needed for external auth state management
 
 // ─── Pill Search Bar ──────────────────────────────────────────────────────────
 
@@ -53,7 +49,7 @@ function PillSearch() {
         >
           Add guests
         </button>
-        <button className="w-9 h-9 bg-[#E8344E] rounded-full flex items-center justify-center hover:bg-[#d02d44] transition-colors flex-shrink-0">
+        <button className="w-9 h-9 bg-[#E8344E] rounded-full flex items-center justify-center hover:bg-[#d02d44] transition-colors flex-shrink-0" aria-label="Search properties">
           <Search size={14} className="text-white" strokeWidth={2.5} />
         </button>
       </div>
@@ -61,103 +57,9 @@ function PillSearch() {
   );
 }
 
-// ─── Profile Dropdown ─────────────────────────────────────────────────────────
-
-function ProfileDropdown({
-  isLoggedIn,
-  onClose,
-  onLoginClick,
-  onLogout,
-}: {
-  isLoggedIn: boolean;
-  onClose: () => void;
-  onLoginClick: () => void;
-  onLogout: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [onClose]);
-
-  return (
-    <>
-      <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div
-        ref={ref}
-        className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50"
-        style={{ animation: "ddIn .18s cubic-bezier(.16,1,.3,1) both" }}
-      >
-        <style>{`@keyframes ddIn{from{opacity:0;transform:translateY(-8px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}`}</style>
-
-        {isLoggedIn ? (
-          <>
-            <div className="py-1.5">
-              {["Wishlists", "Trips", "Messages", "Profile"].map((item) => (
-                <button key={item} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                  {item}
-                </button>
-              ))}
-            </div>
-            <div className="h-px bg-gray-100 mx-4" />
-            <div className="py-1.5">
-              {["Account Settings", "Language & Currency", "Help Center"].map((item) => (
-                <button key={item} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                  {item}
-                </button>
-              ))}
-            </div>
-            <div className="h-px bg-gray-100 mx-4" />
-            <div className="py-1.5">
-              <button onClick={() => { onLogout(); onClose(); }}
-                className="w-full text-left px-4 py-2.5 text-sm text-[#E8344E] hover:bg-red-50 transition-colors font-medium">
-                Log out
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="py-1.5">
-              <button onClick={() => { onLoginClick(); onClose(); }}
-                className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
-                Log in
-              </button>
-              <button onClick={() => { onLoginClick(); onClose(); }}
-                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                Sign up
-              </button>
-            </div>
-            <div className="h-px bg-gray-100 mx-4" />
-            <div className="py-1.5">
-              {["Become a host", "Help Center"].map((item) => (
-                <button key={item} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                  {item}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-    </>
-  );
-}
-
 // ─── Main Navbar ──────────────────────────────────────────────────────────────
 
-export function CompactNavbar({
-  onLoginClick = () => {},
-  isLoggedIn = false,
-  onLogout = () => {},
-  userName = "",
-}: CompactNavbarProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const avatarLetter = userName?.[0]?.toUpperCase() ?? "G";
-
+export function CompactNavbar() {
   return (
     <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
       <div className="max-w-[1440px] mx-auto px-6 md:px-10 h-16 flex items-center justify-between gap-4">
@@ -188,43 +90,12 @@ export function CompactNavbar({
           </a>
 
           {/* Language / Globe */}
-          <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+          <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors" aria-label="Language settings">
             <Globe size={17} className="text-gray-600" />
           </button>
 
-          {/* Profile menu trigger */}
-          <div className="relative">
-            <button
-              onClick={() => setMenuOpen((v) => !v)}
-              className={`flex items-center gap-2.5 border rounded-full pl-3 pr-1.5 py-1.5 transition-all ${
-                menuOpen ? "border-gray-400 shadow-md" : "border-gray-200 hover:shadow-sm"
-              }`}
-            >
-              <Menu size={15} className="text-gray-600" />
-              {/* Avatar */}
-              {isLoggedIn ? (
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                  style={{ background: "linear-gradient(135deg,#E8344E,#ff6b6b)" }}
-                >
-                  {avatarLetter}
-                </div>
-              ) : (
-                <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <User size={15} className="text-white" />
-                </div>
-              )}
-            </button>
-
-            {menuOpen && (
-              <ProfileDropdown
-                isLoggedIn={isLoggedIn}
-                onClose={() => setMenuOpen(false)}
-                onLoginClick={onLoginClick}
-                onLogout={onLogout}
-              />
-            )}
-          </div>
+          {/* Profile Menu */}
+          <ProfileMenu />
         </div>
 
       </div>

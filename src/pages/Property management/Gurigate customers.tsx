@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 const IC = {
@@ -67,7 +67,7 @@ const T_STATUS = {
 const ROOM_LABEL = { 1:"1 Room", 2:"2 Rooms", 3:"3 Rooms" };
 
 // ── Avatar ─────────────────────────────────────────────────────────────────────
-function Avatar({ name, size=30 }) {
+function Avatar({ size=30 }: { size?: number }) {
   return (
     <div style={{ width:size, height:size, borderRadius:"50%", background:"#FEE2E2", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
       <svg width={size*0.62} height={size*0.62} viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -80,7 +80,7 @@ function Avatar({ name, size=30 }) {
 }
 
 // ── Add Tenant Modal ───────────────────────────────────────────────────────────
-function AddTenantModal({ onClose, onAdd, dark }) {
+function AddTenantModal({ onClose, onAdd, dark }: { onClose: () => void; onAdd: (tenant: any) => void; dark: boolean }) {
   const card = dark ? "#1E293B" : "white";
   const bdr  = dark ? "#334155" : "#e2e8f0";
   const muted = dark ? "#94A3B8" : "#64748b";
@@ -89,7 +89,7 @@ function AddTenantModal({ onClose, onAdd, dark }) {
   const [form, setForm] = useState({
     name:"", phone:"", rooms:"1", building:BUILDINGS[1], unit:"", amount:"", nextDue:""
   });
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
 
   const handleAdd = () => {
     if (!form.name || !form.phone) return;
@@ -123,7 +123,7 @@ function AddTenantModal({ onClose, onAdd, dark }) {
             <div key={f.key} style={{ gridColumn:f.full ? "span 2" : "span 1" }}>
               <label style={{ fontSize:11, fontWeight:600, color:muted, display:"block", marginBottom:4 }}>{f.label}</label>
               <input
-                type={f.type || "text"} placeholder={f.placeholder} value={form[f.key]}
+                type={f.type || "text"} placeholder={f.placeholder} value={(form as any)[f.key]}
                 onChange={e => set(f.key, e.target.value)}
                 style={{ width:"100%", border:`1.5px solid ${bdr}`, borderRadius:8, padding:"8px 12px", fontSize:12.5, outline:"none", fontFamily:"inherit", background:card, color:text, transition:"border .15s" }}
                 onFocus={e => e.target.style.borderColor="#E8344E"}
@@ -158,7 +158,7 @@ function AddTenantModal({ onClose, onAdd, dark }) {
 }
 
 // ── Payment Modal ──────────────────────────────────────────────────────────────
-function PaymentModal({ tenant, onClose, onSave, dark }) {
+function PaymentModal({ tenant, onClose, onSave, dark }: { tenant: any; onClose: () => void; onSave: (id: any, status: any) => void; dark: boolean }) {
   const card  = dark ? "#1E293B" : "white";
   const muted = dark ? "#94A3B8" : "#9CA3AF";
   const [status, setStatus] = useState(tenant.status);
@@ -173,7 +173,7 @@ function PaymentModal({ tenant, onClose, onSave, dark }) {
             return (
               <button key={s} onClick={() => setStatus(s)}
                 style={{ display:"flex", alignItems:"center", gap:10, padding:"11px 14px", borderRadius:11, border:`2px solid ${cur ? "#E8344E" : "#e2e8f0"}`, background:cur ? "#FEF2F2" : card, cursor:"pointer", transition:"all .15s" }}>
-                <div style={{ width:11, height:11, borderRadius:"50%", background:T_STATUS[s].dot, flexShrink:0 }}/>
+                <div style={{ width:11, height:11, borderRadius:"50%", background:(T_STATUS as any)[s].dot, flexShrink:0 }}/>
                 <span style={{ fontSize:13, fontWeight:600, color:cur ? "#E8344E" : "#374151" }}>{s}</span>
                 {cur && <span style={{ marginLeft:"auto", color:"#E8344E" }}>{IC.Check(12)}</span>}
               </button>
@@ -198,7 +198,7 @@ export default function GuriGateCustomers() {
   const [bldg,      setBldg]      = useState("All");
   const [statusF,   setStatusF]   = useState("All");
   const [search,    setSearch]    = useState("");
-  const [payModal,  setPayModal]  = useState(null);
+  const [payModal,  setPayModal]  = useState<typeof INIT_TENANTS[0] | null>(null);
   const [showAdd,   setShowAdd]   = useState(false);
 
   const bg   = dark ? "#0F172A" : "#F8F9FC";
@@ -223,9 +223,9 @@ export default function GuriGateCustomers() {
     rev:     tenants.filter(t => t.status === "Paid").reduce((s, t) => s + t.amount, 0),
   };
 
-  const addTenant    = (t) => setTenants(p => [...p, t]);
-  const deleteTenant = (id) => { setTenants(p => p.filter(t => t.id !== id)); if (sel?.id === id) setSel(null); };
-  const updateStatus = (id, status) => {
+  const addTenant    = (t: any) => setTenants(p => [...p, t]);
+  const deleteTenant = (id: any) => { setTenants(p => p.filter(t => t.id !== id)); if (sel?.id === id) setSel(null as any); };
+  const updateStatus = (id: any, status: any) => {
     setTenants(p => p.map(t => t.id === id ? { ...t, status } : t));
     if (sel?.id === id) setSel(p => ({ ...p, status }));
   };
@@ -266,9 +266,9 @@ export default function GuriGateCustomers() {
 
         {/* Nav */}
         {[["MAIN", NAV_ITEMS.filter(n => n.section === "main")], ["APPS", NAV_ITEMS.filter(n => n.section === "apps")]].map(([label, items]) => (
-          <div key={label} style={{ marginBottom:20 }}>
-            <p style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", color:muted, padding:"0 14px 8px" }}>{label}</p>
-            {items.map(item => (
+          <div key={String(label)} style={{ marginBottom:20 }}>
+            <p style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", color:muted, padding:"0 14px 8px" }}>{String(label)}</p>
+            {(items as any[]).map((item: any) => (
               <button key={item.id} className={`nav-btn${activeNav === item.id ? " active" : ""}`}
                 onClick={() => setActiveNav(item.id)}
                 style={{ color: activeNav === item.id ? "#E8344E" : muted }}>
@@ -425,7 +425,7 @@ export default function GuriGateCustomers() {
                             {/* Name */}
                             <td style={{ padding:"11px 13px" }}>
                               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                                <Avatar name={t.name} size={28}/>
+                                <Avatar size={28}/>
                                 <span style={{ fontWeight:600, color: isSel ? "#E8344E" : text, fontSize:12.5 }}>{t.name}</span>
                               </div>
                             </td>
@@ -435,7 +435,7 @@ export default function GuriGateCustomers() {
                             <td style={{ padding:"11px 13px" }}>
                               <div style={{ display:"flex", alignItems:"center", gap:4 }}>
                                 {IC.Door(13)}
-                                <span style={{ fontWeight:600, color:text, fontSize:11.5 }}>{ROOM_LABEL[t.rooms]}</span>
+                                <span style={{ fontWeight:600, color:text, fontSize:11.5 }}>{(ROOM_LABEL as any)[t.rooms]}</span>
                               </div>
                             </td>
                             {/* Rented Area */}
@@ -449,8 +449,8 @@ export default function GuriGateCustomers() {
                             <td style={{ padding:"11px 13px", fontWeight:700, color:"#E8344E", fontSize:12.5 }}>${t.amount}</td>
                             {/* Status */}
                             <td style={{ padding:"11px 13px" }}>
-                              <span style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"4px 10px", borderRadius:20, fontSize:10.5, fontWeight:700, background:T_STATUS[t.status].bg, color:T_STATUS[t.status].color }}>
-                                <span style={{ width:5, height:5, borderRadius:"50%", background:T_STATUS[t.status].dot, flexShrink:0 }}/>
+                              <span style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"4px 10px", borderRadius:20, fontSize:10.5, fontWeight:700, background:(T_STATUS as any)[t.status].bg, color:(T_STATUS as any)[t.status].color }}>
+                                <span style={{ width:5, height:5, borderRadius:"50%", background:(T_STATUS as any)[t.status].dot, flexShrink:0 }}/>
                                 {t.status}
                               </span>
                             </td>
@@ -490,7 +490,7 @@ export default function GuriGateCustomers() {
               <div style={{ width:242, flexShrink:0, background:card, border:`1px solid ${bdr}`, borderRadius:14, overflow:"hidden", alignSelf:"flex-start" }}>
                 {/* Gradient header */}
                 <div style={{ background:"linear-gradient(135deg,#E8344E,#ff6b6b)", padding:"20px 16px 16px", display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}>
-                  <Avatar name={sel.name} size={58}/>
+                  <Avatar size={58}/>
                   <p style={{ fontWeight:700, fontSize:14, color:"white", textAlign:"center", lineHeight:1.3 }}>{sel.name}</p>
                   <span style={{ fontSize:10, fontWeight:700, background:"rgba(255,255,255,.22)", color:"white", padding:"2px 12px", borderRadius:20, letterSpacing:"0.05em" }}>{sel.id}</span>
                 </div>
@@ -509,11 +509,11 @@ export default function GuriGateCustomers() {
 
                 {/* Tenant details */}
                 <div style={{ padding:"14px 16px", display:"flex", flexDirection:"column", gap:11 }}>
-                  {[
+                  {[/* eslint-disable @typescript-eslint/no-explicit-any */
                     ["Phone",       sel.phone],
                     ["Building",    sel.building],
                     ["Unit",        sel.unit],
-                    ["Rooms",       ROOM_LABEL[sel.rooms]],
+                    ["Rooms",       (ROOM_LABEL as any)[sel.rooms]],
                     ["Monthly Rent","$" + sel.amount],
                     ["Rent Since",  sel.rentDate],
                     ["Next Due",    sel.nextDue],
@@ -527,8 +527,8 @@ export default function GuriGateCustomers() {
                   {/* Status */}
                   <div>
                     <p style={{ fontSize:10, fontWeight:700, color:muted, textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:7 }}>Payment Status</p>
-                    <span style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"5px 14px", borderRadius:20, fontSize:12, fontWeight:700, background:T_STATUS[sel.status].bg, color:T_STATUS[sel.status].color }}>
-                      <span style={{ width:7, height:7, borderRadius:"50%", background:T_STATUS[sel.status].dot }}/>
+                    <span style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"5px 14px", borderRadius:20, fontSize:12, fontWeight:700, background:(T_STATUS as any)[sel.status].bg, color:(T_STATUS as any)[sel.status].color }}>
+                      <span style={{ width:7, height:7, borderRadius:"50%", background:(T_STATUS as any)[sel.status].dot }}/>
                       {sel.status}
                     </span>
                   </div>

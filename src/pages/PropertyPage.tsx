@@ -8,6 +8,7 @@ import {
   Award, Globe
 } from "lucide-react";
 import { AboutSpaceModal } from "../components/AboutSpaceModal";
+import { applyImageFallback } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,7 +64,7 @@ const RATING_BREAKDOWN = [
 ];
 
 const NEARBY = [
-  { title: "Garden Studio, Kilimani",     type: "Studio · Nairobi",    price: "$85",  rating: 4.87, image: "https://images.unsplash.com/photo-1560185127-6a12f9a26fe5?w=400&q=80" },
+  { title: "Garden Studio, Kilimani",     type: "Studio · Nairobi",    price: "$85",  rating: 4.87, image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&q=80" },
   { title: "Luxury Apt, Westlands",       type: "Apartment · Nairobi", price: "$140", rating: 4.95, image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&q=80" },
   { title: "Modern Villa, Karen",         type: "Villa · Nairobi",     price: "$280", rating: 4.92, image: "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=400&q=80" },
   { title: "Penthouse Suite, Upper Hill", type: "Penthouse · Nairobi", price: "$195", rating: 4.98, image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&q=80" },
@@ -75,18 +76,18 @@ function ImageGrid({ images, title, onShowAll }: { images: string[]; title: stri
   const [main, ...rest] = images;
   return (
     <div className="relative">
-      <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[480px] rounded-3xl overflow-hidden">
-        <div className="col-span-2 row-span-2 cursor-pointer group" onClick={onShowAll}>
-          <img src={main} alt={title} className="w-full h-full object-cover group-hover:brightness-95 transition-all duration-300" />
+      <div className="grid h-[280px] grid-cols-1 gap-2 overflow-hidden rounded-3xl sm:h-[480px] sm:grid-cols-4 sm:grid-rows-2">
+        <div className="cursor-pointer group sm:col-span-2 sm:row-span-2" onClick={onShowAll}>
+          <img src={main} alt={title} onError={(event) => applyImageFallback(event.currentTarget, title)} className="w-full h-full object-cover group-hover:brightness-95 transition-all duration-300" />
         </div>
         {rest.slice(0, 4).map((img, i) => (
-          <div key={i} className="cursor-pointer group" onClick={onShowAll}>
-            <img src={img} alt={`${title} ${i + 2}`} className="w-full h-full object-cover group-hover:brightness-95 transition-all duration-300" />
+          <div key={i} className="hidden cursor-pointer group sm:block" onClick={onShowAll}>
+            <img src={img} alt={`${title} ${i + 2}`} onError={(event) => applyImageFallback(event.currentTarget, title)} className="w-full h-full object-cover group-hover:brightness-95 transition-all duration-300" />
           </div>
         ))}
       </div>
       <button onClick={onShowAll}
-        className="absolute bottom-4 right-4 bg-white border border-gray-300 text-gray-900 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors shadow-sm flex items-center gap-2">
+        className="absolute bottom-3 right-3 flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-900 shadow-sm transition-colors hover:bg-gray-50 sm:bottom-4 sm:right-4 sm:px-4 sm:text-sm">
         <div className="grid grid-cols-2 gap-0.5">
           {[0,1,2,3].map(i => <div key={i} className="w-1.5 h-1.5 bg-gray-700 rounded-sm" />)}
         </div>
@@ -102,31 +103,31 @@ function FullGallery({ images, title, onClose }: { images: string[]; title: stri
   const [current, setCurrent] = useState(0);
   return (
     <div className="fixed inset-0 bg-white z-[200] flex flex-col">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4 sm:px-6">
         <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
           <X size={18} />
         </button>
         <span className="text-sm font-semibold text-gray-700">{current + 1} / {images.length}</span>
         <div />
       </div>
-      <div className="flex-1 relative flex items-center justify-center bg-gray-50 px-16">
-        <img src={images[current]} alt={title} className="max-h-full max-w-full object-contain rounded-2xl shadow-xl" />
+      <div className="relative flex flex-1 items-center justify-center bg-gray-50 px-4 sm:px-16">
+        <img src={images[current]} alt={title} onError={(event) => applyImageFallback(event.currentTarget, title)} className="max-h-full max-w-full object-contain rounded-2xl shadow-xl" />
         {current > 0 && (
-          <button onClick={() => setCurrent(c => c - 1)} className="absolute left-4 w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors">
+          <button onClick={() => setCurrent(c => c - 1)} className="absolute left-3 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-md transition-colors hover:bg-gray-50 sm:left-4 sm:h-10 sm:w-10">
             <ChevronLeft size={18} />
           </button>
         )}
         {current < images.length - 1 && (
-          <button onClick={() => setCurrent(c => c + 1)} className="absolute right-4 w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors">
+          <button onClick={() => setCurrent(c => c + 1)} className="absolute right-3 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-md transition-colors hover:bg-gray-50 sm:right-4 sm:h-10 sm:w-10">
             <ChevronRight size={18} />
           </button>
         )}
       </div>
-      <div className="flex gap-2 px-6 py-4 overflow-x-auto border-t border-gray-100">
+      <div className="flex gap-2 overflow-x-auto border-t border-gray-100 px-4 py-4 sm:px-6">
         {images.map((img, i) => (
           <button key={i} onClick={() => setCurrent(i)}
             className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all ${current === i ? "border-gray-900" : "border-transparent"}`}>
-            <img src={img} alt="" className="w-full h-full object-cover" />
+            <img src={img} alt="" onError={(event) => applyImageFallback(event.currentTarget, title)} className="w-full h-full object-cover" />
           </button>
         ))}
       </div>
@@ -173,7 +174,7 @@ function BookingWidget({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg sticky top-24">
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-lg lg:sticky lg:top-24 lg:p-6">
       <div className="flex items-baseline gap-1 mb-1">
         <span className="text-2xl font-bold text-gray-900">{price}</span>
         <span className="text-gray-500 text-sm">/ night</span>
@@ -186,7 +187,7 @@ function BookingWidget({
       </div>
 
       <div className="border border-gray-300 rounded-xl overflow-hidden mb-3">
-        <div className="grid grid-cols-2 divide-x divide-gray-300">
+        <div className="grid grid-cols-1 divide-y divide-gray-300 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
           <div className="p-3">
             <label className="text-[10px] font-bold text-gray-700 uppercase tracking-wide block mb-1">Check-in</label>
             <input type="date" value={checkIn} onChange={e => setCheckIn(e.target.value)}
@@ -268,7 +269,7 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
     sessionStorage.setItem('bookingDetails', JSON.stringify({
       propertyTitle: property.title,
       propertyImage: property.image,
-      rating: property.rating,
+      rating: property.rating ?? 4.5,
       reviews: property.reviews ?? 39,
       checkIn: details.checkIn,
       checkOut: details.checkOut,
@@ -283,23 +284,23 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
 
   // ✅ Removed conditional PaymentPage rendering - now navigates to route
   return (
-    <div className="bg-white min-h-screen font-sans">
+    <div className="min-h-screen overflow-x-hidden bg-white font-sans">
       {showGallery && (
         <FullGallery images={images} title={property.title} onClose={() => setShowGallery(false)} />
       )}
 
       {/* Sticky top bar */}
       <div className="sticky top-0 z-50 bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <button onClick={onBack} className="flex items-center gap-2 text-sm font-medium text-gray-700 transition-colors hover:text-gray-900">
             <ChevronLeft size={18} /> Back
           </button>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 underline transition-colors">
+            <button className="flex items-center gap-2 text-sm font-medium text-gray-700 underline transition-colors hover:text-gray-900">
               <Share2 size={15} /> Share
             </button>
             <button onClick={() => setLiked(!liked)}
-              className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 underline transition-colors">
+              className="flex items-center gap-2 text-sm font-medium text-gray-700 underline transition-colors hover:text-gray-900">
               <Heart size={15} className={liked ? "fill-[#E8344E] text-[#E8344E]" : ""} />
               {liked ? "Saved" : "Save"}
             </button>
@@ -307,12 +308,12 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         {/* Title */}
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{property.title}</h1>
-        <div className="flex items-center gap-2 mb-5 text-sm">
+        <h1 className="mb-2 text-xl font-bold text-gray-900 sm:text-2xl">{property.title}</h1>
+        <div className="mb-5 flex flex-wrap items-center gap-2 text-sm">
           <Star size={13} className="fill-[#E8344E] text-[#E8344E]" />
-          <span className="font-semibold">{property.rating.toFixed(2)}</span>
+          <span className="font-semibold">{(property.rating ?? 4.5).toFixed(2)}</span>
           <span className="text-gray-400">·</span>
           <span className="text-gray-700 underline cursor-pointer font-medium">{property.reviews ?? 39} reviews</span>
           <span className="text-gray-400">·</span>
@@ -325,18 +326,18 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
         </div>
 
         {/* Main content + booking widget */}
-        <div className="flex gap-12">
+        <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
           <div className="flex-1 min-w-0">
 
             {/* Property meta */}
-            <div className="flex items-start justify-between pb-6 border-b border-gray-200 mb-6">
+            <div className="mb-6 flex flex-col gap-4 border-b border-gray-200 pb-6 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h2 className="text-xl font-bold text-gray-900 mb-1">Entire {property.type.toLowerCase()} in {property.city}</h2>
                 <p className="text-gray-600 text-sm">
                   {property.guests ?? 4} guests · {property.beds} bedroom{property.beds !== 1 ? "s" : ""} · {property.beds} beds · {property.baths} bath{property.baths !== 1 ? "s" : ""}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#E8344E] to-[#ff6b6b] flex items-center justify-center text-white font-bold text-lg flex-shrink-0 ml-4">C</div>
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#E8344E] to-[#ff6b6b] text-lg font-bold text-white sm:ml-4">C</div>
             </div>
 
             {/* Highlights */}
@@ -372,7 +373,7 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
             {/* Amenities */}
             <div className="pb-6 border-b border-gray-200 mb-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">What this place offers</h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {AMENITIES.map(({ icon, label, sub }) => (
                   <div key={label} className="flex items-center gap-3">
                     <span className="text-gray-600 flex-shrink-0">{icon}</span>
@@ -387,13 +388,13 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
 
             {/* Reviews */}
             <div className="pb-6 border-b border-gray-200 mb-6">
-              <div className="flex items-center gap-3 mb-5">
+              <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center">
                 <div className="text-center">
-                  <p className="text-5xl font-bold text-gray-900 leading-none">{property.rating.toFixed(1)}</p>
+                  <p className="text-5xl font-bold text-gray-900 leading-none">{(property.rating ?? 4.5).toFixed(1)}</p>
                   <p className="text-xs font-semibold text-gray-700 mt-1">Guest favourite</p>
                 </div>
-                <div className="flex-1 ml-6">
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                <div className="flex-1 lg:ml-6">
+                  <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
                     {RATING_BREAKDOWN.map(({ label, score }) => (
                       <div key={label} className="flex items-center justify-between">
                         <span className="text-xs text-gray-700">{label}</span>
@@ -409,7 +410,7 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 {REVIEWS.map(({ name, avatar, flag, date, rating: r, text }) => (
                   <div key={name}>
                     <div className="flex items-center gap-3 mb-2">
@@ -448,14 +449,14 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
             {/* Host */}
             <div className="pb-6 border-b border-gray-200 mb-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Meet your host</h3>
-              <div className="flex gap-6">
+              <div className="flex flex-col gap-6 sm:flex-row">
                 <div className="text-center flex-shrink-0">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#E8344E] to-[#ff6b6b] flex items-center justify-center text-white font-bold text-2xl mb-2 mx-auto shadow-md">C</div>
                   <p className="text-sm font-bold text-gray-900">Cynthia</p>
                   <p className="text-xs text-gray-500">Superhost</p>
                 </div>
                 <div>
-                  <div className="flex gap-4 mb-3">
+                  <div className="mb-3 flex flex-wrap gap-4">
                     {[{ v: "96", l: "Reviews" }, { v: "5.0", l: "Rating" }, { v: "5yr", l: "Hosting" }].map(({ v, l }) => (
                       <div key={l}><p className="text-xl font-bold text-gray-900">{v}</p><p className="text-xs text-gray-500">{l}</p></div>
                     ))}
@@ -470,13 +471,11 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
           </div>
 
           {/* ✅ Right: BookingWidget now receives onReserve prop */}
-          <div className="w-[380px] flex-shrink-0">
+          <div className="w-full flex-shrink-0 lg:w-[380px]">
             <BookingWidget
               price={property.price}
-              rating={property.rating}
+              rating={property.rating ?? 4.5}
               reviews={property.reviews ?? 39}
-              propertyTitle={property.title}
-              propertyImage={property.image}
               onReserve={handleReserve}
             />
           </div>
@@ -485,11 +484,11 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
         {/* More stays nearby */}
         <div className="mt-8 pt-8 border-t border-gray-200">
           <h3 className="text-xl font-bold text-gray-900 mb-5">More stays nearby</h3>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {NEARBY.map(({ title, type, price, rating: r, image }) => (
               <div key={title} className="group cursor-pointer">
                 <div className="rounded-2xl overflow-hidden aspect-[4/3] mb-2.5">
-                  <img src={image} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <img src={image} alt={title} onError={(event) => applyImageFallback(event.currentTarget, title)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 </div>
                 <p className="text-sm font-semibold text-gray-900 truncate">{title}</p>
                 <p className="text-xs text-gray-500">{type}</p>

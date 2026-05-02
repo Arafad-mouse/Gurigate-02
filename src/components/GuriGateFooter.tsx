@@ -3,8 +3,8 @@ import { Home, Facebook, Instagram, Twitter, Linkedin, Mail } from "lucide-react
 export default function GuriGateFooter() {
   return (
     <footer className="bg-[#2f3131] text-white">
-      <div className="max-w-7xl mx-auto px-6 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+      <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16">
+        <div className="mb-12 grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-3 lg:gap-12">
           
           {/* Brand Section */}
           <div className="space-y-6">
@@ -12,10 +12,10 @@ export default function GuriGateFooter() {
               <div className="w-10 h-10 bg-gradient-to-br from-[#E8344E] to-[#ff6b6b] rounded-full flex items-center justify-center shadow-lg">
                 <Home size={20} className="text-white" />
               </div>
-              <span className="text-2xl font-bold">GuriGate</span>
+              <span className="text-xl font-bold sm:text-2xl">GuriGate</span>
             </div>
             
-            <p className="text-gray-300 leading-relaxed text-sm max-w-sm text-justify">
+            <p className="max-w-sm text-sm leading-relaxed text-gray-300 sm:text-justify">
               Are you looking to explore a property at your own convenience? Look no further than GuriGate! As Somali Peninsula's first property company with extensive listings for all regions, we offer the ability to buy, sell, or rent a property easily through our app and website. With GuriGate, your dream property is just a click away!
             </p>
           </div>
@@ -49,13 +49,13 @@ export default function GuriGateFooter() {
                 Stay updated with curated travel guides, exclusive offers, and latest sanctuary destinations delivered to your inbox.
               </p>
               
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <input
                   type="email"
                   placeholder="Enter your email"
-                  className="flex-1 px-5 py-3.5 rounded-full bg-[#454747] border border-gray-600 text-white placeholder:text-gray-400 outline-none focus:border-[#E8344E] focus:ring-2 focus:ring-[#E8344E]/20 transition-all"
+                  className="w-full flex-1 px-5 py-3.5 rounded-full bg-[#454747] border border-gray-600 text-white placeholder:text-gray-400 outline-none focus:border-[#E8344E] focus:ring-2 focus:ring-[#E8344E]/20 transition-all"
                 />
-                <button className="px-8 py-3.5 bg-[#E8344E] hover:bg-[#d02d44] text-white font-semibold rounded-full transition-all duration-200 hover:shadow-lg hover:shadow-[#E8344E]/30 whitespace-nowrap">
+                <button className="w-full whitespace-nowrap rounded-full bg-[#E8344E] px-6 py-3.5 font-semibold text-white transition-all duration-200 hover:bg-[#d02d44] hover:shadow-lg hover:shadow-[#E8344E]/30 sm:w-auto sm:px-8">
                   Subscribe
                 </button>
               </div>
@@ -68,7 +68,7 @@ export default function GuriGateFooter() {
               <h3 className="text-[#E8344E] font-semibold text-lg mb-6 tracking-wide">
                 Connect to Social Media
               </h3>
-              <div className="flex gap-3 mb-8">
+              <div className="mb-8 flex flex-wrap gap-3">
                 {[
                   { icon: Facebook, href: "#", label: "Facebook" },
                   { icon: Instagram, href: "#", label: "Instagram" },
@@ -92,7 +92,7 @@ export default function GuriGateFooter() {
                 </h4>
                 <a 
                   href="mailto:customerservice@gurigate.com"
-                  className="text-gray-300 hover:text-[#E8344E] transition-colors duration-200 text-sm flex items-center gap-2 group"
+                  className="break-all text-sm text-gray-300 transition-colors duration-200 group flex items-center gap-2 hover:text-[#E8344E] sm:break-normal"
                 >
                   <Mail size={16} className="group-hover:scale-110 transition-transform" />
                   customerservice@gurigate.com

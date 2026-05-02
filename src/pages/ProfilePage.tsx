@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import {
-  UserRoundPen, Settings2, BellDot, Gift, TentTree, Settings, Bell, Share2, Briefcase, Link,
+  UserRoundPen, Settings2, BellDot, Gift, TentTree, Settings, Link,
   ChevronDown, Upload, Eye, EyeOff, Check, X,
   Lock, Mail, Sun, Moon, Monitor,
 } from "lucide-react";

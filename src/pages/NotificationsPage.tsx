@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   User, Settings, Bell, Share2, Briefcase, Link,
-  Mail, MessageSquare, Smartphone,
+  Mail, MessageSquare,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
