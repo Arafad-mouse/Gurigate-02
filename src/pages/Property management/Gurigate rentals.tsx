@@ -192,6 +192,74 @@ function PaymentModal({ tenant, onClose, onUpdate }: PaymentModalProps) {
   );
 }
 
+// ── Tenant Detail Modal ──────────────────────────────────────────────────────
+interface TenantDetailModalProps {
+  tenant: Tenant;
+  onClose: () => void;
+  onUpdatePayment: () => void;
+  onDelete: (id: string) => void;
+}
+
+function TenantDetailModal({ tenant, onClose, onUpdatePayment, onDelete }: TenantDetailModalProps) {
+  const statusStyle = STATUS_STYLE[tenant.status as keyof typeof STATUS_STYLE] || STATUS_STYLE.Pending;
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.35)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={onClose}>
+      <div style={{ background:"white", borderRadius:18, padding:0, width:460, maxHeight:"85vh", overflowY:"auto", boxShadow:"0 24px 60px rgba(0,0,0,.18)" }} onClick={e=>e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ padding:"24px 28px 0", display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+            <Avatar size={48}/>
+            <div>
+              <h2 style={{ fontSize:17, fontWeight:700, color:"#111827", margin:0 }}>{tenant.name}</h2>
+              <p style={{ fontSize:12, color:"#9CA3AF", marginTop:2 }}>{tenant.id} · {tenant.unit}</p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background:"#f1f5f9", border:"none", borderRadius:8, width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#64748b", flexShrink:0 }}><Icon.X/></button>
+        </div>
+
+        {/* Status badge */}
+        <div style={{ padding:"16px 28px 0" }}>
+          <span style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"4px 12px", borderRadius:12, fontSize:12, fontWeight:600, background:statusStyle.bg, color:statusStyle.color }}>
+            <div style={{ width:8, height:8, borderRadius:"50%", background:statusStyle.dot }}/>
+            {tenant.status}
+          </span>
+        </div>
+
+        {/* Detail grid */}
+        <div style={{ padding:"20px 28px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+          {[
+            { label:"Phone", value:tenant.phone, icon:<Icon.Phone/> },
+            { label:"Building", value:tenant.building, icon:<Icon.Building/> },
+            { label:"Unit", value:tenant.unit, icon:<Icon.Door/> },
+            { label:"Rooms", value:`${tenant.rooms} room${tenant.rooms>1?"s":""}`, icon:<Icon.Grid/> },
+            { label:"Monthly Rent", value:`$${tenant.amount}/mo`, icon:<Icon.CreditCard/> },
+            { label:"Join Date", value:tenant.rentDate, icon:<Icon.Calendar/> },
+            { label:"Next Payment Due", value:tenant.nextDue, icon:<Icon.Calendar/> },
+          ].map((item, i) => (
+            <div key={i} style={{ display:"flex", alignItems:"flex-start", gap:10, padding:"10px 12px", background:"#F9FAFB", borderRadius:10 }}>
+              <div style={{ color:"#E8344E", marginTop:1, flexShrink:0 }}>{item.icon}</div>
+              <div>
+                <p style={{ fontSize:10, fontWeight:600, color:"#9CA3AF", textTransform:"uppercase", letterSpacing:"0.04em" }}>{item.label}</p>
+                <p style={{ fontSize:13, fontWeight:600, color:"#111827", marginTop:2 }}>{item.value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Actions */}
+        <div style={{ padding:"0 28px 24px", display:"flex", gap:10 }}>
+          <button onClick={onUpdatePayment} style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px", borderRadius:10, border:"none", background:"#E8344E", color:"white", fontSize:13, fontWeight:700, cursor:"pointer" }}>
+            <Icon.CreditCard/> Update Payment
+          </button>
+          <button onClick={()=>onDelete(tenant.id)} style={{ padding:"10px 16px", borderRadius:10, border:"1.5px solid #FEE2E2", background:"#FEF2F2", fontSize:13, fontWeight:600, cursor:"pointer", color:"#E8344E", display:"flex", alignItems:"center", gap:6 }}>
+            <Icon.Trash/> Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function GuriGateRentals() {
   const [darkMode] = useState(false);
@@ -199,6 +267,7 @@ export default function GuriGateRentals() {
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [buildingFilter, setBuildingFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [search, setSearch] = useState("");
@@ -319,7 +388,8 @@ export default function GuriGateRentals() {
             {filtered.length===0 ? (
               <tr><td colSpan={7} style={{ padding:"32px", textAlign:"center", color:muted, fontSize:13 }}>No tenants found</td></tr>
             ) : filtered.map((t) => (
-              <tr key={t.id} style={{ borderBottom:`1px solid ${bdr}`, transition:"background .12s" }}
+              <tr key={t.id} style={{ borderBottom:`1px solid ${bdr}`, transition:"background .12s", cursor:"pointer" }}
+                  onClick={()=>{setSelectedTenant(t as Tenant);setShowDetailModal(true);}}
                   onMouseEnter={e=>{e.currentTarget.style.background="rgba(232,52,78,0.025)";}}
                   onMouseLeave={e=>{e.currentTarget.style.background="";}}>
                 <td style={{ padding:"12px 14px" }}>
@@ -344,10 +414,10 @@ export default function GuriGateRentals() {
                 <td style={{ padding:"12px 14px", color:muted, fontSize:12 }}>{t.rentDate}</td>
                 <td style={{ padding:"12px 14px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                    <button onClick={()=>setShowPaymentModal(true)} style={{ background:"none", border:"none", cursor:"pointer", color:muted, padding:4 }}>
+                    <button onClick={(e)=>{e.stopPropagation();setSelectedTenant(t as Tenant);setShowPaymentModal(true);}} style={{ background:"none", border:"none", cursor:"pointer", color:muted, padding:4 }}>
                       <Icon.CreditCard/>
                     </button>
-                    <button onClick={()=>handleDelete(t.id)} style={{ background:"none", border:"none", cursor:"pointer", color:muted, padding:4 }}>
+                    <button onClick={(e)=>{e.stopPropagation();handleDelete(t.id);}} style={{ background:"none", border:"none", cursor:"pointer", color:muted, padding:4 }}>
                       <Icon.Trash/>
                     </button>
                   </div>
@@ -364,6 +434,14 @@ export default function GuriGateRentals() {
       )}
       {showPaymentModal && selectedTenant && (
         <PaymentModal tenant={selectedTenant} onClose={()=>setShowPaymentModal(false)} onUpdate={handleUpdateStatus} />
+      )}
+      {showDetailModal && selectedTenant && (
+        <TenantDetailModal
+          tenant={selectedTenant}
+          onClose={()=>setShowDetailModal(false)}
+          onUpdatePayment={()=>{setShowDetailModal(false);setShowPaymentModal(true);}}
+          onDelete={(id)=>{setShowDetailModal(false);handleDelete(id);}}
+        />
       )}
     </div>
   );

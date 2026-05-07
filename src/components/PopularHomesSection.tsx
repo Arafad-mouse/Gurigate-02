@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Star, Heart } from "lucide-react";
 import { applyImageFallback } from "@/lib/utils";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -124,10 +125,33 @@ function PropertyCard({ property }: { property: Property }) {
 
 export function PopularHomesSection({
   city = "Nairobi",
-  total = 142,
+  total: totalProp,
   properties = DEFAULT_PROPERTIES,
 }: PopularHomesSectionProps) {
   const navigate = useNavigate();
+  const [totalCount, setTotalCount] = useState<number>(totalProp ?? 0);
+
+  useEffect(() => {
+    if (totalProp !== undefined || !isSupabaseConfigured) return;
+
+    let cancelled = false;
+    const fetchCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('properties')
+          .select('*', { count: 'exact', head: true });
+
+        if (!cancelled && !error && count !== null) {
+          setTotalCount(count);
+        }
+      } catch {
+        // keep initial count on failure
+      }
+    };
+
+    fetchCount();
+    return () => { cancelled = true; };
+  }, [totalProp]);
 
   const handleShowAll = () => {
     navigate('/manage-property');
@@ -144,7 +168,7 @@ export function PopularHomesSection({
           onClick={handleShowAll}
           className="self-start whitespace-nowrap text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 hover:underline underline-offset-2 sm:self-auto"
         >
-          Show all ({total})
+          Show all ({totalCount})
         </button>
       </div>
 

@@ -29,18 +29,18 @@ function genTxnId() {
 }
 
 const TRANSACTIONS = [
-  { id:1, name:"Axmed Cabdalle",    date:"22 Dec. 2024", time:"11:44", txn:genTxnId(), total:"$2,205.00", status:"Pending" },
-  { id:2, name:"Faadumo Xasan",     date:"22 Dec. 2024", time:"11:44", txn:genTxnId(), total:"$1,400.81", status:"Paid" },
-  { id:3, name:"Cabdi Warsame",     date:"22 Dec. 2024", time:"03:44", txn:genTxnId(), total:"$1,745.84", status:"Returned" },
-  { id:4, name:"Sahra Maxamed",     date:"22 Dec. 2024", time:"00:12", txn:genTxnId(), total:"$1,123.70", status:"Paid" },
-  { id:5, name:"Mustafe Nuur",      date:"22 Dec. 2024", time:"05:12", txn:genTxnId(), total:"$1,221.70", status:"Returned" },
-  { id:6, name:"Hodan Jaamac",      date:"22 Dec. 2024", time:"07:12", txn:genTxnId(), total:"$2,245.00", status:"Paid" },
-  { id:7, name:"Xuseen Geelle",     date:"22 Dec. 2024", time:"12:04", txn:genTxnId(), total:"$800.99",   status:"Pending" },
-  { id:8, name:"Nimco Cabdiraxman", date:"22 Dec. 2024", time:"11:44", txn:genTxnId(), total:"$633.48",   status:"Pending" },
-  { id:9, name:"Daud Xirsi",        date:"22 Dec. 2024", time:"00:05", txn:genTxnId(), total:"$147.84",   status:"Paid" },
-  { id:10,name:"Leyla Rashid",      date:"22 Dec. 2024", time:"01:17", txn:genTxnId(), total:"$502.22",   status:"Pending" },
-  { id:11,name:"Warsan Guure",      date:"22 Dec. 2024", time:"08:30", txn:genTxnId(), total:"$1,988.00", status:"Paid" },
-  { id:12,name:"Bashir Ciise",      date:"22 Dec. 2024", time:"14:22", txn:genTxnId(), total:"$320.50",   status:"Returned" },
+  { id:1, name:"Axmed Cabdalle",    date:"22 Dec. 2024", time:"11:44", txn:genTxnId(), total:"$2,205.00", status:"Pending",  paymentMethod:"Zaad" },
+  { id:2, name:"Faadumo Xasan",     date:"22 Dec. 2024", time:"11:44", txn:genTxnId(), total:"$1,400.81", status:"Paid",     paymentMethod:"eDahab" },
+  { id:3, name:"Cabdi Warsame",     date:"22 Dec. 2024", time:"03:44", txn:genTxnId(), total:"$1,745.84", status:"Returned", paymentMethod:"Premier Wallet" },
+  { id:4, name:"Sahra Maxamed",     date:"22 Dec. 2024", time:"00:12", txn:genTxnId(), total:"$1,123.70", status:"Paid",     paymentMethod:"Zaad" },
+  { id:5, name:"Mustafe Nuur",      date:"22 Dec. 2024", time:"05:12", txn:genTxnId(), total:"$1,221.70", status:"Returned", paymentMethod:"eDahab" },
+  { id:6, name:"Hodan Jaamac",      date:"22 Dec. 2024", time:"07:12", txn:genTxnId(), total:"$2,245.00", status:"Paid",     paymentMethod:"Premier Wallet" },
+  { id:7, name:"Xuseen Geelle",     date:"22 Dec. 2024", time:"12:04", txn:genTxnId(), total:"$800.99",   status:"Pending",  paymentMethod:"Zaad" },
+  { id:8, name:"Nimco Cabdiraxman", date:"22 Dec. 2024", time:"11:44", txn:genTxnId(), total:"$633.48",   status:"Pending",  paymentMethod:"eDahab" },
+  { id:9, name:"Daud Xirsi",        date:"22 Dec. 2024", time:"00:05", txn:genTxnId(), total:"$147.84",   status:"Paid",     paymentMethod:"Premier Wallet" },
+  { id:10,name:"Leyla Rashid",      date:"22 Dec. 2024", time:"01:17", txn:genTxnId(), total:"$502.22",   status:"Pending",  paymentMethod:"Zaad" },
+  { id:11,name:"Warsan Guure",      date:"22 Dec. 2024", time:"08:30", txn:genTxnId(), total:"$1,988.00", status:"Paid",     paymentMethod:"eDahab" },
+  { id:12,name:"Bashir Ciise",      date:"22 Dec. 2024", time:"14:22", txn:genTxnId(), total:"$320.50",   status:"Returned", paymentMethod:"Premier Wallet" },
 ];
 
 const STATUS_STYLE = {
@@ -49,16 +49,12 @@ const STATUS_STYLE = {
   Returned: { bg:"#FEF2F2", color:"#E8344E" },
 };
 
-function Avatar({ name, size = 36 }: { name: string; size?: number }) {
-  const hue = (name.charCodeAt(0) * 37 + (name.charCodeAt(1)||0) * 19) % 360;
-  const color = `hsl(${hue},52%,42%)`;
-  const bg = `hsl(${hue},52%,93%)`;
+function Avatar({ size = 34 }: { name?: string; size?: number }) {
   return (
-    <div style={{ width:size, height:size, borderRadius:"50%", background:bg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-      <svg width={size*0.62} height={size*0.62} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <circle cx="12" cy="8" r="3"/>
-        <path d="M6.168 18.849A4 4 0 0 1 10 16h4a4 4 0 0 1 3.834 2.855"/>
+    <div style={{ width:size, height:size, borderRadius:"50%", background:"#e5e7eb", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+      <svg width={size*0.41} height={size*0.41} viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
       </svg>
     </div>
   );
@@ -75,6 +71,9 @@ const SortTh = ({ label }: { label: string }) => (
 
 export default function GuriGateTransaction() {
   const [statusFilter, setStatus]   = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedTxn, setSelectedTxn] = useState<typeof TRANSACTIONS[0] | null>(null);
+  const pageSize = 5;
 
   // Fixed light theme values to match global layout
   const card = "white";
@@ -83,7 +82,10 @@ export default function GuriGateTransaction() {
   const text = "#111827";
   const sub  = "#4B5563";
 
-  const filtered = TRANSACTIONS;
+  const filtered = statusFilter === "All" ? TRANSACTIONS : TRANSACTIONS.filter(t => t.status === statusFilter);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedRows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
     <>
@@ -94,13 +96,13 @@ export default function GuriGateTransaction() {
         .txn-row { transition:background .1s; }
         .txn-row:hover td { background:rgba(232,52,78,0.025); }
         .status-sel { appearance:none; border:1.5px solid #E9ECF0; border-radius:8px; padding:7px 28px 7px 10px; font-size:12px; font-weight:600; color:#4B5563; cursor:pointer; font-family:inherit; outline:none; background:white; }
-        .stat-card { background:white; border-radius:12px; padding:18px 20px; border:1px solid #E9ECF0; flex:1; min-width:0; }
+        .stat-card { background:white; border-radius:12px; padding:20px 24px; border:1px solid #E9ECF0; flex:1; min-width:220px; }
       `}</style>
 
       <main style={{ padding:"28px", flex:1, overflowY:"auto" }}>
 
           {/* ── Stat cards ── */}
-          <div style={{ display:"flex", gap:14, marginBottom:24 }}>
+          <div style={{ display:"flex", gap:14, marginBottom:24, overflowX:"auto" }}>
             {/* Total Revenue — simple big card */}
             <div className="stat-card" style={{ background:card, borderColor:bdr }}>
               <p style={{ fontSize:12, fontWeight:600, color:muted, marginBottom:10 }}>Total Revenue</p>
@@ -214,13 +216,15 @@ export default function GuriGateTransaction() {
                     <SortTh label="Time"/>
                     <SortTh label="Transaction"/>
                     <SortTh label="Total"/>
+                    <SortTh label="Payment method"/>
                     <SortTh label="Status"/>
                     <th style={{ padding:"14px 16px", width:40 }}/>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((row, idx) => (
-                    <tr key={row.id} className="txn-row" style={{ borderBottom:idx<filtered.length-1?`1px solid ${bdr}`:"none" }}>
+                  {paginatedRows.map((row, idx) => (
+                    <tr key={row.id} className="txn-row" style={{ borderBottom:idx<paginatedRows.length-1?`1px solid ${bdr}`:"none", cursor:"pointer" }}
+                        onClick={() => setSelectedTxn(row)}>
                       {/* Name */}
                       <td style={{ padding:"13px 16px" }}>
                         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -238,6 +242,8 @@ export default function GuriGateTransaction() {
                       </td>
                       {/* Total */}
                       <td style={{ padding:"13px 16px", fontWeight:700, color:text, fontSize:13 }}>{row.total}</td>
+                      {/* Payment method */}
+                      <td style={{ padding:"13px 16px", fontSize:12, fontWeight:600, color:text }}>{row.paymentMethod}</td>
                       {/* Status */}
                       <td style={{ padding:"13px 16px" }}>
                         <span style={{ ...STATUS_STYLE[row.status as keyof typeof STATUS_STYLE], display:"inline-block", padding:"4px 14px", borderRadius:20, fontSize:11.5, fontWeight:700 }}>
@@ -246,7 +252,7 @@ export default function GuriGateTransaction() {
                       </td>
                       {/* Actions */}
                       <td style={{ padding:"13px 16px" }}>
-                        <button style={{ background:"none", border:"none", cursor:"pointer", color:muted, padding:4 }}>
+                        <button onClick={e => e.stopPropagation()} style={{ background:"none", border:"none", cursor:"pointer", color:muted, padding:4 }}>
                           <Icon.MoreHoriz/>
                         </button>
                       </td>
@@ -259,17 +265,100 @@ export default function GuriGateTransaction() {
             {/* Pagination */}
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"13px 20px", borderTop:`1px solid ${bdr}` }}>
               <span style={{ fontSize:11.5, color:muted, fontWeight:500 }}>
-                Showing {filtered.length} of {TRANSACTIONS.length} transactions
+                Showing {Math.min((safePage - 1) * pageSize + 1, filtered.length)}–{Math.min(safePage * pageSize, filtered.length)} of {filtered.length} transactions
               </span>
-              <div style={{ display:"flex", gap:5 }}>
-                {[1,2,3,"…",8,9].map((p,i) => (
-                  <button key={i} style={{ width:30, height:30, borderRadius:8, border:`1.5px solid ${p===1?"#E8344E":bdr}`, background:p===1?"#E8344E":card, color:p===1?"white":muted, fontSize:12, fontWeight:600, cursor:"pointer" }}>
-                    {p}
-                  </button>
-                ))}
+              <div style={{ display:"flex", gap:5, alignItems:"center" }}>
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                  style={{ width:30, height:30, borderRadius:8, border:`1.5px solid ${bdr}`, background:card, color:safePage<=1?"#d1d5db":muted, fontSize:14, fontWeight:600, cursor:safePage<=1?"default":"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}
+                  aria-label="Previous page"
+                >
+                  ‹
+                </button>
+                {(() => {
+                  const pages: (number|string)[] = [];
+                  for (let i = 1; i <= totalPages; i++) {
+                    if (i === 1 || i === totalPages || (i >= safePage - 1 && i <= safePage + 1)) {
+                      pages.push(i);
+                    } else if (pages[pages.length - 1] !== "…") {
+                      pages.push("…");
+                    }
+                  }
+                  return pages.map((p, i) => (
+                    <button
+                      key={i}
+                      disabled={p === "…"}
+                      onClick={() => typeof p === "number" && setCurrentPage(p)}
+                      style={{ width:30, height:30, borderRadius:8, border:`1.5px solid ${p===safePage?"#E8344E":bdr}`, background:p===safePage?"#E8344E":card, color:p===safePage?"white":p==="…"?"#d1d5db":muted, fontSize:12, fontWeight:600, cursor:p==="…"?"default":"pointer" }}
+                    >
+                      {p}
+                    </button>
+                  ));
+                })()}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  style={{ width:30, height:30, borderRadius:8, border:`1.5px solid ${bdr}`, background:card, color:safePage>=totalPages?"#d1d5db":muted, fontSize:14, fontWeight:600, cursor:safePage>=totalPages?"default":"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}
+                  aria-label="Next page"
+                >
+                  ›
+                </button>
               </div>
             </div>
           </div>
+
+          {/* Transaction Detail Modal */}
+          {selectedTxn && (
+            <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.35)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={()=>setSelectedTxn(null)}>
+              <div style={{ background:"white", borderRadius:18, padding:0, width:440, maxHeight:"85vh", overflowY:"auto", boxShadow:"0 24px 60px rgba(0,0,0,.18)" }} onClick={e=>e.stopPropagation()}>
+                {/* Header */}
+                <div style={{ padding:"24px 28px 0", display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+                    <Avatar size={48}/>
+                    <div>
+                      <h2 style={{ fontSize:17, fontWeight:700, color:"#111827", margin:0 }}>{selectedTxn.name}</h2>
+                      <p style={{ fontSize:12, color:"#9CA3AF", marginTop:2 }}>{selectedTxn.date} · {selectedTxn.time}</p>
+                    </div>
+                  </div>
+                  <button onClick={()=>setSelectedTxn(null)} style={{ background:"#f1f5f9", border:"none", borderRadius:8, width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#64748b", flexShrink:0 }} aria-label="Close">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+
+                {/* Status badge */}
+                <div style={{ padding:"14px 28px 0" }}>
+                  <span style={{ ...STATUS_STYLE[selectedTxn.status as keyof typeof STATUS_STYLE], padding:"4px 14px", borderRadius:12, fontSize:12, fontWeight:600, display:"inline-block" }}>
+                    {selectedTxn.status}
+                  </span>
+                </div>
+
+                {/* Detail grid */}
+                <div style={{ padding:"20px 28px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+                  {[
+                    { label:"Transaction ID", value:selectedTxn.txn, icon:<Icon.CreditCard/> },
+                    { label:"Total Amount", value:selectedTxn.total, icon:<Icon.ShoppingBag/> },
+                    { label:"Date", value:selectedTxn.date, icon:<Icon.Calendar/> },
+                    { label:"Time", value:selectedTxn.time, icon:<Icon.Inbox/> },
+                    { label:"Payment Method", value:selectedTxn.paymentMethod, icon:<Icon.CreditCard/> },
+                  ].map((item, i) => (
+                    <div key={i} style={{ display:"flex", alignItems:"flex-start", gap:10, padding:"10px 12px", background:"#F9FAFB", borderRadius:10 }}>
+                      <div style={{ color:"#E8344E", marginTop:1, flexShrink:0 }}>{item.icon}</div>
+                      <div>
+                        <p style={{ fontSize:10, fontWeight:600, color:"#9CA3AF", textTransform:"uppercase", letterSpacing:"0.04em" }}>{item.label}</p>
+                        <p style={{ fontSize:13, fontWeight:600, color:"#111827", marginTop:2, wordBreak:"break-all" }}>{item.value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Close button */}
+                <div style={{ padding:"0 28px 24px" }}>
+                  <button onClick={()=>setSelectedTxn(null)} style={{ width:"100%", padding:"10px", borderRadius:10, border:"1.5px solid #e2e8f0", background:"white", fontSize:13, fontWeight:600, cursor:"pointer", color:"#64748b" }}>Close</button>
+                </div>
+              </div>
+            </div>
+          )}
 
         </main>
     </>

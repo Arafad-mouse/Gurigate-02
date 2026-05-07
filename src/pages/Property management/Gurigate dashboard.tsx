@@ -33,6 +33,7 @@ const Icon = {
   Moon: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>,
   TrendUp: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
   Check: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  Settings: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
 };
 
 // ── Sparkline (mini area chart via SVG) ───────────────────────────────────────
@@ -144,7 +145,7 @@ const NAV_ITEMS = [
   { label:"Orders", icon:<Icon.ShoppingBag/>, section:"main" },
   { label:"Transaction", icon:<Icon.CreditCard/>, section:"main", active:true },
   { label:"Inbox", icon:<Icon.Inbox/>, section:"apps" },
-  { label:"Calendar", icon:<Icon.Calendar/>, section:"apps" },
+  { label:"Settings", icon:<Icon.Settings/>, section:"apps" },
 ];
 
 const STATUS_COLORS = {
@@ -242,8 +243,8 @@ export default function GuriGateDashboard() {
         return <ComingSoonPage title="Analytics" icon={<Icon.BarChart/>} description="Detailed insights and analytics for your properties" />;
       case "Inbox":
         return <ComingSoonPage title="Inbox" icon={<Icon.Inbox/>} description="Messages and communications hub" />;
-      case "Calendar":
-        return <ComingSoonPage title="Calendar" icon={<Icon.Calendar/>} description="Schedule appointments and manage your calendar" />;
+      case "Settings":
+        return <ComingSoonPage title="Settings" icon={<Icon.Settings/>} description="Manage your account and application settings" />;
       default:
         // Default Dashboard content
         return (
@@ -471,7 +472,7 @@ export default function GuriGateDashboard() {
         {/* Nav sections */}
         {[["MAIN", NAV_ITEMS.filter((n: any) => n.section==="main")], ["APPS", NAV_ITEMS.filter((n: any) => n.section==="apps")]].map(([label, items]: any) => (
           <div key={label} style={{ marginBottom:20 }}>
-            <p style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", color:"#9CA3AF", padding:"0 14px 8px" }}>{label}</p>
+            <p style={{ fontSize:14, fontWeight:700, letterSpacing:"0.08em", color:"#9CA3AF", padding:"0 14px 8px" }}>{label}</p>
             {items.map((item: any) => (
               <button key={item.label} className={`nav-item${activeNav===item.label?" active":""}`} onClick={()=>setActiveNav(item.label)}
                 style={{ color: activeNav===item.label?"#E8344E":"#6B7280" }}>

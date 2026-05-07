@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   X,
@@ -223,23 +223,19 @@ function PopularPropertyCard({ property, onClick }: { property: LandingProperty;
 
 
 
-function CustomerFilters() {
+function CustomerFilters({ resultCount }: { resultCount?: number }) {
 
   const [bedrooms, setBedrooms] = useState<string>("Any");
 
   const [priceMin, setPriceMin] = useState(0);
 
-  const [priceMax, setPriceMax] = useState(198);
+  const [priceMax, setPriceMax] = useState(0);
 
   const [sqftMin, setSqftMin] = useState(0);
 
-  const [sqftMax, setSqftMax] = useState(3200);
+  const [sqftMax, setSqftMax] = useState(0);
 
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([
-
-    "Air conditioning",
-
-  ]);
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
 
 
 
@@ -597,7 +593,7 @@ function CustomerFilters() {
 
         <button className="flex-1 text-xs py-2.5 rounded-xl bg-[#BA0036] text-white font-semibold hover:bg-[#a4003a] transition-colors">
 
-          Show 142 results
+          Show {resultCount ??} results
 
         </button>
 
@@ -615,7 +611,7 @@ function CustomerFilters() {
 
           background:
 
-            "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+            "linear-gradient(135deg, #1a1c1c 0%, #2d2d2d 50%, #3a3a3a 100%)",
 
         }}
 
@@ -681,7 +677,7 @@ function CustomerFilters() {
 
 export default function GuriGateLanding() {
 
-  const [activeFilter, setActiveFilter] = useState("House");
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   const [showMap, setShowMap] = useState(false);
 
@@ -691,6 +687,21 @@ export default function GuriGateLanding() {
   const { featured, nairobi, hargeisa } = useProperties();
 
   const navigate = useNavigate();
+
+  const filteredFeatured = useMemo(() => {
+    if (!activeFilter) return featured;
+    return featured.filter(p => p.type === activeFilter);
+  }, [featured, activeFilter]);
+
+  const filteredNairobi = useMemo(() => {
+    if (!activeFilter) return nairobi;
+    return nairobi.filter(p => p.type === activeFilter);
+  }, [nairobi, activeFilter]);
+
+  const filteredHargeisa = useMemo(() => {
+    if (!activeFilter) return hargeisa;
+    return hargeisa.filter(p => p.type === activeFilter);
+  }, [hargeisa, activeFilter]);
 
 
 
@@ -791,14 +802,14 @@ export default function GuriGateLanding() {
         <div className="flex flex-col gap-6 lg:flex-row">
 
           <div className="lg:hidden">
-            <CustomerFilters />
+            <CustomerFilters resultCount={filteredFeatured.length + filteredNairobi.length + filteredHargeisa.length} />
           </div>
 
           {/* Left: Filters sidebar */}
 
           <div className="hidden lg:block w-64 flex-shrink-0">
 
-            <CustomerFilters />
+            <CustomerFilters resultCount={filteredFeatured.length + filteredNairobi.length + filteredHargeisa.length} />
 
           </div>
 
@@ -831,7 +842,7 @@ export default function GuriGateLanding() {
 
             {/* Featured Properties Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
-              {featured.map((p) => (
+              {filteredFeatured.map((p) => (
                 <FeaturedPropertyCard key={p.id} property={p} onClick={() => setSelectedProperty(p)} />
               ))}
             </div>
@@ -840,10 +851,15 @@ export default function GuriGateLanding() {
 
             <div className="flex items-center gap-2 mb-5 flex-wrap">
 
-              <button className="flex items-center gap-1.5 text-sm border border-gray-200 px-3 py-1.5 rounded-full text-gray-600 hover:border-gray-400 transition-colors">
-
-                <SlidersHorizontal size={13} /> Filter
-
+              <button
+                onClick={() => setActiveFilter(null)}
+                className={`flex items-center gap-1.5 text-sm border px-3 py-1.5 rounded-full transition-colors ${
+                  activeFilter === null
+                    ? "bg-gray-900 text-white border-gray-900"
+                    : "border-gray-200 text-gray-600 hover:border-gray-400"
+                }`}
+              >
+                <SlidersHorizontal size={13} /> All
               </button>
 
               {[
@@ -864,7 +880,7 @@ export default function GuriGateLanding() {
 
                   key={label}
 
-                  onClick={() => setActiveFilter(label)}
+                  onClick={() => setActiveFilter(activeFilter === label ? null : label)}
 
                   className={`flex items-center gap-1.5 text-sm border px-3 py-1.5 rounded-full transition-colors ${
 
@@ -905,7 +921,7 @@ export default function GuriGateLanding() {
                   className="self-start text-sm font-medium text-gray-600 hover:text-gray-900 sm:self-auto"
                 >
 
-                  Show all (142)
+                  Show all ({filteredNairobi.length})
 
                 </button>
 
@@ -913,7 +929,7 @@ export default function GuriGateLanding() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
 
-                {nairobi.map((p) => (
+                {filteredNairobi.map((p) => (
 
                   <PopularPropertyCard key={p.id} property={p} onClick={() => setSelectedProperty(p)} />
 
@@ -939,7 +955,7 @@ export default function GuriGateLanding() {
 
                 <button className="self-start text-sm font-medium text-gray-600 hover:text-gray-900 sm:self-auto">
 
-                  Show all (142)
+                  Show all ({filteredHargeisa.length})
 
                 </button>
 
@@ -947,7 +963,7 @@ export default function GuriGateLanding() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
 
-                {hargeisa.map((p) => (
+                {filteredHargeisa.map((p) => (
 
                   <PopularPropertyCard key={p.id} property={p} onClick={() => setSelectedProperty(p)} />
 
