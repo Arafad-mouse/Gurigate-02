@@ -593,7 +593,7 @@ function CustomerFilters({ resultCount }: { resultCount?: number }) {
 
         <button className="flex-1 text-xs py-2.5 rounded-xl bg-[#BA0036] text-white font-semibold hover:bg-[#a4003a] transition-colors">
 
-          Show {resultCount ??} results
+          Show {resultCount ?? 0} results
 
         </button>
 

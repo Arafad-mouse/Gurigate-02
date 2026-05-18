@@ -12,6 +12,9 @@ import PaymentPage from '@/pages/PaymentPage'
 import GuriGateDashboard from '@/pages/Property management/Gurigate dashboard'
 import AllPropertiesPage from '@/pages/all-property'
 
+// 1. Import your onboarding multi-step form page component here 👇
+import BecomeHost from '@/components/host-onboarding/Become-host'
+
 // Mock property data - in real app this would come from API
 const mockProperties = [
   {
@@ -81,6 +84,11 @@ function App() {
           <Route path="/payment" element={<PaymentPageWrapper />} />
           <Route path="/all-property" element={<AllPropertiesPage />} />
           <Route path="/manage-property" element={<GuriGateDashboard />} />
+          
+          {/* 2. Added Route path to display your onboarding workflow page 👇 */}
+          <Route path="/become-a-host" element={<BecomeHost />} />
+
+          {/* Catch-all redirect MUST stay at the very bottom of the Routes list */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
