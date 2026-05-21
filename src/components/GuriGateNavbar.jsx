@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ProfileMenu } from "./ProfileMenu";
 import { LANGUAGES, useLanguage } from "../lib/language";
+import BecomeHost from "./host-onboarding/Become-host";
 
 const BRAND = "#BA0036";
 
@@ -500,6 +501,7 @@ export default function GuriGateNavbar() {
   const [where,     setWhere]     = useState("");
   const [whenLbl,   setWhenLbl]   = useState("");
   const [whoLbl,    setWhoLbl]    = useState("");
+  const [showHostModal, setShowHostModal] = useState(false);
   const { language, setLanguage } = useLanguage();
   const navRef = useRef(null);
   const navigate = useNavigate();
@@ -623,7 +625,7 @@ export default function GuriGateNavbar() {
 
           {/* Right side */}
           <div className="nav-actions" style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
-            <button className="host-button" style={{ fontSize:13, fontWeight:600, color:"#374151", background:"none", border:"none", cursor:"pointer", padding:"7px 12px", borderRadius:10, transition:"background .15s", fontFamily:"inherit" }}
+            <button className="host-button" onClick={() => setShowHostModal(true)} style={{ fontSize:13, fontWeight:600, color:"#374151", background:"none", border:"none", cursor:"pointer", padding:"7px 12px", borderRadius:10, transition:"background .15s", fontFamily:"inherit" }}
               onMouseEnter={e=>e.currentTarget.style.background="#f9fafb"}
               onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
               Become a host
@@ -713,6 +715,18 @@ export default function GuriGateNavbar() {
           </div>
         </div>
       </div>
+
+      {/* Become a Host Modal */}
+      {showHostModal && (
+        <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.5)", zIndex:9999, display:"flex", alignItems:"center", justifyContent:"center", padding:"20px" }}>
+          <div style={{ position:"relative", width:"100%", maxWidth:"900px", maxHeight:"90vh", overflow:"auto", pointerEvents:"auto", zIndex:10000 }}>
+            <button onClick={() => setShowHostModal(false)} style={{ position:"absolute", top:"10px", right:"10px", width:"32px", height:"32px", borderRadius:"50%", background:"white", border:"1px solid #e5e7eb", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", zIndex:10001 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <BecomeHost />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

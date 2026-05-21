@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   X,
@@ -14,7 +14,10 @@ import {
   Compass,
   SlidersHorizontal,
   Star,
+  Search,
 } from "lucide-react";
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 import PropertyPage from "@/pages/PropertyPage";
 import { PopularHomesSection } from "@/components/PopularHomesSection";
@@ -682,6 +685,9 @@ export default function GuriGateLanding() {
   const [showMap, setShowMap] = useState(false);
 
   const [selectedProperty, setSelectedProperty] = useState<LandingProperty | null>(null);
+
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
   
   // Use the properties hook for data fetching
   const { featured, nairobi, hargeisa } = useProperties();
@@ -702,6 +708,51 @@ export default function GuriGateLanding() {
     if (!activeFilter) return hargeisa;
     return hargeisa.filter(p => p.type === activeFilter);
   }, [hargeisa, activeFilter]);
+
+  // Initialize map when modal opens
+  useEffect(() => {
+    if (showMap && mapRef.current && !mapInstanceRef.current) {
+      // Initialize map centered on East Africa
+      const map = L.map(mapRef.current).setView([1.2921, 36.8219], 6); // Nairobi coordinates
+
+      // Add OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      // Add property markers
+      const allProperties = [...filteredFeatured, ...filteredNairobi, ...filteredHargeisa];
+      
+      allProperties.forEach((property) => {
+        // Use approximate coordinates based on city (in production, use actual property coordinates)
+        const coords: [number, number] = property.address.toLowerCase().includes('nairobi') 
+          ? [-1.2921, 36.8219] 
+          : property.address.toLowerCase().includes('hargeisa')
+          ? [9.56, 44.06]
+          : [2.0, 45.0]; // Somalia
+
+        const marker = L.marker(coords).addTo(map);
+        marker.bindPopup(`
+          <div style="min-width: 200px;">
+            <img src="${property.image}" style="width: 100%; height: 100px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;">
+            <h3 style="margin: 0 0 4px 0; font-size: 14px; font-weight: bold;">${property.title}</h3>
+            <p style="margin: 0; font-size: 12px; color: #666;">${property.address}</p>
+            <p style="margin: 4px 0 0 0; font-size: 13px; font-weight: bold;">${property.price} ${property.priceUnit}</p>
+          </div>
+        `);
+      });
+
+      mapInstanceRef.current = map;
+    }
+
+    // Cleanup map when modal closes
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [showMap, filteredFeatured, filteredNairobi, filteredHargeisa]);
 
 
 
@@ -993,9 +1044,81 @@ export default function GuriGateLanding() {
 
         <MapPin size={16} />
 
-        Show map
+        {showMap ? "Hide map" : "Show map"}
 
       </button>
+
+      {/* ── Map Modal ── */}
+
+      {showMap && (
+
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
+
+          <div className="bg-white rounded-2xl w-full max-w-6xl h-[80vh] flex flex-col overflow-hidden">
+
+            <div className="flex items-center justify-between p-4 border-b">
+
+              <h2 className="text-lg font-semibold text-gray-900">Property Map</h2>
+
+              <button
+
+                onClick={() => setShowMap(false)}
+
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+
+                title="Close map"
+
+              >
+
+                <X size={20} className="text-gray-600" />
+
+              </button>
+
+            </div>
+
+            <div className="flex-1 relative">
+
+              {/* Search bar overlay */}
+
+              <div className="absolute top-4 left-4 right-4 z-10">
+
+                <div className="bg-white rounded-lg shadow-lg flex items-center gap-2 px-4 py-3">
+
+                  <Search size={18} className="text-gray-400" />
+
+                  <input
+
+                    type="text"
+
+                    placeholder="Search properties..."
+
+                    className="flex-1 outline-none text-sm"
+
+                  />
+
+                </div>
+
+              </div>
+
+              {/* Leaflet map container */}
+
+              <div 
+
+                ref={mapRef}
+
+                className="w-full h-full"
+
+                style={{ minHeight: '400px' }}
+
+              />
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
 
     </div>
 

@@ -80,8 +80,15 @@ export class GuriGatePropertyService {
   static async getFeaturedProperties(): Promise<LandingProperty[]> {
     try {
       const { data, error } = await supabase
-        .from('featured_properties_view')
-        .select('*')
+        .from('properties')
+        .select(`
+          *,
+          locations!properties_city_location_id_fkey(name),
+          property_images(url, is_primary, sort_order)
+        `)
+        .eq('status', 'active')
+        .eq('is_approved', true)
+        .eq('is_featured', true)
         .order('rating_avg', { ascending: false })
         .limit(6);
 
@@ -90,7 +97,15 @@ export class GuriGatePropertyService {
         return [];
       }
 
-      return data.map(property => this.convertToLandingProperty(property));
+      // Flatten the data structure for conversion
+      const flattenedData = data.map((property: any) => ({
+        ...property,
+        city: property.locations?.name || '',
+        primary_image_url: property.property_images?.find((img: any) => img.is_primary)?.url,
+        images: property.property_images
+      }));
+
+      return flattenedData.map(property => this.convertToLandingProperty(property));
     } catch (error) {
       console.error('GuriGatePropertyService.getFeaturedProperties error:', error);
       return [];
@@ -104,7 +119,7 @@ export class GuriGatePropertyService {
         .from('properties')
         .select(`
           *,
-          locations(name, district),
+          locations!properties_city_location_id_fkey(name),
           property_images(url, is_primary, sort_order)
         `)
         .eq('status', 'active')
@@ -121,7 +136,6 @@ export class GuriGatePropertyService {
       const flattenedData = data.map((property: any) => ({
         ...property,
         city: property.locations?.name || city,
-        district: property.locations?.district || '',
         primary_image_url: property.property_images?.find((img: any) => img.is_primary)?.url,
         images: property.property_images
       }));
@@ -140,7 +154,7 @@ export class GuriGatePropertyService {
         .from('properties')
         .select(`
           *,
-          locations(name, district),
+          locations!properties_city_location_id_fkey(name),
           property_images(url, is_primary, sort_order)
         `)
         .eq('status', 'active')
@@ -156,7 +170,6 @@ export class GuriGatePropertyService {
       const flattenedData = data.map((property: any) => ({
         ...property,
         city: property.locations?.name || '',
-        district: property.locations?.district || '',
         primary_image_url: property.property_images?.find((img: any) => img.is_primary)?.url,
         images: property.property_images
       }));

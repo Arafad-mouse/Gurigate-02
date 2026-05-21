@@ -1,5 +1,7 @@
 import { useState } from "react"
 import type { HostFormData } from "./types"
+import { supabase } from "@/lib/supabase"
+import { HostOnboardingService } from "@/services/hostOnboardingService"
 
 // ✅ Step imports
 import { StepWelcome } from "./steps/StepWelcome"
@@ -61,9 +63,34 @@ const initialData: HostFormData = {
 export default function BecomeHost() {
   const [step, setStep] = useState(0)
   const [data, setData] = useState(initialData)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isSuccess, setIsSuccess] = useState(false)
 
   const onChange = (updates: Partial<HostFormData>) => {
     setData((prev) => ({ ...prev, ...updates }))
+  }
+
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true)
+      setSubmitError(null)
+
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (userError || !user) {
+        setSubmitError('You must be logged in to submit a property')
+        return
+      }
+
+      await HostOnboardingService.saveProperty(data, user.id)
+      setIsSuccess(true)
+    } catch (error) {
+      console.error('Error submitting property:', error)
+      setSubmitError('Failed to submit property. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   // ✅ Restored your original step sequence structure
@@ -91,8 +118,8 @@ export default function BecomeHost() {
   const CurrentComponent = currentStepConfig.component
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white min-h-[60vh] flex flex-col justify-between mt-10 shadow-sm border border-gray-100 rounded-2xl">
-      <div className="flex-1">
+    <div className="max-w-3xl mx-auto p-6 bg-white min-h-[60vh] flex flex-col justify-between mt-10 shadow-sm border border-gray-100 rounded-2xl" style={{ pointerEvents: 'auto' }}>
+      <div className="flex-1" style={{ pointerEvents: 'auto' }}>
         {/* ✅ Conditionally pass down values based on your configuration rules */}
         {currentStepConfig.hasProps ? (
           <CurrentComponent data={data} onChange={onChange} />
@@ -105,17 +132,38 @@ export default function BecomeHost() {
         <button 
           onClick={() => setStep((s) => Math.max(s - 1, 0))}
           className="px-5 py-2 text-sm font-semibold border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition"
+          disabled={isSubmitting}
         >
           Back
         </button>
 
-        <button 
-          onClick={() => setStep((s) => Math.min(s + 1, steps.length - 1))}
-          className="px-5 py-2 text-sm font-semibold bg-[#BA0036] text-white rounded-xl hover:opacity-90 transition"
-        >
-          Next
-        </button>
+        {isSuccess ? (
+          <div className="px-5 py-2 text-sm font-semibold text-green-600">
+            Property submitted successfully!
+          </div>
+        ) : step === steps.length - 1 ? (
+          <button 
+            onClick={handleSubmit}
+            className="px-5 py-2 text-sm font-semibold bg-[#BA0036] text-white rounded-xl hover:opacity-90 transition"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit Property'}
+          </button>
+        ) : (
+          <button 
+            onClick={() => setStep((s) => Math.min(s + 1, steps.length - 1))}
+            className="px-5 py-2 text-sm font-semibold bg-[#BA0036] text-white rounded-xl hover:opacity-90 transition"
+          >
+            Next
+          </button>
+        )}
       </div>
+
+      {submitError && (
+        <div className="mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
+          <p className="text-sm text-red-600">{submitError}</p>
+        </div>
+      )}
     </div>
   )
 }

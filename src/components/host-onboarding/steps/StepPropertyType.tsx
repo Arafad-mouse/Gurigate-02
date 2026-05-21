@@ -41,7 +41,7 @@ interface Props {
 
 export function StepPropertyType({ data, onChange }: Props) {
   return (
-    <div className="max-w-xl mx-auto px-6">
+    <div className="max-w-xl mx-auto px-6" style={{ pointerEvents: 'auto' }}>
       <h1 className="text-2xl md:text-[28px] font-extrabold text-foreground mb-8">
         Which of these best describes your place?
       </h1>

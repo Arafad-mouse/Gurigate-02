@@ -20,6 +20,7 @@ export function SelectableCard({ icon, label, selected, onClick, className }: Se
           : "border-border hover:border-foreground/40",
         className
       )}
+      style={{ pointerEvents: 'auto' }}
     >
       {icon && <span className="text-2xl">{icon}</span>}
       <span className="text-sm font-medium">{label}</span>
