@@ -12,15 +12,17 @@ export function SelectableCard({ icon, label, selected, onClick, className }: Se
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
       className={cn(
-        "flex flex-col items-start gap-2 rounded-xl border-2 p-4 text-left transition-all cursor-pointer",
+        "flex flex-col items-start gap-2 rounded-xl border-2 p-4 text-left transition-all cursor-pointer relative z-10",
         selected
-          ? "border-foreground bg-secondary/50"
-          : "border-border hover:border-foreground/40",
+          ? "border-[#bb1f3a] bg-[#bb1f3a]/10 ring-2 ring-[#bb1f3a]"
+          : "border-border hover:border-[#bb1f3a] hover:bg-muted/50",
         className
       )}
-      style={{ pointerEvents: 'auto' }}
     >
       {icon && <span className="text-2xl">{icon}</span>}
       <span className="text-sm font-medium">{label}</span>

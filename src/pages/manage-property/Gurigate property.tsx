@@ -30,7 +30,7 @@ const Icon = {
   Layers: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
 };
 
-const ALL_PROPERTIES = [
+const INITIAL_PROPERTIES = [
   { id:1, name:"New York", type:"House", size:"1400ft", status:"Sale", beds:5, location:"France", price:"$250,00 USD", img:"https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=60&q=80" },
   { id:2, name:"Washington Residence", type:"Villa", size:"1600ft", status:"Rent", beds:3, location:"Canada", price:"$87,00 USD", img:"https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=60&q=80" },
   { id:3, name:"London Residence", type:"House", size:"1600ft", status:"Rent", beds:4, location:"England", price:"$200,00 USD", img:"https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=60&q=80" },
@@ -45,6 +45,22 @@ const ALL_PROPERTIES = [
 export default function GuriGateProperty() {
   const [darkMode] = useState(false);
   const [checked, setChecked] = useState<number[]>([]);
+  const [properties, setProperties] = useState(INITIAL_PROPERTIES);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+  const [editingProperty, setEditingProperty] = useState<typeof INITIAL_PROPERTIES[0] | null>(null);
+  const [newProperty, setNewProperty] = useState({
+    name: "",
+    type: "House",
+    size: "",
+    status: "Rent",
+    beds: 1,
+    location: "",
+    price: "",
+    img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=60&q=80"
+  });
 
   const card = darkMode ? "#1E293B" : "white";
   const border = darkMode ? "#334155" : "#F1F5F9";
@@ -52,8 +68,93 @@ export default function GuriGateProperty() {
   const muted = darkMode ? "#94A3B8" : "#6B7280";
 
   const toggle = (id: number) => setChecked((p: number[]) => p.includes(id) ? p.filter((x: number)=>x!==id) : [...p, id]);
-  const allChecked = checked.length === ALL_PROPERTIES.length;
-  const toggleAll = () => setChecked(allChecked ? [] : ALL_PROPERTIES.map((p) => p.id));
+  const allChecked = checked.length === properties.length;
+  const toggleAll = () => setChecked(allChecked ? [] : properties.map((p) => p.id));
+
+  const handleAddProperty = () => {
+    if (newProperty.name && newProperty.size && newProperty.location && newProperty.price) {
+      const property = {
+        id: Date.now(),
+        ...newProperty
+      };
+      setProperties([...properties, property]);
+      setNewProperty({
+        name: "",
+        type: "House",
+        size: "",
+        status: "Rent",
+        beds: 1,
+        location: "",
+        price: "",
+        img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=60&q=80"
+      });
+      setIsModalOpen(false);
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  };
+
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+    return { daysInMonth, startingDayOfWeek };
+  };
+
+  const handleDateSelect = (day: number) => {
+    const newDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), day);
+    setSelectedDate(newDate);
+    setIsCalendarOpen(false);
+  };
+
+  const handleMonthChange = (direction: number) => {
+    const newDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + direction, 1);
+    setSelectedDate(newDate);
+  };
+
+  const handleDelete = (id: number) => {
+    setProperties(properties.filter(p => p.id !== id));
+    setMenuOpenId(null);
+  };
+
+  const handleEdit = (property: typeof INITIAL_PROPERTIES[0]) => {
+    setEditingProperty(property);
+    setNewProperty({
+      name: property.name,
+      type: property.type,
+      size: property.size,
+      status: property.status,
+      beds: property.beds,
+      location: property.location,
+      price: property.price,
+      img: property.img
+    });
+    setIsModalOpen(true);
+    setMenuOpenId(null);
+  };
+
+  const handleUpdateProperty = () => {
+    if (editingProperty && newProperty.name && newProperty.size && newProperty.location && newProperty.price) {
+      setProperties(properties.map(p => p.id === editingProperty.id ? { ...p, ...newProperty } : p));
+      setEditingProperty(null);
+      setNewProperty({
+        name: "",
+        type: "House",
+        size: "",
+        status: "Rent",
+        beds: 1,
+        location: "",
+        price: "",
+        img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=60&q=80"
+      });
+      setIsModalOpen(false);
+    }
+  };
 
   return (
     <div style={{ padding:"28px", flex:1, overflowY:"auto" }}>
@@ -63,7 +164,7 @@ export default function GuriGateProperty() {
           <h1 style={{ fontSize:22, fontWeight:700, letterSpacing:"-0.4px", color:text }}>Property Management</h1>
           <p style={{ fontSize:12, color:muted, marginTop:2 }}>Manage your property listings and track performance</p>
         </div>
-        <button style={{ display:"flex", alignItems:"center", gap:6, background:"#E8344E", color:"white", border:"none", borderRadius:10, padding:"10px 18px", fontSize:13, fontWeight:600, cursor:"pointer" }}>
+        <button onClick={() => setIsModalOpen(true)} style={{ display:"flex", alignItems:"center", gap:6, background:"#E8344E", color:"white", border:"none", borderRadius:10, padding:"10px 18px", fontSize:13, fontWeight:600, cursor:"pointer" }}>
           <Icon.Plus/> Add Property
         </button>
       </div>
@@ -104,9 +205,72 @@ export default function GuriGateProperty() {
         {/* Table header row */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"18px 22px 14px" }}>
           <h2 style={{ fontSize:15, fontWeight:700 }}>All Properties List</h2>
-          <button style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:muted, background:darkMode?"#334155":"#F8F9FC", border:"none", borderRadius:8, padding:"7px 12px", cursor:"pointer", fontWeight:500 }}>
-            Last Month <Icon.ChevronDown/>
-          </button>
+          <div style={{ position:"relative" }}>
+            <button
+              onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+              style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:muted, background:darkMode?"#334155":"#F8F9FC", border:"none", borderRadius:8, padding:"7px 12px", cursor:"pointer", fontWeight:500 }}
+            >
+              {formatDate(selectedDate)} <Icon.ChevronDown/>
+            </button>
+            {isCalendarOpen && (
+              <div style={{ position:"absolute", top:"100%", right:0, marginTop:8, background:card, border:`1px solid ${border}`, borderRadius:12, padding:16, width:280, zIndex:100, boxShadow:"0 4px 12px rgba(0,0,0,0.1)" }}>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+                  <button
+                    onClick={() => handleMonthChange(-1)}
+                    style={{ background:"none", border:"none", cursor:"pointer", color:text, padding:4 }}
+                  >
+                    <Icon.ChevronLeft/>
+                  </button>
+                  <span style={{ fontWeight:600, fontSize:14, color:text }}>
+                    {selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </span>
+                  <button
+                    onClick={() => handleMonthChange(1)}
+                    style={{ background:"none", border:"none", cursor:"pointer", color:text, padding:4 }}
+                  >
+                    <Icon.ChevronRight/>
+                  </button>
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4, marginBottom:8 }}>
+                  {['Su','Mo','Tu','We','Th','Fr','Sa'].map((day) => (
+                    <div key={day} style={{ fontSize:11, fontWeight:600, color:muted, textAlign:"center", padding:4 }}>{day}</div>
+                  ))}
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4 }}>
+                  {(() => {
+                    const { daysInMonth, startingDayOfWeek } = getDaysInMonth(selectedDate);
+                    const days = [];
+                    for (let i = 0; i < startingDayOfWeek; i++) {
+                      days.push(<div key={`empty-${i}`} />);
+                    }
+                    for (let day = 1; day <= daysInMonth; day++) {
+                      const isSelected = day === selectedDate.getDate();
+                      days.push(
+                        <button
+                          key={day}
+                          onClick={() => handleDateSelect(day)}
+                          style={{
+                            padding:6,
+                            borderRadius:6,
+                            border:"none",
+                            cursor:"pointer",
+                            fontSize:12,
+                            fontWeight:500,
+                            background:isSelected ? "#E8344E" : "transparent",
+                            color:isSelected ? "white" : text,
+                            transition:"background 0.2s"
+                          }}
+                        >
+                          {day}
+                        </button>
+                      );
+                    }
+                    return days;
+                  })()}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div style={{ overflowX:"auto" }}>
@@ -122,8 +286,8 @@ export default function GuriGateProperty() {
               </tr>
             </thead>
             <tbody>
-              {ALL_PROPERTIES.map((row, idx) => (
-                <tr key={row.id} style={{ borderBottom:idx < ALL_PROPERTIES.length-1 ? `1px solid ${border}` : "none", transition:"background .12s" }}
+              {properties.map((row, idx) => (
+                <tr key={row.id} style={{ borderBottom:idx < properties.length-1 ? `1px solid ${border}` : "none", transition:"background .12s" }}
                     onMouseEnter={e=>{e.currentTarget.style.background="rgba(232,52,78,0.025)";}}
                     onMouseLeave={e=>{e.currentTarget.style.background="";}}>
                   <td style={{ padding:"13px 22px" }}>
@@ -148,9 +312,30 @@ export default function GuriGateProperty() {
                   <td style={{ padding:"13px 14px", color:muted }}>{row.location}</td>
                   <td style={{ padding:"13px 14px", fontWeight:600, color:text }}>{row.price}</td>
                   <td style={{ padding:"13px 14px" }}>
-                    <button style={{ background:"none", border:"none", cursor:"pointer", color:muted, padding:4 }}>
-                      <Icon.MoreVert/>
-                    </button>
+                    <div style={{ position:"relative" }}>
+                      <button
+                        onClick={() => setMenuOpenId(menuOpenId === row.id ? null : row.id)}
+                        style={{ background:"none", border:"none", cursor:"pointer", color:muted, padding:4 }}
+                      >
+                        <Icon.MoreVert/>
+                      </button>
+                      {menuOpenId === row.id && (
+                        <div style={{ position:"absolute", right:0, top:"100%", marginTop:4, background:card, border:`1px solid ${border}`, borderRadius:8, boxShadow:"0 4px 12px rgba(0,0,0,0.1)", zIndex:50, minWidth:120 }}>
+                          <button
+                            onClick={() => handleEdit(row)}
+                            style={{ width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:text, fontSize:12, textAlign:"left", display:"flex", alignItems:"center", gap:8 }}
+                          >
+                            <span style={{ width:14, height:14, display:"flex", alignItems:"center" }}><Icon.Grid/></span> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(row.id)}
+                            style={{ width:"100%", padding:"8px 12px", background:"none", border:"none", cursor:"pointer", color:"#E8344E", fontSize:12, textAlign:"left", display:"flex", alignItems:"center", gap:8 }}
+                          >
+                            <span style={{ width:14, height:14, display:"flex", alignItems:"center" }}><Icon.Inbox/></span> Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -158,6 +343,113 @@ export default function GuriGateProperty() {
           </table>
         </div>
       </div>
+
+      {/* Add/Edit Property Modal */}
+      {isModalOpen && (
+        <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000 }}>
+          <div style={{ background:card, borderRadius:16, padding:24, width:400, border:`1px solid ${border}` }}>
+            <h2 style={{ fontSize:18, fontWeight:700, marginBottom:16, color:text }}>{editingProperty ? "Edit Property" : "Add New Property"}</h2>
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              <div>
+                <label style={{ fontSize:12, fontWeight:500, color:muted, marginBottom:4, display:"block" }}>Property Name</label>
+                <input
+                  type="text"
+                  value={newProperty.name}
+                  onChange={(e) => setNewProperty({...newProperty, name: e.target.value})}
+                  style={{ width:"100%", padding:8, borderRadius:8, border:`1px solid ${border}`, background:darkMode?"#1E293B":"white", color:text }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize:12, fontWeight:500, color:muted, marginBottom:4, display:"block" }}>Type</label>
+                <select
+                  value={newProperty.type}
+                  onChange={(e) => setNewProperty({...newProperty, type: e.target.value})}
+                  style={{ width:"100%", padding:8, borderRadius:8, border:`1px solid ${border}`, background:darkMode?"#1E293B":"white", color:text }}
+                >
+                  <option value="House">House</option>
+                  <option value="Villa">Villa</option>
+                  <option value="Bungalow">Bungalow</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize:12, fontWeight:500, color:muted, marginBottom:4, display:"block" }}>Size</label>
+                <input
+                  type="text"
+                  value={newProperty.size}
+                  onChange={(e) => setNewProperty({...newProperty, size: e.target.value})}
+                  style={{ width:"100%", padding:8, borderRadius:8, border:`1px solid ${border}`, background:darkMode?"#1E293B":"white", color:text }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize:12, fontWeight:500, color:muted, marginBottom:4, display:"block" }}>Status</label>
+                <select
+                  value={newProperty.status}
+                  onChange={(e) => setNewProperty({...newProperty, status: e.target.value})}
+                  style={{ width:"100%", padding:8, borderRadius:8, border:`1px solid ${border}`, background:darkMode?"#1E293B":"white", color:text }}
+                >
+                  <option value="Rent">Rent</option>
+                  <option value="Sale">Sale</option>
+                  <option value="Sold">Sold</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize:12, fontWeight:500, color:muted, marginBottom:4, display:"block" }}>Bedrooms</label>
+                <input
+                  type="number"
+                  value={newProperty.beds}
+                  onChange={(e) => setNewProperty({...newProperty, beds: parseInt(e.target.value) || 1})}
+                  style={{ width:"100%", padding:8, borderRadius:8, border:`1px solid ${border}`, background:darkMode?"#1E293B":"white", color:text }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize:12, fontWeight:500, color:muted, marginBottom:4, display:"block" }}>Location</label>
+                <input
+                  type="text"
+                  value={newProperty.location}
+                  onChange={(e) => setNewProperty({...newProperty, location: e.target.value})}
+                  style={{ width:"100%", padding:8, borderRadius:8, border:`1px solid ${border}`, background:darkMode?"#1E293B":"white", color:text }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize:12, fontWeight:500, color:muted, marginBottom:4, display:"block" }}>Price</label>
+                <input
+                  type="text"
+                  value={newProperty.price}
+                  onChange={(e) => setNewProperty({...newProperty, price: e.target.value})}
+                  style={{ width:"100%", padding:8, borderRadius:8, border:`1px solid ${border}`, background:darkMode?"#1E293B":"white", color:text }}
+                />
+              </div>
+              <div style={{ display:"flex", gap:8, marginTop:8 }}>
+                <button
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setEditingProperty(null);
+                    setNewProperty({
+                      name: "",
+                      type: "House",
+                      size: "",
+                      status: "Rent",
+                      beds: 1,
+                      location: "",
+                      price: "",
+                      img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=60&q=80"
+                    });
+                  }}
+                  style={{ flex:1, padding:10, borderRadius:8, border:`1px solid ${border}`, background:"transparent", color:text, cursor:"pointer", fontWeight:600 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={editingProperty ? handleUpdateProperty : handleAddProperty}
+                  style={{ flex:1, padding:10, borderRadius:8, border:"none", background:"#E8344E", color:"white", cursor:"pointer", fontWeight:600 }}
+                >
+                  {editingProperty ? "Update" : "Add Property"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -47,12 +47,12 @@ export function StepHighlights({ data, onChange }: Props) {
               className={cn(
                 "flex items-center gap-2 px-5 py-3 rounded-full border transition-all duration-200 text-base font-semibold",
                 isSelected
-                  ? "border-black bg-[#F7F7F7] text-black ring-1 ring-black"
-                  : "border-[#DDDDDD] text-[#222222] bg-white hover:border-black"
+                  ? "border-[#bb1f3a] bg-[#bb1f3a]/10 text-[#bb1f3a] ring-1 ring-[#bb1f3a]"
+                  : "border-[#DDDDDD] text-[#222222] bg-white hover:border-[#bb1f3a]"
               )}
             >
               {/* Icon color shifts when selected */}
-              <span className={cn(isSelected ? "text-black" : "text-[#222222]")}>
+              <span className={cn(isSelected ? "text-[#bb1f3a]" : "text-[#222222]")}>
                 {h.icon}
               </span>
               {h.label}

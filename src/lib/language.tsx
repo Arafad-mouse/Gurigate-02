@@ -278,8 +278,12 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
       return "en";
     }
 
-    const stored = window.localStorage.getItem("gurigate-language");
-    return stored === "ar" ? stored : "en";
+    try {
+      const stored = window.localStorage.getItem("gurigate-language");
+      return stored === "ar" ? stored : "en";
+    } catch {
+      return "en";
+    }
   });
 
   const textOriginals = useRef<WeakMap<Text, string>>(new WeakMap());
@@ -290,7 +294,11 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   };
 
   useEffect(() => {
-    window.localStorage.setItem("gurigate-language", language);
+    try {
+      window.localStorage.setItem("gurigate-language", language);
+    } catch {
+      // Storage blocked by browser tracking prevention - ignore
+    }
     document.documentElement.lang = language;
     document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
 

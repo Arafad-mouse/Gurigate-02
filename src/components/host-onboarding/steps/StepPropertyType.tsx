@@ -40,8 +40,16 @@ interface Props {
 }
 
 export function StepPropertyType({ data, onChange }: Props) {
+  const handleSelect = (propertyType: string) => {
+    // Allow multiple selections - toggle the property type
+    const updated = data.propertyTypes.includes(propertyType)
+      ? data.propertyTypes.filter((t) => t !== propertyType)
+      : [...data.propertyTypes, propertyType];
+    onChange({ propertyTypes: updated });
+  };
+
   return (
-    <div className="max-w-xl mx-auto px-6" style={{ pointerEvents: 'auto' }}>
+    <div className="max-w-xl mx-auto px-6">
       <h1 className="text-2xl md:text-[28px] font-extrabold text-foreground mb-8">
         Which of these best describes your place?
       </h1>
@@ -51,10 +59,13 @@ export function StepPropertyType({ data, onChange }: Props) {
             key={type.id}
             icon={type.icon}
             label={type.label}
-            selected={data.propertyType === type.id}
-            onClick={() => onChange({ propertyType: type.id })}
+            selected={data.propertyTypes.includes(type.id)}
+            onClick={() => handleSelect(type.id)}
           />
         ))}
+      </div>
+      <div className="mt-4 text-sm text-muted-foreground">
+        Selected: {data.propertyTypes.length > 0 ? data.propertyTypes.join(", ") : "None"}
       </div>
     </div>
   );

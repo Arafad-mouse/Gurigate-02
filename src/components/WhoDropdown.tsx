@@ -41,7 +41,7 @@ interface WhoDropdownProps {
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const GUEST_TYPES: GuestType[] = [
-  { key: "adults",   label: "Adults",   sub: "Ages 13+",     min: 0 },
+  { key: "adults",   label: "Adults",   sub: "Ages 13+",     min: 1 },
   { key: "children", label: "Children", sub: "Ages 2–12",    min: 0 },
   { key: "infants",  label: "Infants",  sub: "Under 2",      min: 0 },
   { key: "pets",     label: "Pets",     sub: "Bringing a pet?", min: 0 },
@@ -50,6 +50,7 @@ const GUEST_TYPES: GuestType[] = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function WhoDropdown({ onClose, onSelect }: WhoDropdownProps) {
+  console.log('[WhoDropdown] Component mounted');
   const [counts, setCounts] = useState<GuestCounts>({
     adults: 1,
     children: 0,
@@ -67,9 +68,12 @@ export function WhoDropdown({ onClose, onSelect }: WhoDropdownProps) {
   }, [onClose]);
 
   const update = (key: keyof GuestCounts, delta: number) => {
+    console.log(`[WhoDropdown] Button clicked: ${key}, delta: ${delta}, current value: ${counts[key]}`);
     setCounts((prev) => {
       const min = GUEST_TYPES.find((g) => g.key === key)!.min;
-      return { ...prev, [key]: Math.max(min, prev[key] + delta) };
+      const newValue = Math.max(min, prev[key] + delta);
+      console.log(`[WhoDropdown] State update: ${key} from ${prev[key]} to ${newValue}`);
+      return { ...prev, [key]: newValue };
     });
   };
 
@@ -116,7 +120,11 @@ export function WhoDropdown({ onClose, onSelect }: WhoDropdownProps) {
               </div>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => update(key, -1)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log(`[WhoDropdown] Minus button clicked for ${key}`);
+                    update(key, -1);
+                  }}
                   disabled={counts[key] <= min}
                   className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
                     counts[key] > min
@@ -130,7 +138,11 @@ export function WhoDropdown({ onClose, onSelect }: WhoDropdownProps) {
                   {counts[key]}
                 </span>
                 <button
-                  onClick={() => update(key, 1)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log(`[WhoDropdown] Plus button clicked for ${key}`);
+                    update(key, 1);
+                  }}
                   className="w-8 h-8 rounded-full border border-gray-300 text-gray-700 hover:border-[#BA0036] hover:text-[#BA0036] flex items-center justify-center transition-all"
                 >
                   <Plus size={13} />
@@ -144,7 +156,7 @@ export function WhoDropdown({ onClose, onSelect }: WhoDropdownProps) {
       {/* Footer */}
       <div className="px-4 pb-4 flex items-center justify-between">
         <button
-          onClick={() => setCounts({ adults: 0, children: 0, infants: 0, pets: 0 })}
+          onClick={() => setCounts({ adults: 1, children: 0, infants: 0, pets: 0 })}
           className="text-xs font-semibold text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors"
         >
           Clear all

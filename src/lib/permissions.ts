@@ -37,6 +37,14 @@ export const PERMISSIONS = {
   CAN_VIEW_AUDIT_LOGS: 'can_view_audit_logs',
   CAN_MANAGE_NOTIFICATIONS: 'can_manage_notifications',
   CAN_ACCESS_ADMIN_DASHBOARD: 'can_access_admin_dashboard',
+  
+  // Messaging permissions
+  CAN_VIEW_MESSAGES: 'can_view_messages',
+  CAN_SEND_MESSAGES: 'can_send_messages',
+  CAN_MANAGE_CONVERSATIONS: 'can_manage_conversations',
+  CAN_DELETE_MESSAGES: 'can_delete_messages',
+  CAN_VIEW_INTERNAL_NOTES: 'can_view_internal_notes',
+  CAN_SEND_INTERNAL_NOTES: 'can_send_internal_notes',
 } as const
 
 export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS]
@@ -52,6 +60,8 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.CAN_VIEW_PROPERTIES,
     PERMISSIONS.CAN_VIEW_BOOKINGS,
     PERMISSIONS.CAN_VIEW_PAYMENTS,
+    PERMISSIONS.CAN_VIEW_MESSAGES,
+    PERMISSIONS.CAN_SEND_MESSAGES,
   ],
   
   [USER_ROLE.MANAGER]: [
@@ -65,6 +75,10 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.CAN_VERIFY_PAYMENT,
     PERMISSIONS.CAN_RESOLVE_DISPUTE,
     PERMISSIONS.CAN_ACCESS_ADMIN_DASHBOARD,
+    PERMISSIONS.CAN_VIEW_MESSAGES,
+    PERMISSIONS.CAN_SEND_MESSAGES,
+    PERMISSIONS.CAN_VIEW_INTERNAL_NOTES,
+    PERMISSIONS.CAN_SEND_INTERNAL_NOTES,
   ],
   
   [USER_ROLE.ADMIN]: [
@@ -90,6 +104,12 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.CAN_VIEW_AUDIT_LOGS,
     PERMISSIONS.CAN_MANAGE_NOTIFICATIONS,
     PERMISSIONS.CAN_ACCESS_ADMIN_DASHBOARD,
+    PERMISSIONS.CAN_VIEW_MESSAGES,
+    PERMISSIONS.CAN_SEND_MESSAGES,
+    PERMISSIONS.CAN_MANAGE_CONVERSATIONS,
+    PERMISSIONS.CAN_DELETE_MESSAGES,
+    PERMISSIONS.CAN_VIEW_INTERNAL_NOTES,
+    PERMISSIONS.CAN_SEND_INTERNAL_NOTES,
   ],
   
   [USER_ROLE.SUPER_ADMIN]: [
@@ -220,6 +240,48 @@ export function canAccessAdminDashboard(profile: AuthProfile | null): boolean {
  */
 export function canViewAuditLogs(profile: AuthProfile | null): boolean {
   return hasPermission(profile, PERMISSIONS.CAN_VIEW_AUDIT_LOGS)
+}
+
+/**
+ * Check if user can view messages
+ */
+export function canViewMessages(profile: AuthProfile | null): boolean {
+  return hasPermission(profile, PERMISSIONS.CAN_VIEW_MESSAGES)
+}
+
+/**
+ * Check if user can send messages
+ */
+export function canSendMessages(profile: AuthProfile | null): boolean {
+  return hasPermission(profile, PERMISSIONS.CAN_SEND_MESSAGES)
+}
+
+/**
+ * Check if user can manage conversations
+ */
+export function canManageConversations(profile: AuthProfile | null): boolean {
+  return hasPermission(profile, PERMISSIONS.CAN_MANAGE_CONVERSATIONS)
+}
+
+/**
+ * Check if user can delete messages
+ */
+export function canDeleteMessages(profile: AuthProfile | null): boolean {
+  return hasPermission(profile, PERMISSIONS.CAN_DELETE_MESSAGES)
+}
+
+/**
+ * Check if user can view internal notes
+ */
+export function canViewInternalNotes(profile: AuthProfile | null): boolean {
+  return hasPermission(profile, PERMISSIONS.CAN_VIEW_INTERNAL_NOTES)
+}
+
+/**
+ * Check if user can send internal notes
+ */
+export function canSendInternalNotes(profile: AuthProfile | null): boolean {
+  return hasPermission(profile, PERMISSIONS.CAN_SEND_INTERNAL_NOTES)
 }
 
 /**

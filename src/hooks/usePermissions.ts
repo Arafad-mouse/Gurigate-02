@@ -19,6 +19,12 @@ import {
   canCancelBooking,
   canAccessAdminDashboard,
   canViewAuditLogs,
+  canViewMessages,
+  canSendMessages,
+  canManageConversations,
+  canDeleteMessages,
+  canViewInternalNotes,
+  canSendInternalNotes,
   getUserPermissions,
 } from '@/lib/permissions'
 
@@ -66,5 +72,13 @@ export function usePermissions() {
     // System permissions
     canAccessAdminDashboard: () => canAccessAdminDashboard(profile),
     canViewAuditLogs: () => canViewAuditLogs(profile),
+    
+    // Messaging permissions
+    canViewMessages: () => canViewMessages(profile),
+    canSendMessages: () => canSendMessages(profile),
+    canManageConversations: () => canManageConversations(profile),
+    canDeleteMessages: () => canDeleteMessages(profile),
+    canViewInternalNotes: () => canViewInternalNotes(profile),
+    canSendInternalNotes: () => canSendInternalNotes(profile),
   }
 }

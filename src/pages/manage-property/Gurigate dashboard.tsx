@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from 'react-router-dom';
 
 // Import page components
 import GuriGateRentals from "./Gurigate rentals";
@@ -6,6 +7,8 @@ import GuriGateOrders from "./Gurigate orders";
 import GuriGateTransaction from "./Gurigate transaction";
 import GuriGateDiscover from "./Gurigate discover";
 import GuriGateProperty from "./Gurigate property";
+import CustomersPage from "@/pages/admin/CustomersPage";
+import InboxPage from "./InboxPage";
 
 // Import modal
 import { AddPropertyModal } from "@/components/AddPropertyModal";
@@ -34,6 +37,8 @@ const Icon = {
   TrendUp: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
   Check: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
   Settings: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+  Eye: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+  Edit: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
 };
 
 // ── Sparkline (mini area chart via SVG) ───────────────────────────────────────
@@ -128,7 +133,7 @@ function SalesChart() {
 }
 
 // ── Data ──────────────────────────────────────────────────────────────────────
-const TRANSACTIONS = [
+const INITIAL_TRANSACTIONS = [
   { id:1, name:"New York", type:"House", txn:"Buy", customer:"Thomas L. Fletcher", avatar:"TF", color:"#E8344E", date:"Jan 31, 2025", status:"CANCEL", img:"https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=60&q=80" },
   { id:2, name:"Washington Residence", type:"Villa", txn:"Rent", customer:"David Lee", avatar:"DL", color:"#10B981", date:"Jan 30, 2025", status:"COMPLETED", img:"https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=60&q=80" },
   { id:3, name:"London Residence", type:"House", txn:"Buy", customer:"Eleana Porana", avatar:"EP", color:"#E8344E", date:"Jan 30, 2025", status:"CANCEL", img:"https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=60&q=80" },
@@ -142,9 +147,9 @@ const NAV_ITEMS = [
   { label:"Property", icon:<Icon.Building/>, section:"main" },
   { label:"Rentals", icon:<Icon.Home/>, section:"main" },
   { label:"Customer", icon:<Icon.User/>, section:"main" },
+  { label:"Inbox", icon:<Icon.Inbox/>, section:"main" },
   { label:"Orders", icon:<Icon.ShoppingBag/>, section:"main" },
   { label:"Transaction", icon:<Icon.CreditCard/>, section:"main", active:true },
-  { label:"Inbox", icon:<Icon.Inbox/>, section:"apps" },
   { label:"Settings", icon:<Icon.Settings/>, section:"apps" },
 ];
 
@@ -189,6 +194,319 @@ function ComingSoonPage({ title, icon, description }: { title: string; icon: Rea
   );
 }
 
+// ── View Transaction Panel ───────────────────────────────────────────────────────
+function ViewTransactionPanel({ transaction, onClose }: { transaction: any; onClose: () => void }) {
+  if (!transaction) return null;
+  
+  return (
+    <div 
+      onClick={onClose}
+      style={{ 
+        position:"fixed", 
+        inset:0, 
+        background:"rgba(0,0,0,0.5)", 
+        zIndex:1000, 
+        display:"flex", 
+        justifyContent:"flex-end" 
+      }}
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        style={{ 
+          width:450, 
+          background:"white", 
+          height:"100%", 
+          padding:24, 
+          overflowY:"auto",
+          boxShadow:"-4px 0 24px rgba(0,0,0,0.15)" 
+        }}
+      >
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
+          <h2 style={{ fontSize:20, fontWeight:700 }}>Transaction Details</h2>
+          <button 
+            onClick={onClose}
+            style={{ background:"none", border:"none", cursor:"pointer", color:"#9CA3AF", padding:4 }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div style={{ marginBottom:20 }}>
+          <img src={transaction.img} alt={transaction.name} style={{ width:"100%", height:200, objectFit:"cover", borderRadius:12, marginBottom:16 }} />
+          <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16 }}>
+            <div style={{ width:48, height:48, borderRadius:"50%", background:transaction.color, display:"flex", alignItems:"center", justifyContent:"center", color:"white", fontSize:16, fontWeight:700 }}>
+              {transaction.avatar}
+            </div>
+            <div>
+              <h3 style={{ fontSize:18, fontWeight:700, marginBottom:2 }}>{transaction.name}</h3>
+              <p style={{ fontSize:14, color:"#6B7280" }}>{transaction.customer}</p>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:20 }}>
+          <div style={{ background:"#F8F9FC", padding:16, borderRadius:12 }}>
+            <p style={{ fontSize:12, color:"#9CA3AF", marginBottom:4 }}>Property Type</p>
+            <p style={{ fontSize:15, fontWeight:600 }}>{transaction.type}</p>
+          </div>
+          <div style={{ background:"#F8F9FC", padding:16, borderRadius:12 }}>
+            <p style={{ fontSize:12, color:"#9CA3AF", marginBottom:4 }}>Transaction Type</p>
+            <p style={{ fontSize:15, fontWeight:600 }}>{transaction.txn}</p>
+          </div>
+          <div style={{ background:"#F8F9FC", padding:16, borderRadius:12 }}>
+            <p style={{ fontSize:12, color:"#9CA3AF", marginBottom:4 }}>Date</p>
+            <p style={{ fontSize:15, fontWeight:600 }}>{transaction.date}</p>
+          </div>
+          <div style={{ background:"#F8F9FC", padding:16, borderRadius:12 }}>
+            <p style={{ fontSize:12, color:"#9CA3AF", marginBottom:4 }}>Status</p>
+            <span style={{ ...STATUS_COLORS[transaction.status as keyof typeof STATUS_COLORS], display:"inline-block", padding:"4px 12px", borderRadius:20, fontSize:12, fontWeight:700 }}>
+              {transaction.status}
+            </span>
+          </div>
+        </div>
+
+        <div style={{ background:"#F8F9FC", padding:16, borderRadius:12, marginBottom:20 }}>
+          <p style={{ fontSize:12, color:"#9CA3AF", marginBottom:8 }}>Transaction ID</p>
+          <p style={{ fontSize:14, fontWeight:600, fontFamily:"monospace" }}>#{transaction.id.toString().padStart(6, '0')}</p>
+        </div>
+
+        <div style={{ display:"flex", gap:12 }}>
+          <button 
+            onClick={onClose}
+            style={{ 
+              flex:1, 
+              padding:"12px 24px", 
+              border:"1px solid #E5E7EB", 
+              background:"white", 
+              borderRadius:10, 
+              fontSize:14, 
+              fontWeight:600, 
+              cursor:"pointer",
+              color:"#6B7280"
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Edit Transaction Panel ───────────────────────────────────────────────────────
+function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: any; onClose: () => void; onSave: (updated: any) => void }) {
+  const [formData, setFormData] = useState({
+    name: transaction?.name || '',
+    type: transaction?.type || '',
+    txn: transaction?.txn || '',
+    customer: transaction?.customer || '',
+    date: transaction?.date || '',
+    status: transaction?.status || 'PENDING'
+  });
+
+  if (!transaction) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({ ...transaction, ...formData });
+    onClose();
+  };
+
+  return (
+    <div 
+      onClick={onClose}
+      style={{ 
+        position:"fixed", 
+        inset:0, 
+        background:"rgba(0,0,0,0.5)", 
+        zIndex:1000, 
+        display:"flex", 
+        justifyContent:"flex-end" 
+      }}
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        style={{ 
+          width:450, 
+          background:"white", 
+          height:"100%", 
+          padding:24, 
+          overflowY:"auto",
+          boxShadow:"-4px 0 24px rgba(0,0,0,0.15)" 
+        }}
+      >
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
+          <h2 style={{ fontSize:20, fontWeight:700 }}>Edit Transaction</h2>
+          <button 
+            onClick={onClose}
+            style={{ background:"none", border:"none", cursor:"pointer", color:"#9CA3AF", padding:4 }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom:16 }}>
+            <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Property Name</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              style={{ 
+                width:"100%", 
+                padding:"10px 12px", 
+                border:"1px solid #E5E7EB", 
+                borderRadius:8, 
+                fontSize:14,
+                outline:"none"
+              }}
+              required
+            />
+          </div>
+
+          <div style={{ marginBottom:16 }}>
+            <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Property Type</label>
+            <select
+              value={formData.type}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              style={{ 
+                width:"100%", 
+                padding:"10px 12px", 
+                border:"1px solid #E5E7EB", 
+                borderRadius:8, 
+                fontSize:14,
+                outline:"none",
+                background:"white"
+              }}
+              required
+            >
+              <option value="House">House</option>
+              <option value="Villa">Villa</option>
+              <option value="Apartment">Apartment</option>
+              <option value="Condo">Condo</option>
+            </select>
+          </div>
+
+          <div style={{ marginBottom:16 }}>
+            <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Transaction Type</label>
+            <select
+              value={formData.txn}
+              onChange={(e) => setFormData({ ...formData, txn: e.target.value })}
+              style={{ 
+                width:"100%", 
+                padding:"10px 12px", 
+                border:"1px solid #E5E7EB", 
+                borderRadius:8, 
+                fontSize:14,
+                outline:"none",
+                background:"white"
+              }}
+              required
+            >
+              <option value="Buy">Buy</option>
+              <option value="Rent">Rent</option>
+            </select>
+          </div>
+
+          <div style={{ marginBottom:16 }}>
+            <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Customer Name</label>
+            <input
+              type="text"
+              value={formData.customer}
+              onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
+              style={{ 
+                width:"100%", 
+                padding:"10px 12px", 
+                border:"1px solid #E5E7EB", 
+                borderRadius:8, 
+                fontSize:14,
+                outline:"none"
+              }}
+              required
+            />
+          </div>
+
+          <div style={{ marginBottom:16 }}>
+            <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Date</label>
+            <input
+              type="text"
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              style={{ 
+                width:"100%", 
+                padding:"10px 12px", 
+                border:"1px solid #E5E7EB", 
+                borderRadius:8, 
+                fontSize:14,
+                outline:"none"
+              }}
+              required
+            />
+          </div>
+
+          <div style={{ marginBottom:24 }}>
+            <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Status</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              style={{ 
+                width:"100%", 
+                padding:"10px 12px", 
+                border:"1px solid #E5E7EB", 
+                borderRadius:8, 
+                fontSize:14,
+                outline:"none",
+                background:"white"
+              }}
+              required
+            >
+              <option value="COMPLETED">Completed</option>
+              <option value="PENDING">Pending</option>
+              <option value="CANCEL">Cancelled</option>
+            </select>
+          </div>
+
+          <div style={{ display:"flex", gap:12 }}>
+            <button 
+              type="button"
+              onClick={onClose}
+              style={{ 
+                flex:1, 
+                padding:"12px 24px", 
+                border:"1px solid #E5E7EB", 
+                background:"white", 
+                borderRadius:10, 
+                fontSize:14, 
+                fontWeight:600, 
+                cursor:"pointer",
+                color:"#6B7280"
+              }}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              style={{ 
+                flex:1, 
+                padding:"12px 24px", 
+                border:"none", 
+                background:"#E8344E", 
+                color:"white",
+                borderRadius:10, 
+                fontSize:14, 
+                fontWeight:600, 
+                cursor:"pointer"
+              }}
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function GuriGateDashboard() {
   const [activeNav, setActiveNav] = useState("Dashboard");
@@ -198,6 +516,13 @@ export default function GuriGateDashboard() {
     typeof window !== "undefined" ? window.innerWidth : 1440,
   );
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelType, setPanelType] = useState<'view' | 'edit'>('view');
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleResize = () => setViewportWidth(window.innerWidth);
@@ -205,6 +530,15 @@ export default function GuriGateDashboard() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Sync URL -> active tab (deep link support)
+  useEffect(() => {
+    if (location.pathname.endsWith('/manage-property/customers')) {
+      setActiveNav('Customer');
+    } else if (location.pathname.endsWith('/manage-property/inbox')) {
+      setActiveNav('Inbox');
+    }
+  }, [location.pathname]);
 
   const isMobile = viewportWidth < 1024;
   const isTablet = viewportWidth < 1280;
@@ -220,6 +554,27 @@ export default function GuriGateDashboard() {
   const handleAddPropertySuccess = (property: any) => {
     console.log('Property created successfully:', property);
     // You can add additional logic here like refreshing the property list
+  };
+
+  const handleViewTransaction = (transaction: any) => {
+    setSelectedTransaction(transaction);
+    setPanelType('view');
+    setPanelOpen(true);
+    setMenuOpenId(null);
+  };
+
+  const handleEditTransaction = (transaction: any) => {
+    setSelectedTransaction(transaction);
+    setPanelType('edit');
+    setPanelOpen(true);
+    setMenuOpenId(null);
+  };
+
+  const handleSaveTransaction = (updated: any) => {
+    console.log('Transaction updated:', updated);
+    setTransactions((prev: any[]) => 
+      prev.map((t: any) => t.id === updated.id ? updated : t)
+    );
   };
 
   // Routing function to render different pages
@@ -238,11 +593,11 @@ export default function GuriGateDashboard() {
       case "Agents":
         return <ComingSoonPage title="Agents" icon={<Icon.Users/>} description="Manage your real estate agents and their performance" />;
       case "Customer":
-        return <ComingSoonPage title="Customer" icon={<Icon.User/>} description="View and manage customer profiles and interactions" />;
+        return <CustomersPage />;
+      case "Inbox":
+        return <InboxPage />;
       case "Analytics":
         return <ComingSoonPage title="Analytics" icon={<Icon.BarChart/>} description="Detailed insights and analytics for your properties" />;
-      case "Inbox":
-        return <ComingSoonPage title="Inbox" icon={<Icon.Inbox/>} description="Messages and communications hub" />;
       case "Settings":
         return <ComingSoonPage title="Settings" icon={<Icon.Settings/>} description="Manage your account and application settings" />;
       default:
@@ -372,7 +727,7 @@ export default function GuriGateDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {TRANSACTIONS.map((row: any) => (
+                    {transactions.map((row: any) => (
                       <tr key={row.id} className="txn-row" style={{ borderBottom:"1px solid #F9FAFB", transition:"background .1s" }}>
                         <td style={{ padding:"12px 20px" }}>
                           <input type="checkbox" checked={checked.includes(row.id)} onChange={()=>toggle(row.id)}/>
@@ -399,10 +754,71 @@ export default function GuriGateDashboard() {
                             {row.status}
                           </span>
                         </td>
-                        <td style={{ padding:"12px 12px" }}>
-                          <button style={{ background:"none", border:"none", cursor:"pointer", color:"#9CA3AF", padding:4 }} title="More options">
+                        <td style={{ padding:"12px 12px", position:"relative" }}>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMenuOpenId(menuOpenId === row.id ? null : row.id);
+                            }}
+                            style={{ background:"none", border:"none", cursor:"pointer", color:"#9CA3AF", padding:4 }} 
+                            title="More options"
+                          >
                             <Icon.MoreVert/>
                           </button>
+                          {menuOpenId === row.id && (
+                            <div 
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ 
+                                position:"absolute", 
+                                right:0, 
+                                top:"100%", 
+                                background:"white", 
+                                border:"1px solid #F1F5F9", 
+                                borderRadius:8, 
+                                boxShadow:"0 4px 12px rgba(0,0,0,0.1)", 
+                                zIndex:100, 
+                                minWidth:"120px",
+                                padding:"4px 0"
+                              }}
+                            >
+                              <button 
+                                onClick={() => handleViewTransaction(row)}
+                                style={{ 
+                                  display:"flex", 
+                                  alignItems:"center", 
+                                  gap:8, 
+                                  width:"100%", 
+                                  padding:"8px 12px", 
+                                  border:"none", 
+                                  background:"none", 
+                                  cursor:"pointer", 
+                                  fontSize:13, 
+                                  color:"#6B7280",
+                                  textAlign:"left"
+                                }}
+                              >
+                                <Icon.Eye/> View
+                              </button>
+                              <button 
+                                onClick={() => handleEditTransaction(row)}
+                                style={{ 
+                                  display:"flex", 
+                                  alignItems:"center", 
+                                  gap:8, 
+                                  width:"100%", 
+                                  padding:"8px 12px", 
+                                  border:"none", 
+                                  background:"none", 
+                                  cursor:"pointer", 
+                                  fontSize:13, 
+                                  color:"#6B7280",
+                                  textAlign:"left"
+                                }}
+                              >
+                                <Icon.Edit/> Edit
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -464,7 +880,7 @@ export default function GuriGateDashboard() {
       ) : null}
 
       {/* ── Sidebar ── */}
-      <aside style={{ width:250, flexShrink:0, background: "white", borderRight:"1px solid #F1F5F9", display:"flex", flexDirection:"column", padding:"20px 12px", position:isMobile ? "fixed" : "sticky", left:isMobile ? (sidebarOpen ? 0 : -266) : "auto", top:0, zIndex:isMobile ? 60 : "auto", height:"100vh", overflowY:"auto", transition:isMobile ? "left .2s ease" : "none" }}>
+      <aside style={{ width:250, flexShrink:0, background: "white", borderRight:"1px solid #F1F5F9", display:"flex", flexDirection:"column", padding:"20px 12px", position:isMobile ? "fixed" : "sticky", left:isMobile ? (sidebarOpen ? 0 : -266) : "auto", top:0, zIndex:isMobile ? 60 : "auto", alignSelf:"stretch", overflowY:"auto", transition:isMobile ? "left .2s ease" : "none", paddingBottom:0 }}>
         {/* Logo */}
         <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:28, paddingLeft:6 }}>
         </div>
@@ -474,7 +890,16 @@ export default function GuriGateDashboard() {
           <div key={label} style={{ marginBottom:20 }}>
             <p style={{ fontSize:14, fontWeight:700, letterSpacing:"0.08em", color:"#9CA3AF", padding:"0 14px 8px" }}>{label}</p>
             {items.map((item: any) => (
-              <button key={item.label} className={`nav-item${activeNav===item.label?" active":""}`} onClick={()=>setActiveNav(item.label)}
+              <button key={item.label} className={`nav-item${activeNav===item.label?" active":""}`} onClick={()=>{
+                  setActiveNav(item.label);
+                  if (item.label === 'Customer') {
+                    navigate('/manage-property/customers');
+                  } else if (item.label === 'Inbox') {
+                    navigate('/manage-property/inbox');
+                  } else {
+                    navigate('/manage-property');
+                  }
+                }}
                 style={{ color: activeNav===item.label?"#E8344E":"#6B7280" }}>
                 <span style={{ opacity:0.8 }}>{item.icon}</span>{item.label}
               </button>
@@ -497,6 +922,25 @@ export default function GuriGateDashboard() {
           onClose={() => setShowAddPropertyModal(false)}
           onSuccess={handleAddPropertySuccess}
         />
+      )}
+
+      {/* View/Edit Transaction Panels */}
+      {panelOpen && selectedTransaction && (
+        <>
+          {panelType === 'view' && (
+            <ViewTransactionPanel
+              transaction={selectedTransaction}
+              onClose={() => setPanelOpen(false)}
+            />
+          )}
+          {panelType === 'edit' && (
+            <EditTransactionPanel
+              transaction={selectedTransaction}
+              onClose={() => setPanelOpen(false)}
+              onSave={handleSaveTransaction}
+            />
+          )}
+        </>
       )}
     </div>
   );

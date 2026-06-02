@@ -9,8 +9,11 @@ import { NotificationsPage } from '@/pages/NotificationsPage'
 import { IntegrationsPage } from '@/pages/IntegrationsPage'
 import PropertyPage from '@/pages/PropertyPage'
 import PaymentPage from '@/pages/PaymentPage'
-import GuriGateDashboard from '@/pages/Property management/Gurigate dashboard'
+import GuriGateDashboard from '@/pages/manage-property/Gurigate dashboard'
 import AllPropertiesPage from '@/pages/all-property'
+// CustomersPage is now rendered inside the Manage Property dashboard, not as an Admin route
+import InboxPage from '@/pages/manage-property/InboxPage'
+import { AuthProvider } from '@/lib/auth-context'
 
 // 1. Import your onboarding multi-step form page component here 👇
 import BecomeHost from '@/components/host-onboarding/Become-host'
@@ -50,7 +53,12 @@ function PaymentPageWrapper() {
   const navigate = useNavigate()
   
   // Get booking details from sessionStorage
-  const bookingDetailsStr = sessionStorage.getItem('bookingDetails')
+  let bookingDetailsStr: string | null = null
+  try {
+    bookingDetailsStr = sessionStorage.getItem('bookingDetails')
+  } catch {
+    // Storage blocked by browser tracking prevention
+  }
   if (!bookingDetailsStr) {
     return <Navigate to="/" replace />
   }
@@ -72,28 +80,32 @@ function PaymentPageWrapper() {
 
 function App() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <GuriGateNavbar />
-      <main className="flex-1">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/account/integrations" element={<IntegrationsPage />} />
-          <Route path="/property/:id" element={<PropertyPageWrapper />} />
-          <Route path="/payment" element={<PaymentPageWrapper />} />
-          <Route path="/all-property" element={<AllPropertiesPage />} />
-          <Route path="/manage-property" element={<GuriGateDashboard />} />
-          
-          {/* 2. Added Route path to display your onboarding workflow page 👇 */}
-          <Route path="/become-a-host" element={<BecomeHost />} />
+    <AuthProvider>
+      <div className="min-h-screen flex flex-col">
+        <GuriGateNavbar />
+        <main className="flex-1">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/account/integrations" element={<IntegrationsPage />} />
+            <Route path="/property/:id" element={<PropertyPageWrapper />} />
+            <Route path="/payment" element={<PaymentPageWrapper />} />
+            <Route path="/all-property" element={<AllPropertiesPage />} />
+            <Route path="/manage-property" element={<GuriGateDashboard />} />
+            <Route path="/manage-property/customers" element={<GuriGateDashboard />} />
+            <Route path="/manage-property/inbox" element={<InboxPage />} />
 
-          {/* Catch-all redirect MUST stay at the very bottom of the Routes list */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-      <GuriGateFooter />
-    </div>
+            {/* 2. Added Route path to display your onboarding workflow page 👇 */}
+            <Route path="/become-a-host" element={<BecomeHost />} />
+
+            {/* Catch-all redirect MUST stay at the very bottom of the Routes list */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+        <GuriGateFooter />
+      </div>
+    </AuthProvider>
   )
 }
 

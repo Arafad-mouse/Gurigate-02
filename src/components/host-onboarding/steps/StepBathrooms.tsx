@@ -24,7 +24,7 @@ export function StepBathrooms({ data, onChange }: Props) {
             onChange={(v) => onChange({ privateBathrooms: v })}
           />
         </div>
-        
+
         <div className="border-b border-[#DDDDDD] py-6">
           <StepCounter
             label="Dedicated"
@@ -33,7 +33,7 @@ export function StepBathrooms({ data, onChange }: Props) {
             onChange={(v) => onChange({ dedicatedBathrooms: v })}
           />
         </div>
-        
+
         <div className="border-b border-[#DDDDDD] py-6">
           <StepCounter
             label="Shared"

@@ -105,7 +105,8 @@ export function GuestPicker({
 
   const update = (key: keyof GuestCounts, delta: number) => {
     setCounts((prev) => {
-      const next = { ...prev, [key]: Math.max(0, prev[key] + delta) };
+      const min = key === 'adults' ? 1 : 0;
+      const next = { ...prev, [key]: Math.max(min, prev[key] + delta) };
       onChange?.(next);
       return next;
     });
@@ -120,7 +121,7 @@ export function GuestPicker({
         count={counts.adults}
         onInc={() => update("adults", 1)}
         onDec={() => update("adults", -1)}
-        disabled={atMax}
+        disabled={atMax || counts.adults <= 1}
       />
 
       <div className="h-px bg-gray-100" />

@@ -28,7 +28,7 @@ interface StepConfig {
 }
 
 const initialData: HostFormData = {
-  propertyType: "",
+  propertyTypes: [],
   address: "",
   streetAddress: "",
   apt: "",
@@ -68,7 +68,10 @@ export default function BecomeHost() {
   const [isSuccess, setIsSuccess] = useState(false)
 
   const onChange = (updates: Partial<HostFormData>) => {
-    setData((prev) => ({ ...prev, ...updates }))
+    setData((prev) => {
+      const newData = { ...prev, ...updates }
+      return newData
+    })
   }
 
   const handleSubmit = async () => {
@@ -118,13 +121,13 @@ export default function BecomeHost() {
   const CurrentComponent = currentStepConfig.component
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white min-h-[60vh] flex flex-col justify-between mt-10 shadow-sm border border-gray-100 rounded-2xl" style={{ pointerEvents: 'auto' }}>
-      <div className="flex-1" style={{ pointerEvents: 'auto' }}>
+    <div className="max-w-3xl mx-auto p-6 bg-white min-h-[60vh] flex flex-col justify-between mt-10 shadow-sm border border-gray-100 rounded-2xl">
+      <div className="flex-1">
         {/* ✅ Conditionally pass down values based on your configuration rules */}
         {currentStepConfig.hasProps ? (
-          <CurrentComponent data={data} onChange={onChange} />
+          <CurrentComponent key={`${step}-${JSON.stringify(data)}`} data={data} onChange={onChange} />
         ) : (
-          <CurrentComponent />
+          <CurrentComponent key={step} />
         )}
       </div>
 

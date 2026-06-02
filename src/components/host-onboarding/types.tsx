@@ -1,6 +1,6 @@
 export interface HostFormData {
   // Step 3: Property type
-  propertyType: string;
+  propertyTypes: string[];
   // Step 4-5: Location
   address: string;
   streetAddress: string;
@@ -44,7 +44,7 @@ export interface HostFormData {
 }
 
 export const defaultFormData: HostFormData = {
-  propertyType: "",
+  propertyTypes: [],
   address: "",
   streetAddress: "",
   apt: "",

@@ -91,6 +91,53 @@ export const NOTIFICATION_CHANNEL = {
 
 export type NotificationChannel = typeof NOTIFICATION_CHANNEL[keyof typeof NOTIFICATION_CHANNEL]
 
+// Conversation types
+export const CONVERSATION_TYPE = {
+  DIRECT: 'direct',
+  BOOKING: 'booking',
+  PROPERTY: 'property',
+  PAYMENT: 'payment',
+  SUPPORT: 'support',
+  SYSTEM: 'system',
+  RMS_CONTRACT: 'rms_contract',
+  RMS_TENANT: 'rms_tenant',
+  RMS_UNIT: 'rms_unit',
+} as const
+
+export type ConversationType = typeof CONVERSATION_TYPE[keyof typeof CONVERSATION_TYPE]
+
+// Conversation status
+export const CONVERSATION_STATUS = {
+  ACTIVE: 'active',
+  ARCHIVED: 'archived',
+  CLOSED: 'closed',
+} as const
+
+export type ConversationStatus = typeof CONVERSATION_STATUS[keyof typeof CONVERSATION_STATUS]
+
+// Conversation priority
+export const CONVERSATION_PRIORITY = {
+  LOW: 'low',
+  NORMAL: 'normal',
+  HIGH: 'high',
+  URGENT: 'urgent',
+} as const
+
+export type ConversationPriority = typeof CONVERSATION_PRIORITY[keyof typeof CONVERSATION_PRIORITY]
+
+// Message content types
+export const MESSAGE_CONTENT_TYPE = {
+  TEXT: 'text',
+  IMAGE: 'image',
+  DOCUMENT: 'document',
+  PROPERTY_REFERENCE: 'property_reference',
+  BOOKING_REFERENCE: 'booking_reference',
+  PAYMENT_REFERENCE: 'payment_reference',
+  SYSTEM: 'system',
+} as const
+
+export type MessageContentType = typeof MESSAGE_CONTENT_TYPE[keyof typeof MESSAGE_CONTENT_TYPE]
+
 // Status badge colors for UI
 export const STATUS_BADGE_COLORS = {
   PROPERTY: {
@@ -161,5 +208,16 @@ export const STATUS_LABELS = {
     [USER_ROLE.MANAGER]: 'Manager',
     [USER_ROLE.ADMIN]: 'Admin',
     [USER_ROLE.SUPER_ADMIN]: 'Super Admin',
+  },
+  CONVERSATION: {
+    [CONVERSATION_STATUS.ACTIVE]: 'Active',
+    [CONVERSATION_STATUS.ARCHIVED]: 'Archived',
+    [CONVERSATION_STATUS.CLOSED]: 'Closed',
+  },
+  CONVERSATION_PRIORITY: {
+    [CONVERSATION_PRIORITY.LOW]: 'Low',
+    [CONVERSATION_PRIORITY.NORMAL]: 'Normal',
+    [CONVERSATION_PRIORITY.HIGH]: 'High',
+    [CONVERSATION_PRIORITY.URGENT]: 'Urgent',
   },
 } as const

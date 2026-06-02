@@ -132,7 +132,7 @@ export default function SearchBar() {
   const [whoLabel, setWhoLabel] = useState("");
   const [selStart, setSelStart] = useState<string | null>(null);
   const [selEnd, setSelEnd] = useState<string | null>(null);
-  const [guests, setGuests] = useState<GuestCounts>({ adults: 0, children: 0, infants: 0 });
+  const [guests, setGuests] = useState<GuestCounts>({ adults: 1, children: 0, infants: 0 });
   const [calBase, setCalBase] = useState(() => {
     const n = new Date(); return { y: n.getFullYear(), m: n.getMonth() };
   });
@@ -179,7 +179,8 @@ export default function SearchBar() {
   }
 
   function adj(type: keyof GuestCounts, delta: number) {
-    setGuests(prev => ({ ...prev, [type]: Math.max(0, prev[type] + delta) }));
+    const min = type === 'adults' ? 1 : 0;
+    setGuests(prev => ({ ...prev, [type]: Math.max(min, prev[type] + delta) }));
   }
 
   function applyGuests() {
@@ -192,7 +193,7 @@ export default function SearchBar() {
   }
 
   function clearGuests() {
-    setGuests({ adults: 0, children: 0, infants: 0 }); setWhoLabel("");
+    setGuests({ adults: 1, children: 0, infants: 0 }); setWhoLabel("");
   }
 
   const m0 = firstOfMonth(calBase.y, calBase.m);
@@ -293,7 +294,7 @@ export default function SearchBar() {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => adj(type, -1)}
-                        disabled={guests[type] === 0}
+                        disabled={guests[type] === (type === 'adults' ? 1 : 0)}
                         className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-30 hover:enabled:border-[#BA0036] hover:enabled:text-[#BA0036] transition-colors"
                       >−</button>
                       <span className="text-sm font-semibold w-4 text-center text-gray-900">{guests[type]}</span>

@@ -91,13 +91,17 @@ export function StepConfirmAddress({ data, onChange }: Props) {
       {/* Map Preview Area */}
       <div className="relative h-[220px] bg-[#f7f7f7] border border-border rounded-xl overflow-hidden flex items-center justify-center">
         {/* Simple grid lines to simulate a map background */}
-        <div className="absolute inset-0 opacity-20 pointer-events-none" 
-             style={{ backgroundImage: 'radial-gradient(#000 0.5px, transparent 0.5px)', backgroundSize: '20px 20px' }} 
+        <div className="absolute inset-0 opacity-20 pointer-events-none"
+             style={{ backgroundImage: 'radial-gradient(#000 0.5px, transparent 0.5px)', backgroundSize: '20px 20px' }}
         />
-        
-        {/* Map Label Placeholder (e.g., Street Name) */}
-        <div className="absolute top-[40%] left-[20%] text-[10px] text-gray-400 font-bold uppercase rotate-90">150 ST</div>
-        
+
+        {/* Map Label - Show actual street name if available */}
+        {data.streetAddress && (
+          <div className="absolute top-[40%] left-[20%] text-[10px] text-gray-400 font-bold uppercase rotate-90 max-w-[100px] truncate">
+            {data.streetAddress.split(' ')[0] || 'STREET'}
+          </div>
+        )}
+
         {/* The Pink House Pin */}
         <div className="relative z-10 w-12 h-12 bg-[#FF385C] rounded-full flex items-center justify-center shadow-lg border-2 border-white">
           <svg viewBox="0 0 32 32" className="w-6 h-6 text-white fill-current">
@@ -105,9 +109,13 @@ export function StepConfirmAddress({ data, onChange }: Props) {
           </svg>
         </div>
 
-        {/* Floating Text Reference from Image */}
+        {/* Floating Text - Show actual city if available */}
         <div className="absolute bottom-10 right-20 text-[10px] text-gray-400 font-bold text-center leading-tight">
-          WARAABA<br/>SALAAN
+          {data.city ? (
+            <>{data.city.toUpperCase()}<br/>{data.province?.toUpperCase() || ''}</>
+          ) : (
+            <>WARAABA<br/>SALAAN</>
+          )}
         </div>
       </div>
     </div>

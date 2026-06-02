@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { AboutSpaceModal } from "../components/AboutSpaceModal";
 import { applyImageFallback } from "@/lib/utils";
+import { WhoDropdown } from "@/components/WhoDropdown";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -152,6 +153,8 @@ function BookingWidget({
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
+  const [showGuestDropdown, setShowGuestDropdown] = useState(false);
+  const [guestLabel, setGuestLabel] = useState("1 guest");
 
   const nights = checkIn && checkOut
     ? Math.max(1, Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)))
@@ -171,6 +174,14 @@ function BookingWidget({
       nights,
       priceNum,
     });
+  };
+
+  const handleGuestSelect = (summary: string, counts: { adults: number; children: number; infants: number; pets: number }) => {
+    console.log('[PropertyPage] Guest selected:', summary, counts);
+    const totalGuests = counts.adults + counts.children;
+    setGuests(totalGuests);
+    setGuestLabel(summary);
+    setShowGuestDropdown(false);
   };
 
   return (
@@ -199,18 +210,29 @@ function BookingWidget({
               className="text-sm text-gray-900 outline-none w-full bg-transparent" />
           </div>
         </div>
-        <div className="border-t border-gray-300 p-3">
+        <div className="border-t border-gray-300 p-3 relative">
           <label className="text-[10px] font-bold text-gray-700 uppercase tracking-wide block mb-1">Guests</label>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-900">{guests} guest{guests !== 1 ? "s" : ""}</span>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setGuests(g => Math.max(1, g - 1))}
-                className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-500 transition-colors text-lg leading-none">−</button>
-              <span className="text-sm font-semibold w-4 text-center">{guests}</span>
-              <button onClick={() => setGuests(g => Math.min(10, g + 1))}
-                className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-500 transition-colors text-lg leading-none">+</button>
+          <button
+            onClick={() => {
+              console.log('[PropertyPage] Guest button clicked, showGuestDropdown:', showGuestDropdown);
+              setShowGuestDropdown(!showGuestDropdown);
+            }}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <span className="text-sm text-gray-900">{guestLabel}</span>
+            <span className="text-gray-400">▼</span>
+          </button>
+          {showGuestDropdown && (
+            <div className="absolute top-full left-0 right-0 mt-2 z-50">
+              <WhoDropdown
+                onClose={() => {
+                  console.log('[PropertyPage] WhoDropdown onClose called');
+                  setShowGuestDropdown(false);
+                }}
+                onSelect={handleGuestSelect}
+              />
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -266,17 +288,21 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
   // ✅ When Reserve is clicked, navigate to payment page with booking details
   const handleReserve = (details: { checkIn: string; checkOut: string; guests: number; nights: number; priceNum: number }) => {
     // Store booking details in sessionStorage to pass to payment page
-    sessionStorage.setItem('bookingDetails', JSON.stringify({
-      propertyTitle: property.title,
-      propertyImage: property.image,
-      rating: property.rating ?? 4.5,
-      reviews: property.reviews ?? 39,
-      checkIn: details.checkIn,
-      checkOut: details.checkOut,
-      guests: details.guests,
-      nights: details.nights,
-      pricePerNight: details.priceNum,
-    }));
+    try {
+      sessionStorage.setItem('bookingDetails', JSON.stringify({
+        propertyTitle: property.title,
+        propertyImage: property.image,
+        rating: property.rating ?? 4.5,
+        reviews: property.reviews ?? 39,
+        checkIn: details.checkIn,
+        checkOut: details.checkOut,
+        guests: details.guests,
+        nights: details.nights,
+        pricePerNight: details.priceNum,
+      }));
+    } catch {
+      // Storage blocked by browser tracking prevention - continue without storage
+    }
     
     // Navigate to payment page
     navigate('/payment');
