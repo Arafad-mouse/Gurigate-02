@@ -226,7 +226,7 @@ function PopularPropertyCard({ property, onClick }: { property: LandingProperty;
 
 
 
-function CustomerFilters({ resultCount }: { resultCount?: number }) {
+function CustomerFilters({ _resultCount }: { resultCount?: number }) {
 
   const [bedrooms, setBedrooms] = useState<string>("Any");
 

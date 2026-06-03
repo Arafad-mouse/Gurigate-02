@@ -25,7 +25,7 @@ export function useRole() {
     if (!profile) return false
     
     const rolesArray = Array.isArray(roles) ? roles : [roles]
-    return rolesArray.includes(profile.role)
+    return profile.role ? rolesArray.includes(profile.role as any) : false
   }
 
   const canAccessAdmin = isAdmin || isSuperAdmin

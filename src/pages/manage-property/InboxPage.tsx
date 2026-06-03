@@ -26,7 +26,7 @@ export default function InboxPage() {
   const [searchQuery, setSearchQuery] = useState('')
 
   const currentUserId = authContext?.profile?.id
-  const { isOnline, isSubscribed, hasError } = useConversationPresence()
+  const { isOnline, isSubscribed } = useConversationPresence()
 
   // Load conversations
   const loadConversations = useCallback(async () => {

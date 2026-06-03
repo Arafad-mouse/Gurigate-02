@@ -20,6 +20,28 @@ export type AuthProfile = {
   roleLabel: string
   initials: string
   createdAt: string
+  role?: string
+  isBanned?: boolean
+}
+
+export const isAdmin = (profile: AuthProfile | null): boolean => {
+  return profile?.role === 'admin' || profile?.role === 'super_admin'
+}
+
+export const isManager = (profile: AuthProfile | null): boolean => {
+  return profile?.role === 'manager' || isAdmin(profile)
+}
+
+export const isHost = (profile: AuthProfile | null): boolean => {
+  return profile?.role === 'host' || isManager(profile)
+}
+
+export const isVerifiedHost = (profile: AuthProfile | null): boolean => {
+  return isHost(profile) && !profile?.isBanned
+}
+
+export const isBanned = (profile: AuthProfile | null): boolean => {
+  return profile?.isBanned ?? false
 }
 
 export type SignUpProfileInput = {

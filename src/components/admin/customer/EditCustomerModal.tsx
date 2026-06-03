@@ -45,7 +45,7 @@ export function EditCustomerModal({ customerId, isOpen, onClose, onSuccess }: Ed
         });
         setLoading(false);
       })
-      .catch((err) => {
+      .catch(() => {
         setError('Failed to load customer data');
         setLoading(false);
       });

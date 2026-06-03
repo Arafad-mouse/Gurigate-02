@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useProperties } from '../../../../frontend/src/hooks/useProperties';
 
 interface CreateContractDrawerProps {
   customerId: string;
@@ -20,13 +21,14 @@ export function CreateContractDrawer({ customerId, customerName, isOpen, onClose
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState(false);
-
-  // Mock properties for now
-  const mockProperties = [
-    { id: 'prop-1', name: 'Kilimani Heights', unit: 'A-304' },
-    { id: 'prop-2', name: 'Westlands Plaza', unit: 'B-102' },
-    { id: 'prop-3', name: 'Nairobi Gardens', unit: 'C-501' },
-  ];
+  const { properties, loading, error: propertyError } = useProperties(100);
+  const propertyOptions = useMemo(
+    () => properties.map((property) => ({
+      id: property.id,
+      label: `${property.title} - ${property.address.city}`,
+    })),
+    [properties]
+  );
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +78,11 @@ export function CreateContractDrawer({ customerId, customerName, isOpen, onClose
                   {error}
                 </div>
               )}
+              {propertyError && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm">
+                  {propertyError.message}
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
@@ -90,10 +97,10 @@ export function CreateContractDrawer({ customerId, customerName, isOpen, onClose
                   onChange={(e) => setFormData({ ...formData, propertyId: e.target.value })}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-200"
                 >
-                  <option value="">Select property</option>
-                  {mockProperties.map((p) => (
+                  <option value="">{loading ? 'Loading properties...' : 'Select property'}</option>
+                  {propertyOptions.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} - Unit {p.unit}
+                      {p.label}
                     </option>
                   ))}
                 </select>

@@ -140,7 +140,7 @@ export function hasPermission(
   }
   
   // Check role default permissions
-  const rolePermissions = ROLE_DEFAULT_PERMISSIONS[profile.role] || []
+  const rolePermissions = profile.role ? ROLE_DEFAULT_PERMISSIONS[profile.role] || [] : []
   return rolePermissions.includes(permission)
 }
 
@@ -298,7 +298,7 @@ export function getUserPermissions(profile: AuthProfile | null): PermissionKey[]
   }
   
   // Start with role default permissions
-  const rolePermissions = ROLE_DEFAULT_PERMISSIONS[profile.role] || []
+  const rolePermissions = profile.role ? ROLE_DEFAULT_PERMISSIONS[profile.role] || [] : []
   const permissions = new Set(rolePermissions)
   
   // Add user-specific permissions
@@ -311,7 +311,7 @@ export function getUserPermissions(profile: AuthProfile | null): PermissionKey[]
     })
   }
   
-  return Array.from(permissions)
+  return Array.from(permissions) as PermissionKey[]
 }
 
 /**

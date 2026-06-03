@@ -55,7 +55,7 @@ export function AdminUsers() {
   const handleUnbanUser = async (userId: string) => {
     if (!adminId) return
     try {
-      await AdminService.unbanUser(userId, adminId)
+      await AdminService.unbanUser(userId)
       await loadUsers()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to unban user')
@@ -219,10 +219,10 @@ export function AdminUsers() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {user.properties_count}
+                        0
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {user.bookings_count}
+                        0
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(user.created_at).toLocaleDateString()}

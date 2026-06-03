@@ -5,23 +5,28 @@ import { usePermissions } from '@/hooks/usePermissions'
 import { AdminService } from '@/services/adminService'
 import type { AdminProperty } from '@/services/adminService'
 import { StatusBadge } from '@/components/admin/table/StatusBadge'
+import { ApprovalBadge } from '@/components/admin/table/ApprovalBadge'
 import { SearchInput } from '@/components/admin/table/SearchInput'
 import { DataTableFilters } from '@/components/admin/table/DataTableFilters'
 import { DataTablePagination } from '@/components/admin/table/DataTablePagination'
 import { EmptyState } from '@/components/admin/table/EmptyState'
-import { RowActions, ActionIcons } from '@/components/admin/table/RowActions'
+import { RowActions } from '@/components/admin/table/RowActions'
+import { PropertyReviewDrawer } from '@/components/admin/property/PropertyReviewDrawer'
 import { PROPERTY_APPROVAL_STATUS } from '@/constants/status'
-import { Building2, AlertTriangle } from 'lucide-react'
+import { Building2, Star, Eye } from 'lucide-react'
 
 export function AdminProperties() {
   const authContext = useContext(AuthContext)
-  const { canApproveProperty, canRejectProperty, canSuspendProperty } = usePermissions()
+  const { canFeatureProperty } = usePermissions()
+  
   const [properties, setProperties] = useState<AdminProperty[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [selectedProperty, setSelectedProperty] = useState<AdminProperty | null>(null)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const itemsPerPage = 10
 
   const adminId = authContext?.profile?.id
@@ -29,7 +34,15 @@ export function AdminProperties() {
   const loadProperties = async () => {
     try {
       setLoading(true)
-      const data = await AdminService.getAllProperties()
+      setError(null)
+      
+      let data: AdminProperty[]
+      if (statusFilter && statusFilter !== 'all') {
+        data = await AdminService.getPropertiesByStatus(statusFilter as any)
+      } else {
+        data = await AdminService.getAllProperties()
+      }
+      
       setProperties(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load properties')
@@ -40,44 +53,27 @@ export function AdminProperties() {
 
   useEffect(() => {
     loadProperties()
-  }, [])
+  }, [statusFilter])
 
-  const handleApprove = async (propertyId: string) => {
-    if (!adminId) return
-    try {
-      await AdminService.approveProperty(propertyId, adminId)
-      await loadProperties()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to approve property')
-    }
+  const handleViewProperty = (property: AdminProperty) => {
+    setSelectedProperty(property)
+    setIsDrawerOpen(true)
   }
 
-  const handleReject = async (propertyId: string, reason: string) => {
-    if (!adminId) return
-    try {
-      await AdminService.rejectProperty(propertyId, adminId, reason)
-      await loadProperties()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to reject property')
-    }
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false)
+    setSelectedProperty(null)
   }
 
-  const handleSuspend = async (propertyId: string) => {
-    if (!adminId) return
-    try {
-      await AdminService.suspendProperty(propertyId, adminId, 'Suspended by admin')
-      await loadProperties()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to suspend property')
-    }
+  const handleRefresh = () => {
+    loadProperties()
   }
 
   // Filter properties
   const filteredProperties = properties.filter(property => {
     const matchesSearch = property.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          property.city.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = !statusFilter || property.approval_status === statusFilter
-    return matchesSearch && matchesStatus
+    return matchesSearch
   })
 
   const totalPages = Math.ceil(filteredProperties.length / itemsPerPage)
@@ -86,6 +82,8 @@ export function AdminProperties() {
   const paginatedProperties = filteredProperties.slice(startIndex, endIndex)
 
   const statusOptions = [
+    { value: 'all', label: 'All' },
+    { value: PROPERTY_APPROVAL_STATUS.DRAFT, label: 'Draft' },
     { value: PROPERTY_APPROVAL_STATUS.PENDING, label: 'Pending' },
     { value: PROPERTY_APPROVAL_STATUS.APPROVED, label: 'Approved' },
     { value: PROPERTY_APPROVAL_STATUS.REJECTED, label: 'Rejected' },
@@ -187,13 +185,21 @@ export function AdminProperties() {
                             </div>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{property.title}</div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-sm font-medium text-gray-900">{property.title}</div>
+                              {property.is_featured && (
+                                <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                              )}
+                            </div>
                             <div className="text-sm text-gray-500">{property.city}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusBadge status={property.approval_status} category="PROPERTY" />
+                        <div className="flex flex-col gap-1">
+                          <ApprovalBadge status={property.approval_status} />
+                          <StatusBadge status={property.status} category="PROPERTY" />
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{property.owner_name}</div>
@@ -208,27 +214,41 @@ export function AdminProperties() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <RowActions
                           actions={[
-                            ...(canApproveProperty() && property.approval_status === PROPERTY_APPROVAL_STATUS.PENDING ? [{
-                              label: 'Approve',
-                              icon: ActionIcons.approve,
-                              onClick: () => handleApprove(property.id),
-                              variant: 'success' as const,
-                            }] : []),
-                            ...(canRejectProperty() && property.approval_status === PROPERTY_APPROVAL_STATUS.PENDING ? [{
-                              label: 'Reject',
-                              icon: ActionIcons.reject,
-                              onClick: () => {
-                                const reason = prompt('Enter rejection reason:')
-                                if (reason) handleReject(property.id, reason)
-                              },
-                              variant: 'danger' as const,
-                            }] : []),
-                            ...(canSuspendProperty() && property.approval_status === PROPERTY_APPROVAL_STATUS.APPROVED ? [{
-                              label: 'Suspend',
-                              icon: <AlertTriangle className="h-4 w-4" />,
-                              onClick: () => handleSuspend(property.id),
-                              variant: 'danger' as const,
-                            }] : []),
+                            {
+                              label: 'View',
+                              icon: <Eye className="h-4 w-4" />,
+                              onClick: () => handleViewProperty(property),
+                              variant: 'default' as const,
+                            },
+                            ...(canFeatureProperty() && property.approval_status === PROPERTY_APPROVAL_STATUS.APPROVED ? [
+                              property.is_featured ? {
+                                label: 'Unfeature',
+                                icon: <Star className="h-4 w-4" />,
+                                onClick: async () => {
+                                  if (!adminId) return
+                                  try {
+                                    await AdminService.unfeatureProperty(property.id, adminId)
+                                    await loadProperties()
+                                  } catch (err) {
+                                    setError(err instanceof Error ? err.message : 'Failed to unfeature property')
+                                  }
+                                },
+                                variant: 'default' as const,
+                              } : {
+                                label: 'Feature',
+                                icon: <Star className="h-4 w-4" />,
+                                onClick: async () => {
+                                  if (!adminId) return
+                                  try {
+                                    await AdminService.featureProperty(property.id, adminId)
+                                    await loadProperties()
+                                  } catch (err) {
+                                    setError(err instanceof Error ? err.message : 'Failed to feature property')
+                                  }
+                                },
+                                variant: 'default' as const,
+                              }
+                            ] : []),
                           ]}
                         />
                       </td>
@@ -247,6 +267,14 @@ export function AdminProperties() {
           </>
         )}
       </div>
+
+      {/* Property Review Drawer */}
+      <PropertyReviewDrawer
+        property={selectedProperty}
+        isOpen={isDrawerOpen}
+        onClose={handleCloseDrawer}
+        onRefresh={handleRefresh}
+      />
     </div>
   )
 }

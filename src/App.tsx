@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useContext, useEffect, useState } from 'react'
 
 import GuriGateNavbar from '@/components/GuriGateNavbar'
 import GuriGateFooter from '@/components/GuriGateFooter'
@@ -13,34 +14,49 @@ import GuriGateDashboard from '@/pages/manage-property/Gurigate dashboard'
 import AllPropertiesPage from '@/pages/all-property'
 // CustomersPage is now rendered inside the Manage Property dashboard, not as an Admin route
 import InboxPage from '@/pages/manage-property/InboxPage'
-import { AuthProvider } from '@/lib/auth-context'
+import { AuthProvider, AuthContext } from '@/lib/auth-context'
+import { AdminLayout } from '@/components/AdminLayout'
+import { ProtectedAdminRoute } from '@/components/ProtectedAdminRoute'
+import { AdminDashboard } from '@/pages/admin/AdminDashboard'
+import { AdminProperties } from '@/pages/admin/AdminProperties'
+import AdminBookings from '@/pages/admin/AdminBookings'
+import AdminPayments from '@/pages/admin/AdminPayments'
+import { AdminUsers } from '@/pages/admin/AdminUsers'
+import { GuriGatePropertyService } from '@/services/guriGateProperties'
+import type { LandingProperty } from '@/data/landingProperties'
 
 // 1. Import your onboarding multi-step form page component here 👇
 import BecomeHost from '@/components/host-onboarding/Become-host'
 
-// Mock property data - in real app this would come from API
-const mockProperties = [
-  {
-    id: 1,
-    title: "Stunning Studio in Kilimani",
-    type: "Studio",
-    location: "Kilimani, Nairobi",
-    city: "Nairobi",
-    price: "$120",
-    priceUnit: "night",
-    rating: 4.95,
-    reviews: 128,
-    beds: 1,
-    baths: 1,
-    guests: 2,
-    image: "https://images.unsplash.com/photo-1560185127-6a12f9a26fe5?w=800&q=80"
-  }
-]
-
 function PropertyPageWrapper() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const property = mockProperties.find(p => p.id === parseInt(id || '1'))
+  const [property, setProperty] = useState<LandingProperty | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+
+    async function loadProperty() {
+      setIsLoading(true)
+      const nextProperty = id ? await GuriGatePropertyService.getPropertyById(id) : null
+
+      if (active) {
+        setProperty(nextProperty)
+        setIsLoading(false)
+      }
+    }
+
+    void loadProperty()
+
+    return () => {
+      active = false
+    }
+  }, [id])
+
+  if (isLoading) {
+    return <div className="p-8 text-center text-sm text-gray-500">Loading property...</div>
+  }
   
   if (!property) {
     return <Navigate to="/" replace />
@@ -78,6 +94,11 @@ function PaymentPageWrapper() {
   )
 }
 
+function AdminLayoutWrapper() {
+  const authContext = useContext(AuthContext)
+  return <AdminLayout profile={authContext?.profile || null} />
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -95,6 +116,23 @@ function App() {
             <Route path="/manage-property" element={<GuriGateDashboard />} />
             <Route path="/manage-property/customers" element={<GuriGateDashboard />} />
             <Route path="/manage-property/inbox" element={<InboxPage />} />
+
+            {/* Admin Routes */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedAdminRoute>
+                  <AdminLayoutWrapper />
+                </ProtectedAdminRoute>
+              }
+            >
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="properties" element={<AdminProperties />} />
+              <Route path="properties/:status" element={<AdminProperties />} />
+              <Route path="bookings" element={<AdminBookings />} />
+              <Route path="payments" element={<AdminPayments />} />
+              <Route path="users" element={<AdminUsers />} />
+            </Route>
 
             {/* 2. Added Route path to display your onboarding workflow page 👇 */}
             <Route path="/become-a-host" element={<BecomeHost />} />

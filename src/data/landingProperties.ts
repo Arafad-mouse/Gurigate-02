@@ -25,13 +25,13 @@ export interface LandingProperty {
 }
 
 // Dynamic data fetching from Supabase
-export const FEATURED_PROPERTIES: Promise<LandingProperty[]> = 
+export const featuredLandingProperties: Promise<LandingProperty[]> = 
   GuriGatePropertyService.getFeaturedProperties();
 
-export const NAIROBI_HOMES: Promise<LandingProperty[]> = 
+export const nairobiLandingProperties: Promise<LandingProperty[]> = 
   GuriGatePropertyService.getPropertiesByCity('Nairobi');
 
-export const HARGEISA_HOMES: Promise<LandingProperty[]> = 
+export const hargeisaLandingProperties: Promise<LandingProperty[]> = 
   GuriGatePropertyService.getPropertiesByCity('Hargeisa');
 
 // Additional East African cities

@@ -24,6 +24,7 @@ export interface AdminProperty {
   owner_name: string
   owner_email: string
   images: string[]
+  is_featured: boolean
   approved_by?: string
   approved_at?: string
   rejection_reason?: string
@@ -124,6 +125,7 @@ export class AdminService {
         currency,
         approval_status,
         status,
+        is_featured,
         approved_by,
         approved_at,
         rejection_reason,
@@ -155,6 +157,7 @@ export class AdminService {
       owner_name: property.profiles?.first_name + ' ' + property.profiles?.last_name || 'Unknown',
       owner_email: property.profiles?.email || '',
       images: property.property_images?.map((img: any) => img.image_url) || [],
+      is_featured: property.is_featured || false,
       approved_by: property.approved_by,
       approved_at: property.approved_at,
       rejection_reason: property.rejection_reason,
@@ -176,6 +179,7 @@ export class AdminService {
         currency,
         approval_status,
         status,
+        is_featured,
         approved_by,
         approved_at,
         rejection_reason,
@@ -211,6 +215,7 @@ export class AdminService {
       owner_name: property.profiles?.first_name + ' ' + property.profiles?.last_name || 'Unknown',
       owner_email: property.profiles?.email || '',
       images: property.property_images?.map((img: any) => img.image_url) || [],
+      is_featured: property.is_featured || false,
       approved_by: property.approved_by,
       approved_at: property.approved_at,
       rejection_reason: property.rejection_reason,
@@ -251,6 +256,112 @@ export class AdminService {
 
     if (error) throw error
     return true
+  }
+
+  static async featureProperty(propertyId: string, adminId: string, note?: string): Promise<boolean> {
+    const { error } = await supabase.rpc('feature_property', {
+      p_property_id: propertyId,
+      p_admin_id: adminId,
+      p_note: note || null
+    })
+
+    if (error) throw error
+    return true
+  }
+
+  static async unfeatureProperty(propertyId: string, adminId: string, note?: string): Promise<boolean> {
+    const { error } = await supabase.rpc('unfeature_property', {
+      p_property_id: propertyId,
+      p_admin_id: adminId,
+      p_note: note || null
+    })
+
+    if (error) throw error
+    return true
+  }
+
+  static async getPropertiesByStatus(status: 'draft' | 'pending' | 'approved' | 'rejected' | 'suspended'): Promise<AdminProperty[]> {
+    const { data, error } = await supabase
+      .from('properties')
+      .select(`
+        id,
+        title,
+        type,
+        city,
+        price,
+        currency,
+        approval_status,
+        status,
+        is_featured,
+        approved_by,
+        approved_at,
+        rejection_reason,
+        deleted_at,
+        deleted_by,
+        created_at,
+        property_images (image_url),
+        profiles!owner_id (
+          first_name,
+          last_name,
+          email
+        )
+      `)
+      .eq('approval_status', status)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    return data.map((property: any) => ({
+      id: property.id,
+      title: property.title,
+      type: property.type,
+      city: property.city,
+      price: property.price,
+      currency: property.currency,
+      approval_status: property.approval_status,
+      status: property.status || 'available',
+      owner_name: property.profiles?.first_name + ' ' + property.profiles?.last_name || 'Unknown',
+      owner_email: property.profiles?.email || '',
+      images: property.property_images?.map((img: any) => img.image_url) || [],
+      is_featured: property.is_featured || false,
+      approved_by: property.approved_by,
+      approved_at: property.approved_at,
+      rejection_reason: property.rejection_reason,
+      deleted_at: property.deleted_at,
+      deleted_by: property.deleted_by,
+      created_at: property.created_at
+    }))
+  }
+
+  static async getPropertyModerationHistory(propertyId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('admin_activity_logs')
+      .select(`
+        id,
+        action_type,
+        metadata,
+        created_at,
+        profiles!admin_id (
+          first_name,
+          last_name,
+          email
+        )
+      `)
+      .eq('target_type', 'property')
+      .eq('target_id', propertyId)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    return data.map((log: any) => ({
+      id: log.id,
+      action_type: log.action_type,
+      metadata: log.metadata,
+      created_at: log.created_at,
+      admin_name: log.profiles?.first_name + ' ' + log.profiles?.last_name || 'Unknown',
+      admin_email: log.profiles?.email || ''
+    }))
   }
 
   // Bookings

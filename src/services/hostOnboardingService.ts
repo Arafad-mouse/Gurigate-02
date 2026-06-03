@@ -9,8 +9,8 @@ export class HostOnboardingService {
         .from('properties')
         .insert({
           title: data.title || 'New Property',
-          description: `A beautiful ${data.propertyType} in ${data.city}`,
-          type: this.mapPropertyType(data.propertyType),
+          description: `A beautiful ${data.propertyTypes[0] || 'property'} in ${data.city}`,
+          type: this.mapPropertyType(data.propertyTypes[0] || 'apartment'),
           badge: 'SHORT_STAY',
           price_unit_label: 'for 2 nights',
           status: 'pending',

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { UserConversation } from '@/services/messagingService'
 import { MessagingService } from '@/services/messagingService'
-import { Calendar, MapPin, CreditCard, User as UserIcon, Clock, Activity, X, MessageSquare, UserPlus, Link, Archive, Eye, Ban, CheckCircle, AlertCircle, FileText } from 'lucide-react'
+import { Calendar, MapPin, CreditCard, User as UserIcon, Activity, X, MessageSquare, Link, Archive, Eye, Ban, CheckCircle, AlertCircle, FileText } from 'lucide-react'
 
 interface ContextPanelProps {
   conversation: UserConversation

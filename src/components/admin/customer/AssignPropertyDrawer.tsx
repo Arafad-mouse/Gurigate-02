@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { assignProperty } from '@/services/customerService';
+import { useProperties } from '../../../../frontend/src/hooks/useProperties';
 
 interface AssignPropertyDrawerProps {
   customerId: string;
@@ -14,19 +15,16 @@ export function AssignPropertyDrawer({ customerId, isOpen, onClose, onSuccess }:
   const [assigning, setAssigning] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState(false);
+  const { properties, loading, error: propertyError } = useProperties(100);
 
-  // Mock properties for now
-  const mockProperties = [
-    { id: 'prop-1', name: 'Kilimani Heights', unit: 'A-304' },
-    { id: 'prop-2', name: 'Westlands Plaza', unit: 'B-102' },
-    { id: 'prop-3', name: 'Nairobi Gardens', unit: 'C-501' },
-    { id: 'prop-4', name: 'Muthaiga Heights', unit: 'D-201' },
-  ];
-
-  const filteredProperties = mockProperties.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.unit.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProperties = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    return properties.filter((property) =>
+      property.title.toLowerCase().includes(query) ||
+      property.address.city.toLowerCase().includes(query) ||
+      (property.address.state || '').toLowerCase().includes(query)
+    );
+  }, [properties, searchQuery]);
 
   const handleAssign = async () => {
     if (!selectedPropertyId) {
@@ -79,6 +77,11 @@ export function AssignPropertyDrawer({ customerId, isOpen, onClose, onSuccess }:
                   {error}
                 </div>
               )}
+              {propertyError && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm">
+                  {propertyError.message}
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Search Property</label>
@@ -94,7 +97,9 @@ export function AssignPropertyDrawer({ customerId, isOpen, onClose, onSuccess }:
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Select Property</label>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {filteredProperties.length === 0 ? (
+                  {loading ? (
+                    <div className="text-sm text-gray-500 text-center py-4">Loading properties...</div>
+                  ) : filteredProperties.length === 0 ? (
                     <div className="text-sm text-gray-500 text-center py-4">No properties found</div>
                   ) : (
                     filteredProperties.map((property) => (
@@ -107,8 +112,8 @@ export function AssignPropertyDrawer({ customerId, isOpen, onClose, onSuccess }:
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
-                        <div className="font-medium text-gray-900">{property.name}</div>
-                        <div className="text-sm text-gray-500">Unit {property.unit}</div>
+                        <div className="font-medium text-gray-900">{property.title}</div>
+                        <div className="text-sm text-gray-500">{property.address.city}</div>
                       </button>
                     ))
                   )}

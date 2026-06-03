@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { CreditCard, DollarSign, Calendar, Check, X, Filter, Eye, Image as ImageIcon } from 'lucide-react'
+import { DollarSign, Calendar, Check, X, Filter, Eye, Image as ImageIcon, AlertCircle } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 interface Payment {
   id: string
@@ -25,6 +26,8 @@ export default function AdminPayments() {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null)
 
   useState(() => {
     setPayments([
@@ -80,12 +83,56 @@ export default function AdminPayments() {
     filter === 'all' || p.status === filter
   )
 
-  const handleVerifyPayment = (paymentId: string) => {
-    console.log('Verify payment:', paymentId)
+  const handleVerifyPayment = async (paymentId: string) => {
+    setActionLoading(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setNotification({ type: 'error', message: 'Authentication required' })
+        return
+      }
+
+      const { error } = await supabase.rpc('verify_payment', {
+        p_payment_id: paymentId,
+        p_admin_id: user.id
+      })
+
+      if (error) {
+        setNotification({ type: 'error', message: error.message || 'Failed to verify payment' })
+        return
+      }
+
+      setNotification({ type: 'success', message: 'Payment verified successfully' })
+      setPayments(payments.map(p => p.id === paymentId ? { ...p, status: 'verified', verified_at: new Date().toISOString().split('T')[0], verified_by: user.email } : p))
+      setShowModal(false)
+    } catch (error) {
+      setNotification({ type: 'error', message: 'Failed to verify payment' })
+    } finally {
+      setActionLoading(false)
+    }
   }
 
-  const handleRejectPayment = (paymentId: string, reason: string) => {
-    console.log('Reject payment:', paymentId, reason)
+  const handleRejectPayment = async (paymentId: string, reason: string) => {
+    setActionLoading(true)
+    try {
+      const { error } = await supabase
+        .from('payments')
+        .update({ status: 'failed', metadata: { rejection_reason: reason } })
+        .eq('id', paymentId)
+
+      if (error) {
+        setNotification({ type: 'error', message: error.message || 'Failed to reject payment' })
+        return
+      }
+
+      setNotification({ type: 'success', message: 'Payment rejected' })
+      setPayments(payments.map(p => p.id === paymentId ? { ...p, status: 'failed' } : p))
+      setShowModal(false)
+    } catch (error) {
+      setNotification({ type: 'error', message: 'Failed to reject payment' })
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -110,6 +157,21 @@ export default function AdminPayments() {
 
   return (
     <div className="space-y-6">
+      {/* Notification */}
+      {notification && (
+        <div className={`rounded-lg p-4 flex items-center ${notification.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+          {notification.type === 'success' ? <Check className="h-5 w-5 mr-2" /> : <AlertCircle className="h-5 w-5 mr-2" />}
+          <span>{notification.message}</span>
+          <button
+            onClick={() => setNotification(null)}
+            className="ml-auto"
+            aria-label="Close notification"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -361,27 +423,23 @@ export default function AdminPayments() {
                 {(selectedPayment.status === 'submitted' || selectedPayment.status === 'pending') && (
                   <div className="pt-4 border-t border-gray-200 flex space-x-3">
                     <button
-                      onClick={() => {
-                        handleVerifyPayment(selectedPayment.id)
-                        setShowModal(false)
-                      }}
-                      className="flex-1 flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      onClick={() => handleVerifyPayment(selectedPayment.id)}
+                      disabled={actionLoading}
+                      className="flex-1 flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Check className="h-4 w-4 mr-2" />
-                      Verify Payment
+                      {actionLoading ? 'Verifying...' : 'Verify Payment'}
                     </button>
                     <button
                       onClick={() => {
                         const reason = prompt('Enter rejection reason:')
-                        if (reason) {
-                          handleRejectPayment(selectedPayment.id, reason)
-                          setShowModal(false)
-                        }
+                        if (reason) handleRejectPayment(selectedPayment.id, reason)
                       }}
-                      className="flex-1 flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      disabled={actionLoading}
+                      className="flex-1 flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <X className="h-4 w-4 mr-2" />
-                      Reject Payment
+                      {actionLoading ? 'Rejecting...' : 'Reject Payment'}
                     </button>
                   </div>
                 )}

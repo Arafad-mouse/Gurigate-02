@@ -134,7 +134,7 @@ export async function getCustomerContracts(id: string, page=1, pageSize=10): Pro
   return Promise.resolve({ items, total, active: items.find(x=>x.status==='active') });
 }
 
-export async function getCustomerProperties(id: string, page=1, pageSize=10): Promise<{ items: PropertySummary[]; total: number; }>{
+export async function getCustomerProperties(id: string, _page=1, _pageSize=10): Promise<{ items: PropertySummary[]; total: number; }>{
   if (shouldFail('properties')) throw new Error('Injected failure (properties)');
   const total = 1;
   const items: PropertySummary[] = [{ id:`prop-${id}`, name:'Kilimani Heights', unit:'A-304' }];

@@ -1,5 +1,5 @@
 import type { UserConversation } from '@/services/messagingService'
-import { CONVERSATION_PRIORITY } from '@/constants/status'
+// import { CONVERSATION_PRIORITY } from '@/constants/status'
 import { MessageSquare, Clock, Building2, CreditCard, Ticket, Users, AlertTriangle, Flag } from 'lucide-react'
 
 interface ConversationListProps {
