@@ -200,11 +200,6 @@ export default function CustomersPage() {
   };
 
   // Drawer action handlers
-  const handleDrawerMessage = (customerId: string) => {
-    console.log('Message customer:', customerId);
-    // TODO: Implement message functionality
-  };
-
   const handleDrawerAssignProperty = (customerId: string) => {
     console.log('Assign property to customer:', customerId);
     // TODO: Implement property assignment
@@ -221,10 +216,6 @@ export default function CustomersPage() {
   };
 
   // Card action handlers
-  const handleCardMessage = (customerId: string) => {
-    navigate(`/manage-property/inbox?customer=${customerId}`);
-  };
-
   const handleCardEdit = (customerId: string) => {
     setEditCustomerId(customerId);
   };
@@ -356,7 +347,6 @@ export default function CustomersPage() {
                 { key:'assign', label:'Assign Property', onClick:()=> handleCardAssignProperty(c.id) },
                 { key:'contract', label:'Create Contract', onClick:()=> handleCardCreateContract(c.id) },
                 { key:'suspend', label:'Suspend Customer', onClick:()=> handleCardSuspend(c.id), danger: true },
-                { key:'msg', label:'Message Customer', onClick:()=> handleCardMessage(c.id) },
               ]}
               onClick={()=> onCardClick(c.id)}
             />
@@ -495,7 +485,6 @@ export default function CustomersPage() {
         state={drawer}
         onClose={closeDrawer}
         onTabChange={(tab) => setDrawer(d => ({ ...d, activeTab: tab }))}
-        onMessage={handleDrawerMessage}
         onAssignProperty={handleDrawerAssignProperty}
         onCreateContract={handleDrawerCreateContract}
         onSuspend={handleDrawerSuspend}

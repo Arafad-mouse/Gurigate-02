@@ -8,7 +8,7 @@ import GuriGateTransaction from "./Gurigate transaction";
 import GuriGateDiscover from "./Gurigate discover";
 import GuriGateProperty from "./Gurigate property";
 import CustomersPage from "@/pages/admin/CustomersPage";
-import InboxPage from "./InboxPage";
+
 
 // Import modal
 import { AddPropertyModal } from "@/components/AddPropertyModal";
@@ -147,7 +147,6 @@ const NAV_ITEMS = [
   { label:"Property", icon:<Icon.Building/>, section:"main" },
   { label:"Rentals", icon:<Icon.Home/>, section:"main" },
   { label:"Customer", icon:<Icon.User/>, section:"main" },
-  { label:"Inbox", icon:<Icon.Inbox/>, section:"main" },
   { label:"Orders", icon:<Icon.ShoppingBag/>, section:"main" },
   { label:"Transaction", icon:<Icon.CreditCard/>, section:"main", active:true },
   { label:"Settings", icon:<Icon.Settings/>, section:"apps" },
@@ -535,8 +534,6 @@ export default function GuriGateDashboard() {
   useEffect(() => {
     if (location.pathname.endsWith('/manage-property/customers')) {
       setActiveNav('Customer');
-    } else if (location.pathname.endsWith('/manage-property/inbox')) {
-      setActiveNav('Inbox');
     }
   }, [location.pathname]);
 
@@ -594,8 +591,6 @@ export default function GuriGateDashboard() {
         return <ComingSoonPage title="Agents" icon={<Icon.Users/>} description="Manage your real estate agents and their performance" />;
       case "Customer":
         return <CustomersPage />;
-      case "Inbox":
-        return <InboxPage />;
       case "Analytics":
         return <ComingSoonPage title="Analytics" icon={<Icon.BarChart/>} description="Detailed insights and analytics for your properties" />;
       case "Settings":
@@ -894,8 +889,6 @@ export default function GuriGateDashboard() {
                   setActiveNav(item.label);
                   if (item.label === 'Customer') {
                     navigate('/manage-property/customers');
-                  } else if (item.label === 'Inbox') {
-                    navigate('/manage-property/inbox');
                   } else {
                     navigate('/manage-property');
                   }

@@ -14,7 +14,6 @@ export interface CustomerProfileDrawerProps {
   onClose: () => void;
   onTabChange: (tab: CustomerDrawerState['activeTab']) => void;
   // Quick action placeholders
-  onMessage?: (id: string) => void;
   onAssignProperty?: (id: string) => void;
   onCreateContract?: (id: string) => void;
   onSuspend?: (id: string) => void;
@@ -22,7 +21,7 @@ export interface CustomerProfileDrawerProps {
 
 interface TabCache<T> { loading: boolean; error?: string; data?: T; }
 
-export const CustomerProfileDrawer: React.FC<CustomerProfileDrawerProps> = ({ state, onClose, onTabChange, onMessage, onAssignProperty, onCreateContract, onSuspend }) => {
+export const CustomerProfileDrawer: React.FC<CustomerProfileDrawerProps> = ({ state, onClose, onTabChange, onAssignProperty, onCreateContract, onSuspend }) => {
   const { isOpen, customerId, activeTab } = state;
 
   // Header/overview fetching
@@ -95,7 +94,6 @@ export const CustomerProfileDrawer: React.FC<CustomerProfileDrawerProps> = ({ st
             <div className="text-xs text-gray-500 truncate">{customer?.email || ''}</div>
           </div>
           <div className="flex gap-1">
-            <button className="px-2 py-1 text-xs border rounded" onClick={()=> customerId && onMessage?.(customerId)}>Message</button>
             <button className="px-2 py-1 text-xs border rounded" onClick={()=> customerId && onAssignProperty?.(customerId)}>Assign</button>
             <button className="px-2 py-1 text-xs border rounded" onClick={()=> customerId && onCreateContract?.(customerId)}>Contract</button>
             <button className="px-2 py-1 text-xs border rounded text-red-600 border-red-200" onClick={()=> customerId && onSuspend?.(customerId)}>Suspend</button>

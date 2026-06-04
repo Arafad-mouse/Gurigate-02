@@ -13,7 +13,6 @@ import PaymentPage from '@/pages/PaymentPage'
 import GuriGateDashboard from '@/pages/manage-property/Gurigate dashboard'
 import AllPropertiesPage from '@/pages/all-property'
 // CustomersPage is now rendered inside the Manage Property dashboard, not as an Admin route
-import InboxPage from '@/pages/manage-property/InboxPage'
 import { AuthProvider, AuthContext } from '@/lib/auth-context'
 import { AdminLayout } from '@/components/AdminLayout'
 import { ProtectedAdminRoute } from '@/components/ProtectedAdminRoute'
@@ -115,7 +114,6 @@ function App() {
             <Route path="/all-property" element={<AllPropertiesPage />} />
             <Route path="/manage-property" element={<GuriGateDashboard />} />
             <Route path="/manage-property/customers" element={<GuriGateDashboard />} />
-            <Route path="/manage-property/inbox" element={<InboxPage />} />
 
             {/* Admin Routes */}
             <Route
