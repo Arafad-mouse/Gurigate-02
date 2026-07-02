@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
+
+const supabase = createClient();
 import type { 
   Property, 
   CreatePropertyRequest, 
@@ -68,7 +70,14 @@ export class PropertyService {
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
-      if (userError || !user) {
+      console.log('Auth check result:', { user, userError });
+      
+      if (userError) {
+        console.error('Auth error details:', userError);
+        throw new Error(`Authentication error: ${userError.message}`);
+      }
+      
+      if (!user) {
         throw new Error('User not authenticated. Please log in to add a property.');
       }
 
@@ -91,6 +100,7 @@ export class PropertyService {
 
       if (error) {
         console.error('Property creation error:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
         throw new Error(error.message || 'Failed to create property');
       }
 
@@ -137,9 +147,16 @@ export class PropertyService {
   static async getFeaturedProperties(): Promise<GuriGateProperty[]> {
     try {
       const { data, error } = await supabase
-        .from('featured_properties')
-        .select('*')
-        .order('rating', { ascending: false });
+        .from('properties')
+        .select(`
+          *,
+          locations!properties_city_location_id_fkey(name),
+          property_images(url, is_primary, sort_order)
+        `)
+        .eq('status', 'active')
+        .eq('is_approved', true)
+        .eq('is_featured', true)
+        .order('rating_avg', { ascending: false });
 
       if (error) {
         console.error('Error fetching featured properties:', error);
@@ -157,10 +174,16 @@ export class PropertyService {
   static async getPropertiesByCity(city: string): Promise<GuriGateProperty[]> {
     try {
       const { data, error } = await supabase
-        .from('featured_properties')
-        .select('*')
-        .eq('city', city)
-        .order('rating', { ascending: false });
+        .from('properties')
+        .select(`
+          *,
+          locations!properties_city_location_id_fkey(name),
+          property_images(url, is_primary, sort_order)
+        `)
+        .eq('status', 'active')
+        .eq('is_approved', true)
+        .eq('locations.name', city)
+        .order('rating_avg', { ascending: false });
 
       if (error) {
         console.error('Error fetching properties by city:', error);

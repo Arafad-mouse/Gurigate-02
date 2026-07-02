@@ -226,16 +226,11 @@ export function AddPropertyModal({ onClose, onSuccess }: AddPropertyModalProps) 
                 onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as PropertyType }))}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
               >
-                <option value="apartment">Apartment</option>
                 <option value="house">House</option>
+                <option value="hotel">Hotel</option>
                 <option value="villa">Villa</option>
+                <option value="apartment">Apartment</option>
                 <option value="studio">Studio</option>
-                <option value="condo">Condo</option>
-                <option value="townhouse">Townhouse</option>
-                <option value="cottage">Cottage</option>
-                <option value="penthouse">Penthouse</option>
-                <option value="loft">Loft</option>
-                <option value="other">Other</option>
               </select>
             </div>
 

@@ -40,10 +40,14 @@ export function StepConfirmAddress({ data, onChange }: Props) {
       {/* Address Form Group */}
       <div className="border border-border rounded-xl overflow-hidden mb-10">
         <div className="relative border-b border-border">
+          <label htmlFor="country-select" className="sr-only">Country / region</label>
           <select
+            id="country-select"
             value={data.country}
             onChange={(e) => onChange({ country: e.target.value })}
             className="w-full pt-5 pb-2 px-4 bg-transparent text-base text-foreground outline-none appearance-none cursor-pointer"
+            aria-label="Country / region"
+            title="Select your country or region"
           >
             <option value="Somalia - SO">Somalia - SO</option>
             <option value="United States - US">United States - US</option>
@@ -74,6 +78,7 @@ export function StepConfirmAddress({ data, onChange }: Props) {
         <button
           type="button"
           onClick={() => onChange({ showPreciseLocation: !data.showPreciseLocation })}
+          aria-label={data.showPreciseLocation ? "Hide precise location" : "Show precise location"}
           className={cn(
             "relative w-[48px] h-[32px] rounded-full transition-colors shrink-0",
             data.showPreciseLocation ? "bg-black" : "bg-[#B0B0B0]"
@@ -86,37 +91,6 @@ export function StepConfirmAddress({ data, onChange }: Props) {
             )}
           />
         </button>
-      </div>
-      
-      {/* Map Preview Area */}
-      <div className="relative h-[220px] bg-[#f7f7f7] border border-border rounded-xl overflow-hidden flex items-center justify-center">
-        {/* Simple grid lines to simulate a map background */}
-        <div className="absolute inset-0 opacity-20 pointer-events-none"
-             style={{ backgroundImage: 'radial-gradient(#000 0.5px, transparent 0.5px)', backgroundSize: '20px 20px' }}
-        />
-
-        {/* Map Label - Show actual street name if available */}
-        {data.streetAddress && (
-          <div className="absolute top-[40%] left-[20%] text-[10px] text-gray-400 font-bold uppercase rotate-90 max-w-[100px] truncate">
-            {data.streetAddress.split(' ')[0] || 'STREET'}
-          </div>
-        )}
-
-        {/* The Pink House Pin */}
-        <div className="relative z-10 w-12 h-12 bg-[#FF385C] rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-          <svg viewBox="0 0 32 32" className="w-6 h-6 text-white fill-current">
-            <path d="M16 3.14l-14 12.14 1.32 1.5L5 15.34V28a1 1 0 0 0 1 1h20a1 1 0 0 0 1-1V15.34l1.68 1.46 1.32-1.5zM25 27H7V13.61l9-7.8 9 7.8z" />
-          </svg>
-        </div>
-
-        {/* Floating Text - Show actual city if available */}
-        <div className="absolute bottom-10 right-20 text-[10px] text-gray-400 font-bold text-center leading-tight">
-          {data.city ? (
-            <>{data.city.toUpperCase()}<br/>{data.province?.toUpperCase() || ''}</>
-          ) : (
-            <>WARAABA<br/>SALAAN</>
-          )}
-        </div>
       </div>
     </div>
   );

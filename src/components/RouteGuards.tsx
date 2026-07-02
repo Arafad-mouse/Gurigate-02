@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-
-import { useAuth } from '@/hooks/useAuth'
+import { useContext } from 'react'
+import { AuthContext } from '@/lib/auth-context'
 
 function FullPageStatus({ title, message }: { title: string; message: string }) {
   return (
@@ -14,30 +14,39 @@ function FullPageStatus({ title, message }: { title: string; message: string }) 
   )
 }
 
+/**
+ * Route-level protection using AuthContext
+ * Redirects to home if not authenticated
+ */
 export function ProtectedRoute() {
   const location = useLocation()
-  const { loading, user } = useAuth()
+  const authContext = useContext(AuthContext)
+  const { isLoading, session } = authContext || { isLoading: false, session: null }
 
-  if (loading) {
-    return <FullPageStatus title="Loading your workspace" message="We’re syncing your session and profile details." />
+  if (isLoading) {
+    return <FullPageStatus title="Loading your workspace" message="We're syncing your session and profile details." />
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  if (!session) {
+    return <Navigate to="/" replace state={{ from: location.pathname }} />
   }
 
   return <Outlet />
 }
 
+/**
+ * Route that only allows unauthenticated users (e.g., login page)
+ */
 export function PublicOnlyRoute() {
-  const { loading, user } = useAuth()
+  const authContext = useContext(AuthContext)
+  const { isLoading, session } = authContext || { isLoading: false, session: null }
 
-  if (loading) {
+  if (isLoading) {
     return <FullPageStatus title="Checking your session" message="One moment while we load your account state." />
   }
 
-  if (user) {
-    return <Navigate to="/dashboard" replace />
+  if (session) {
+    return <Navigate to="/manage-property" replace />
   }
 
   return <Outlet />

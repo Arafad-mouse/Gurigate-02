@@ -19,7 +19,6 @@ import {
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-import PropertyPage from "@/pages/PropertyPage";
 import { PopularHomesSection } from "@/components/PopularHomesSection";
 import { useProperties } from "@/hooks/useProperties";
 import { applyImageFallback } from "@/lib/utils";
@@ -41,7 +40,7 @@ function FeaturedPropertyCard({ property, onClick }: { property: LandingProperty
           src={property.image}
 
           alt={property.title}
-          onError={(event) => applyImageFallback(event.currentTarget, property.title)}
+          onError={(event) => applyImageFallback(event)}
 
           className="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
 
@@ -132,7 +131,7 @@ function PopularPropertyCard({ property, onClick }: { property: LandingProperty;
           src={property.image}
 
           alt={property.title}
-          onError={(event) => applyImageFallback(event.currentTarget, property.title)}
+          onError={(event) => applyImageFallback(event)}
 
           className="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
 
@@ -226,7 +225,7 @@ function PopularPropertyCard({ property, onClick }: { property: LandingProperty;
 
 
 
-function CustomerFilters({ _resultCount }: { resultCount?: number }) {
+function CustomerFilters({ resultCount }: { resultCount?: number }) {
 
   const [bedrooms, setBedrooms] = useState<string>("Any");
 
@@ -684,8 +683,6 @@ export default function GuriGateLanding() {
 
   const [showMap, setShowMap] = useState(false);
 
-  const [selectedProperty, setSelectedProperty] = useState<LandingProperty | null>(null);
-
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   
@@ -696,17 +693,17 @@ export default function GuriGateLanding() {
 
   const filteredFeatured = useMemo(() => {
     if (!activeFilter) return featured;
-    return featured.filter(p => p.type === activeFilter);
+    return featured.filter(p => p.type.toLowerCase().includes(activeFilter.toLowerCase()));
   }, [featured, activeFilter]);
 
   const filteredNairobi = useMemo(() => {
     if (!activeFilter) return nairobi;
-    return nairobi.filter(p => p.type === activeFilter);
+    return nairobi.filter(p => p.type.toLowerCase().includes(activeFilter.toLowerCase()));
   }, [nairobi, activeFilter]);
 
   const filteredHargeisa = useMemo(() => {
     if (!activeFilter) return hargeisa;
-    return hargeisa.filter(p => p.type === activeFilter);
+    return hargeisa.filter(p => p.type.toLowerCase().includes(activeFilter.toLowerCase()));
   }, [hargeisa, activeFilter]);
 
   // Initialize map when modal opens
@@ -756,26 +753,6 @@ export default function GuriGateLanding() {
 
 
 
-  // If a property is selected, show the PropertyPage
-
-  if (selectedProperty) {
-
-    return (
-
-      <PropertyPage
-
-        property={selectedProperty}
-
-        onBack={() => setSelectedProperty(null)}
-
-      />
-
-    );
-
-  }
-
-
-
   return (
 
     <div className="min-h-screen overflow-x-hidden bg-gray-50 font-sans">
@@ -793,7 +770,7 @@ export default function GuriGateLanding() {
             src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1400&q=85"
 
             alt="Hero"
-            onError={(event) => applyImageFallback(event.currentTarget, "GuriGate hero")}
+            onError={(event) => applyImageFallback(event)}
 
             className="w-full h-full object-cover"
 
@@ -894,7 +871,7 @@ export default function GuriGateLanding() {
             {/* Featured Properties Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
               {filteredFeatured.map((p) => (
-                <FeaturedPropertyCard key={p.id} property={p} onClick={() => setSelectedProperty(p)} />
+                <FeaturedPropertyCard key={p.id} property={p} onClick={() => navigate(`/property/${p.id}`)} />
               ))}
             </div>
 
@@ -982,7 +959,7 @@ export default function GuriGateLanding() {
 
                 {filteredNairobi.map((p) => (
 
-                  <PopularPropertyCard key={p.id} property={p} onClick={() => setSelectedProperty(p)} />
+                  <PopularPropertyCard key={p.id} property={p} onClick={() => navigate(`/property/${p.id}`)} />
 
                 ))}
 
@@ -1016,7 +993,7 @@ export default function GuriGateLanding() {
 
                 {filteredHargeisa.map((p) => (
 
-                  <PopularPropertyCard key={p.id} property={p} onClick={() => setSelectedProperty(p)} />
+                  <PopularPropertyCard key={p.id} property={p} onClick={() => navigate(`/property/${p.id}`)} />
 
                 ))}
 

@@ -6,7 +6,7 @@ export class GuriGatePropertyService {
   // Convert database property to LandingProperty format
   private static convertToLandingProperty(dbProperty: any): LandingProperty {
     return {
-      id: parseInt(dbProperty.id.replace(/-/g, '').substring(0, 8), 16) || Math.random(),
+      id: dbProperty.id,
       title: dbProperty.title,
       address: dbProperty.location_name || `${dbProperty.city}, ${dbProperty.district || ''}`,
       price: this.formatPrice(dbProperty.price, dbProperty.purpose),

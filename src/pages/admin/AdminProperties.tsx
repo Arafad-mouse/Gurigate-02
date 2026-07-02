@@ -190,6 +190,11 @@ export function AdminProperties() {
                               {property.is_featured && (
                                 <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
                               )}
+                              {property.property_category && (
+                                <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full capitalize">
+                                  {property.property_category}
+                                </span>
+                              )}
                             </div>
                             <div className="text-sm text-gray-500">{property.city}</div>
                           </div>

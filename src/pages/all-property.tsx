@@ -204,7 +204,7 @@ function PropertyCard({ property, onClick }: { property: Property; onClick: () =
         <img
           src={property.image}
           alt={property.title}
-          onError={(event) => applyImageFallback(event.currentTarget, property.title)}
+          onError={(event) => applyImageFallback(event)}
           className="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute top-3 left-3">
@@ -473,7 +473,7 @@ export default function AllPropertiesPage() {
   if (selectedProperty) {
     return (
       <PropertyPage
-        property={selectedProperty}
+        property={selectedProperty as any}
         onBack={() => setSelectedProperty(null)}
       />
     );

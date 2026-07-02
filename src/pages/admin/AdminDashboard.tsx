@@ -89,6 +89,29 @@ export function AdminDashboard() {
     },
   ]
 
+  const categoryCards = [
+    {
+      title: 'Residential',
+      value: kpis.residentialCount,
+      color: 'bg-emerald-500',
+    },
+    {
+      title: 'Commercial',
+      value: kpis.commercialCount,
+      color: 'bg-blue-500',
+    },
+    {
+      title: 'Land',
+      value: kpis.landCount,
+      color: 'bg-amber-500',
+    },
+    {
+      title: 'Hospitality',
+      value: kpis.hospitalityCount,
+      color: 'bg-purple-500',
+    },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -114,6 +137,21 @@ export function AdminDashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Category Breakdown */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Properties by Category</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {categoryCards.map((card, index) => (
+            <div key={index} className="text-center">
+              <div className={`${card.color} p-4 rounded-lg text-white mb-2`}>
+                <p className="text-3xl font-bold">{card.value}</p>
+              </div>
+              <p className="text-sm font-medium text-gray-600">{card.title}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Recent Activity */}

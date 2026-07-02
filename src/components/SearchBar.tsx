@@ -180,20 +180,29 @@ export default function SearchBar() {
 
   function adj(type: keyof GuestCounts, delta: number) {
     const min = type === 'adults' ? 1 : 0;
-    setGuests(prev => ({ ...prev, [type]: Math.max(min, prev[type] + delta) }));
+    setGuests(prev => {
+      const updated = { ...prev, [type]: Math.max(min, prev[type] + delta) };
+      setWhoLabel(formatGuestLabel(updated));
+      return updated;
+    });
   }
 
-  function applyGuests() {
-    const total = guests.adults + guests.children;
+  const formatGuestLabel = (counts: GuestCounts) => {
+    const total = counts.adults + counts.children;
     const parts: string[] = [];
     if (total > 0) parts.push(`${total} guest${total > 1 ? "s" : ""}`);
-    if (guests.infants > 0) parts.push(`${guests.infants} infant${guests.infants > 1 ? "s" : ""}`);
-    setWhoLabel(parts.join(", "));
+    if (counts.infants > 0) parts.push(`${counts.infants} infant${counts.infants > 1 ? "s" : ""}`);
+    return parts.join(", ");
+  };
+
+  function applyGuests() {
+    setWhoLabel(formatGuestLabel(guests));
     setActiveDrop(null);
   }
 
   function clearGuests() {
-    setGuests({ adults: 1, children: 0, infants: 0 }); setWhoLabel("");
+    setGuests({ adults: 1, children: 0, infants: 0 });
+    setWhoLabel("");
   }
 
   const m0 = firstOfMonth(calBase.y, calBase.m);
@@ -278,7 +287,7 @@ export default function SearchBar() {
         {/* WHO */}
         <div className={segCls("who")} onClick={() => toggleDrop("who")} style={{ position: "relative", borderRight: "none" }}>
           <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-0.5">Who</div>
-          <div className="text-sm text-gray-500 truncate">{whoLabel || <span className="text-gray-400">Add guests</span>}</div>
+          <div className="text-sm text-gray-500 truncate">{whoLabel || formatGuestLabel(guests) || <span className="text-gray-400">Add guests</span>}</div>
 
           {activeDrop === "who" && (
             <div className={`${dropCls} right-0 w-72`} onClick={e => e.stopPropagation()}>
@@ -297,7 +306,7 @@ export default function SearchBar() {
                         disabled={guests[type] === (type === 'adults' ? 1 : 0)}
                         className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 disabled:opacity-30 hover:enabled:border-[#BA0036] hover:enabled:text-[#BA0036] transition-colors"
                       >−</button>
-                      <span className="text-sm font-semibold w-4 text-center text-gray-900">{guests[type]}</span>
+                      <span className="text-sm font-semibold w-6 min-w-[1.5rem] text-center text-gray-900">{guests[type]}</span>
                       <button
                         onClick={() => adj(type, 1)}
                         className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-[#BA0036] hover:text-[#BA0036] transition-colors"

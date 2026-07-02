@@ -6,6 +6,8 @@ import { usePropertyModeration } from '@/hooks/usePropertyModeration'
 import { usePermissions } from '@/hooks/usePermissions'
 import { PROPERTY_APPROVAL_STATUS } from '@/constants/status'
 import type { AdminProperty } from '@/services/adminService'
+import { CategoryDetailSection } from '@/components/property/CategoryDetailSection'
+import type { LandingProperty } from '@/data/landingProperties'
 
 interface PropertyReviewDrawerProps {
   property: AdminProperty | null
@@ -23,6 +25,38 @@ export function PropertyReviewDrawer({ property, isOpen, onClose, onRefresh }: P
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [showSuspendModal, setShowSuspendModal] = useState(false)
   const [reason, setReason] = useState('')
+
+  // Convert AdminProperty to LandingProperty for CategoryDetailSection
+  const convertToLandingProperty = (prop: AdminProperty): LandingProperty => ({
+    id: prop.id,
+    title: prop.title,
+    address: `${prop.city}`,
+    price: `$${prop.price}`,
+    priceUnit: prop.currency,
+    beds: 0,
+    baths: 0,
+    sqft: 0,
+    badge: prop.approval_status === 'approved' ? 'FOR SALE' : 'FOR RENT',
+    featured: prop.is_featured,
+    image: prop.images?.[0] || '',
+    images: prop.images,
+    rating: 0,
+    location: prop.city,
+    type: prop.type,
+    city: prop.city,
+    reviews: 0,
+    guests: 0,
+    category: prop.property_category,
+    categoryDetails: prop.property_category === 'residential' 
+      ? prop.property_residential_details 
+      : prop.property_category === 'commercial'
+        ? prop.property_commercial_details
+        : prop.property_category === 'land'
+          ? prop.property_land_details
+          : prop.property_category === 'hospitality'
+            ? prop.property_hospitality_details
+            : undefined,
+  })
 
   useEffect(() => {
     if (isOpen && property) {
@@ -101,6 +135,11 @@ export function PropertyReviewDrawer({ property, isOpen, onClose, onRefresh }: P
                 {property.is_featured && (
                   <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">Featured</span>
                 )}
+                {property.property_category && (
+                  <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full capitalize">
+                    {property.property_category}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <MapPin className="h-4 w-4" />
@@ -109,7 +148,7 @@ export function PropertyReviewDrawer({ property, isOpen, onClose, onRefresh }: P
                 <span>{property.type}</span>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg" aria-label="Close drawer">
               <X className="h-5 w-5 text-gray-500" />
             </button>
           </div>
@@ -177,6 +216,19 @@ export function PropertyReviewDrawer({ property, isOpen, onClose, onRefresh }: P
                 </h4>
                 <p className="text-sm text-gray-700 capitalize">{property.type}</p>
               </div>
+
+              {/* Category-Specific Details */}
+              {property.property_category && (
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Category Details
+                  </h4>
+                  <CategoryDetailSection 
+                    property={convertToLandingProperty(property)}
+                  />
+                </div>
+              )}
 
               {/* Rejection Reason */}
               {property.rejection_reason && (

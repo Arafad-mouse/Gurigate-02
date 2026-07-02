@@ -36,21 +36,21 @@ interface GuestType {
 interface WhoDropdownProps {
   onClose: () => void;
   onSelect: (summary: string, counts: GuestCounts) => void;
+  maxGuests?: number;
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const GUEST_TYPES: GuestType[] = [
   { key: "adults",   label: "Adults",   sub: "Ages 13+",     min: 1 },
-  { key: "children", label: "Children", sub: "Ages 2–12",    min: 0 },
+  { key: "children", label: "Children", sub: "Age 2–12",    min: 0 },
   { key: "infants",  label: "Infants",  sub: "Under 2",      min: 0 },
-  { key: "pets",     label: "Pets",     sub: "Bringing a pet?", min: 0 },
+  { key: "pets",     label: "Pets",     sub: "Bringing a service animal?", min: 0 },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function WhoDropdown({ onClose, onSelect }: WhoDropdownProps) {
-  console.log('[WhoDropdown] Component mounted');
+export function WhoDropdown({ onClose, onSelect, maxGuests = 8 }: WhoDropdownProps) {
   const [counts, setCounts] = useState<GuestCounts>({
     adults: 1,
     children: 0,
@@ -68,21 +68,32 @@ export function WhoDropdown({ onClose, onSelect }: WhoDropdownProps) {
   }, [onClose]);
 
   const update = (key: keyof GuestCounts, delta: number) => {
-    console.log(`[WhoDropdown] Button clicked: ${key}, delta: ${delta}, current value: ${counts[key]}`);
     setCounts((prev) => {
       const min = GUEST_TYPES.find((g) => g.key === key)!.min;
       const newValue = Math.max(min, prev[key] + delta);
-      console.log(`[WhoDropdown] State update: ${key} from ${prev[key]} to ${newValue}`);
+      
+      // Enforce max guests limit for adults + children
+      if (key === "adults" || key === "children") {
+        const otherKey = key === "adults" ? "children" : "adults";
+        const otherValue = prev[otherKey];
+        const totalGuests = newValue + otherValue;
+        
+        if (totalGuests > maxGuests) {
+          return prev; // Don't update if it exceeds max
+        }
+      }
+      
       return { ...prev, [key]: newValue };
     });
   };
 
-  const total = counts.adults + counts.children;
+  const totalGuests = counts.adults + counts.children;
+  const hasAnyGuests = totalGuests > 0 || counts.infants > 0 || counts.pets > 0;
   const summary =
-    total === 0
+    !hasAnyGuests
       ? "Add guests"
       : [
-          total > 0 && `${total} guest${total !== 1 ? "s" : ""}`,
+          totalGuests > 0 && `${totalGuests} guest${totalGuests !== 1 ? "s" : ""}`,
           counts.infants > 0 && `${counts.infants} infant${counts.infants !== 1 ? "s" : ""}`,
           counts.pets > 0 && `${counts.pets} pet${counts.pets !== 1 ? "s" : ""}`,
         ]
@@ -102,6 +113,7 @@ export function WhoDropdown({ onClose, onSelect }: WhoDropdownProps) {
         <p className="text-sm font-semibold text-gray-800">Guests</p>
         <button
           onClick={onClose}
+          aria-label="Close guests dropdown"
           className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-400"
         >
           <X size={13} />
@@ -122,10 +134,10 @@ export function WhoDropdown({ onClose, onSelect }: WhoDropdownProps) {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log(`[WhoDropdown] Minus button clicked for ${key}`);
                     update(key, -1);
                   }}
                   disabled={counts[key] <= min}
+                  aria-label={`Decrease ${label}`}
                   className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
                     counts[key] > min
                       ? "border-gray-300 text-gray-700 hover:border-[#BA0036] hover:text-[#BA0036]"
@@ -140,10 +152,10 @@ export function WhoDropdown({ onClose, onSelect }: WhoDropdownProps) {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log(`[WhoDropdown] Plus button clicked for ${key}`);
                     update(key, 1);
                   }}
-                  className="w-8 h-8 rounded-full border border-gray-300 text-gray-700 hover:border-[#BA0036] hover:text-[#BA0036] flex items-center justify-center transition-all"
+                  aria-label={`Increase ${label}`}
+                  className="w-8 h-8 rounded-full border border-gray-300 text-gray-700 hover:border-gray-900 hover:text-gray-900 flex items-center justify-center transition-all"
                 >
                   <Plus size={13} />
                 </button>
@@ -154,19 +166,22 @@ export function WhoDropdown({ onClose, onSelect }: WhoDropdownProps) {
       </div>
 
       {/* Footer */}
-      <div className="px-4 pb-4 flex items-center justify-between">
-        <button
-          onClick={() => setCounts({ adults: 1, children: 0, infants: 0, pets: 0 })}
-          className="text-xs font-semibold text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors"
-        >
-          Clear all
-        </button>
-        <button
-          onClick={() => { onSelect(summary, counts); onClose(); }}
-          className="text-xs font-semibold bg-[#BA0036] text-white px-5 py-2 rounded-full hover:bg-[#a4003a] transition-colors"
-        >
-          Apply · {summary}
-        </button>
+      <div className="px-4 pb-4">
+        <p className="text-xs text-gray-500 mb-3">{maxGuests} guests maximum. Infants may be 2.</p>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setCounts({ adults: 1, children: 0, infants: 0, pets: 0 })}
+            className="text-xs font-semibold text-gray-500 underline underline-offset-2 hover:text-gray-700 transition-colors"
+          >
+            Clear
+          </button>
+          <button
+            onClick={() => { onSelect(summary, counts); onClose(); }}
+            className="text-sm font-semibold bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );

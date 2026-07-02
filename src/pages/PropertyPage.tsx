@@ -10,28 +10,14 @@ import {
 import { AboutSpaceModal } from "../components/AboutSpaceModal";
 import { applyImageFallback } from "@/lib/utils";
 import { WhoDropdown } from "@/components/WhoDropdown";
+import { ProtectedButton } from "@/components/ProtectedButton";
+import { CategoryDetailSection } from "@/components/property/CategoryDetailSection";
+import type { LandingProperty } from "@/data/landingProperties";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Property {
-  id: number;
-  title: string;
-  type: string;
-  location?: string;
-  city: string;
-  price: string;
-  priceUnit: string;
-  rating?: number;
-  reviews?: number;
-  beds: number;
-  baths: number;
-  guests?: number;
-  image: string;
-  images?: string[];
-}
-
 interface PropertyPageProps {
-  property: Property;
+  property: LandingProperty;
   onBack: () => void;
 }
 
@@ -143,11 +129,13 @@ function BookingWidget({
   price,
   rating,
   reviews,
+  maxGuests,
   onReserve,
 }: {
   price: string;
   rating: number;
   reviews: number;
+  maxGuests?: number;
   onReserve: (details: { checkIn: string; checkOut: string; guests: number; nights: number; priceNum: number }) => void;
 }) {
   const [checkIn, setCheckIn] = useState("");
@@ -223,27 +211,29 @@ function BookingWidget({
             <span className="text-gray-400">▼</span>
           </button>
           {showGuestDropdown && (
-            <div className="absolute top-full left-0 right-0 mt-2 z-50">
               <WhoDropdown
                 onClose={() => {
                   console.log('[PropertyPage] WhoDropdown onClose called');
                   setShowGuestDropdown(false);
                 }}
                 onSelect={handleGuestSelect}
+                maxGuests={maxGuests ?? 8}
               />
-            </div>
           )}
         </div>
       </div>
 
       {/* ✅ Reserve button now calls onReserve prop */}
-      <button
+      <ProtectedButton
         onClick={handleReserve}
+        onAuthAction={handleReserve}
+        requireAuth={true}
+        authDefaultTab="login"
         className="w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-90 active:scale-[0.99] mb-4"
         style={{ background: "linear-gradient(135deg,#E8344E,#c9263f)" }}
       >
         Reserve
-      </button>
+      </ProtectedButton>
       <p className="text-center text-xs text-gray-500 mb-4">You won't be charged yet</p>
 
       <div className="space-y-3 text-sm">
@@ -325,11 +315,14 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
             <button className="flex items-center gap-2 text-sm font-medium text-gray-700 underline transition-colors hover:text-gray-900">
               <Share2 size={15} /> Share
             </button>
-            <button onClick={() => setLiked(!liked)}
+            <ProtectedButton onClick={() => setLiked(!liked)}
+              onAuthAction={() => setLiked(!liked)}
+              requireAuth={true}
+              authDefaultTab="login"
               className="flex items-center gap-2 text-sm font-medium text-gray-700 underline transition-colors hover:text-gray-900">
               <Heart size={15} className={liked ? "fill-[#E8344E] text-[#E8344E]" : ""} />
               {liked ? "Saved" : "Save"}
-            </button>
+            </ProtectedButton>
           </div>
         </div>
       </div>
@@ -365,6 +358,9 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
               </div>
               <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#E8344E] to-[#ff6b6b] text-lg font-bold text-white sm:ml-4">C</div>
             </div>
+
+            {/* Category-specific details */}
+            <CategoryDetailSection property={property} />
 
             {/* Highlights */}
             <div className="space-y-5 pb-6 border-b border-gray-200 mb-6">
@@ -465,7 +461,7 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
                     <div className="w-10 h-10 bg-[#E8344E] rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg">
                       <MapPin size={20} className="text-white" />
                     </div>
-                    <p className="text-sm font-semibold text-gray-700">{property.city}</p>
+                    <p className="text-sm font-semibold text-gray-700">{property.location ?? property.city}</p>
                     <p className="text-xs text-gray-500">Exact location provided after booking</p>
                   </div>
                 </div>
@@ -499,6 +495,7 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
           {/* ✅ Right: BookingWidget now receives onReserve prop */}
           <div className="w-full flex-shrink-0 lg:w-[380px]">
             <BookingWidget
+              maxGuests={property.guests ?? 8}
               price={property.price}
               rating={property.rating ?? 4.5}
               reviews={property.reviews ?? 39}

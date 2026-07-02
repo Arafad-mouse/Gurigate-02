@@ -18,8 +18,9 @@ import {
   ShieldUser,
   BadgeQuestionMark,
 } from "lucide-react";
-import { PhoneModal } from "./LoginModal";
-import { EmailModal } from "./EmailModal";
+import { AuthModal } from "./AuthModal";
+import { AuthContext } from "@/lib/auth-context";
+import { useContext } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -88,12 +89,6 @@ function GuestDropdown({
 
       <div className="h-px bg-gray-100 mx-4" />
 
-      {/* Refer a Host */}
-      <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
-        <Layers size={16} className="text-gray-400" />
-        Refer a Host
-      </button>
-
       {/* Find a co-host */}
       <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
         <ShieldUser size={16} className="text-gray-400" />
@@ -148,6 +143,7 @@ function LoggedInDropdown({
         </div>
         <button
           onClick={onClose}
+          aria-label="Close menu"
           className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-400"
         >
           <X size={13} />
@@ -211,7 +207,6 @@ function LoggedInDropdown({
           Hosting
         </p>
         {[
-          { icon: <UserPlus size={15} />, label: "Refer a Host" },
           { icon: <Users size={15} />, label: "Find a Co-host" },
           { icon: <Gift size={15} />, label: "Gift Cards" },
         ].map(({ icon, label }) => (
@@ -283,9 +278,16 @@ function ProfileDropdown({
 
 export function ProfileMenu({ onNavigate }: { onNavigate?: (path: string) => void } = {}) {
   const [open, setOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
-  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const auth = useContext(AuthContext);
+
+  const isLoggedIn = !!auth?.session;
+  const initials = auth?.profile?.initials ?? "G";
+
+  const handleLogout = async () => {
+    await auth?.signOut();
+    setOpen(false);
+  };
 
   return (
     <div className="relative">
@@ -302,7 +304,7 @@ export function ProfileMenu({ onNavigate }: { onNavigate?: (path: string) => voi
               className="w-full h-full flex items-center justify-center text-white text-xs font-bold"
               style={{ background: "linear-gradient(135deg,#E8344E,#ff6b6b)" }}
             >
-              P
+              {initials}
             </span>
           ) : (
             <User size={14} />
@@ -314,29 +316,18 @@ export function ProfileMenu({ onNavigate }: { onNavigate?: (path: string) => voi
         <ProfileDropdown
           isLoggedIn={isLoggedIn}
           onClose={() => setOpen(false)}
-          onLogin={() => setShowPhoneModal(true)}
-          onLogout={() => setIsLoggedIn(false)}
+          onLogin={() => { setShowAuthModal(true); setOpen(false); }}
+          onLogout={handleLogout}
           onNavigate={onNavigate}
         />
       )}
 
-      {/* Phone Modal */}
-      {showPhoneModal && (
-        <PhoneModal
-          onClose={() => setShowPhoneModal(false)}
-          onSuccess={() => setIsLoggedIn(true)}
-          onShowEmail={() => {
-            setShowPhoneModal(false);
-            setShowEmailModal(true);
-          }}
-        />
-      )}
-
-      {/* Email Modal */}
-      {showEmailModal && (
-        <EmailModal
-          onClose={() => setShowEmailModal(false)}
-          onSuccess={() => setIsLoggedIn(true)}
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={() => setShowAuthModal(false)}
+          defaultTab="login"
         />
       )}
     </div>

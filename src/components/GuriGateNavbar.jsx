@@ -1,8 +1,12 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { ProfileMenu } from "./ProfileMenu";
 import { LANGUAGES, useLanguage } from "../lib/language";
 import BecomeHost from "./host-onboarding/Become-host";
+import { PhoneModal } from "./LoginModal";
+import { AuthModal } from "./AuthModal";
+import { AuthContext } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 
 const BRAND = "#BA0036";
 
@@ -388,76 +392,118 @@ function WhenPicker({ onSelect, onClose }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// WHO DROPDOWN — exact logic from WhoDropdown.tsx
+// WHO DROPDOWN
 // ═══════════════════════════════════════════════════════════════════
 const GUEST_TYPES = [
-  { key:"adults",   label:"Adults",   sub:"Ages 13+",         min:0 },
-  { key:"children", label:"Children", sub:"Ages 2–12",        min:0 },
-  { key:"infants",  label:"Infants",  sub:"Under 2",          min:0 },
-  { key:"pets",     label:"Pets",     sub:"Bringing a pet?",  min:0 },
+  { key:"adults",   label:"Adults",   sub:"Ages 13+",                    min:1 },
+  { key:"children", label:"Children", sub:"Ages 2–12",                   min:0 },
+  { key:"infants",  label:"Infants",  sub:"Under 2",                     min:0 },
+  { key:"pets",     label:"Pets",     sub:"Bringing a service animal?",  min:0 },
 ];
 
-function WhoDropdown({ onClose, onSelect }) {
-  const [counts, setCounts] = useState({ adults:1, children:0, infants:0, pets:0 });
+const INITIAL_COUNTS = { adults:1, children:0, infants:0, pets:0 };
+
+function WhoDropdown({ onClose, onSelect, maxGuests=16 }) {
+  const [counts, setCounts] = useState(INITIAL_COUNTS);
   const ref = useRef(null);
+
   useEffect(()=>{
-    const h=e=>{ if(ref.current&&!ref.current.contains(e.target)) onClose(); };
-    document.addEventListener("mousedown",h);
-    return ()=>document.removeEventListener("mousedown",h);
-  },[onClose]);
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [onClose]);
+
+  const guestTotal = counts.adults + counts.children;
 
   const update = (key, delta) => {
-    setCounts(p=>{ const min=GUEST_TYPES.find(g=>g.key===key).min; return{...p,[key]:Math.max(min,p[key]+delta)}; });
+    setCounts(prev => {
+      const row = GUEST_TYPES.find(g => g.key === key);
+      const nextVal = prev[key] + delta;
+      if (nextVal < row.min) return prev;
+      // enforce maxGuests for adults + children combined
+      if (delta > 0 && (key === "adults" || key === "children")) {
+        const nextTotal = (key === "adults" ? nextVal : prev.adults) + (key === "children" ? nextVal : prev.children);
+        if (nextTotal > maxGuests) return prev;
+      }
+      return { ...prev, [key]: nextVal };
+    });
   };
 
   const total = counts.adults + counts.children;
-  const summary = total===0 ? "Add guests" : [
-    total>0 && `${total} guest${total!==1?"s":""}`,
-    counts.infants>0 && `${counts.infants} infant${counts.infants!==1?"s":""}`,
-    counts.pets>0 && `${counts.pets} pet${counts.pets!==1?"s":""}`,
+  const applyLabel = total === 0 ? "Add guests" : [
+    total > 0          && `${total} guest${total !== 1 ? "s" : ""}`,
+    counts.infants > 0 && `${counts.infants} infant${counts.infants !== 1 ? "s" : ""}`,
+    counts.pets > 0    && `${counts.pets} pet${counts.pets !== 1 ? "s" : ""}`,
   ].filter(Boolean).join(", ");
 
   return (
-    <div className="who-panel" ref={ref} style={{ position:"absolute", right:0, top:"calc(100% + 10px)", width:320, background:"white", borderRadius:20, boxShadow:"0 24px 60px rgba(0,0,0,.15)", border:"1px solid #f3f4f6", overflow:"hidden", zIndex:200, animation:"ddIn .18s cubic-bezier(.16,1,.3,1) both" }}>
+    <div className="who-panel" ref={ref} style={{ position:"absolute", right:0, top:"calc(100% + 10px)", width:320, background:"white", borderRadius:20, boxShadow:"0 24px 60px rgba(0,0,0,.15)", border:"1px solid #f3f4f6", zIndex:200, animation:"ddIn .18s cubic-bezier(.16,1,.3,1) both" }}>
       {/* Header */}
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"13px 16px", borderBottom:"1px solid #f3f4f6" }}>
         <p style={{ fontSize:13.5, fontWeight:600, color:"#1f2937", margin:0 }}>Guests</p>
-        <button onClick={onClose} style={{ width:26, height:26, borderRadius:"50%", border:"none", background:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:"#9ca3af", transition:"background .12s" }} onMouseEnter={e=>e.currentTarget.style.background="#f3f4f6"} onMouseLeave={e=>e.currentTarget.style.background="none"}>{XIcon(13)}</button>
+        <button type="button" onClick={onClose} style={{ width:26, height:26, borderRadius:"50%", border:"none", background:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:"#9ca3af", transition:"background .12s" }} onMouseEnter={e=>e.currentTarget.style.background="#f3f4f6"} onMouseLeave={e=>e.currentTarget.style.background="none"}>{XIcon(13)}</button>
       </div>
 
       {/* Counters */}
       <div style={{ padding:"8px 16px 4px" }}>
-        {GUEST_TYPES.map(({key,label,sub,min},i)=>(
-          <div key={key}>
-            {i>0 && <div style={{ height:1, background:"#f3f4f6", margin:"4px 0" }}/>}
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0" }}>
-              <div>
-                <p style={{ fontSize:13.5, fontWeight:600, color:"#1f2937", margin:0 }}>{label}</p>
-                <p style={{ fontSize:11.5, color:"#9ca3af", margin:"2px 0 0" }}>{sub}</p>
-              </div>
-              <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-                <button onClick={()=>update(key,-1)} disabled={counts[key]<=min} style={{ width:32, height:32, borderRadius:"50%", border:`1px solid ${counts[key]>min?"#d1d5db":"#f3f4f6"}`, background:"white", cursor:counts[key]<=min?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:counts[key]>min?"#374151":"#d1d5db", transition:"all .15s", fontFamily:"inherit" }}
-                  onMouseEnter={e=>{ if(counts[key]>min){e.currentTarget.style.borderColor=BRAND;e.currentTarget.style.color=BRAND;} }}
-                  onMouseLeave={e=>{ if(counts[key]>min){e.currentTarget.style.borderColor="#d1d5db";e.currentTarget.style.color="#374151";} }}>
-                  <MinusIcon/>
-                </button>
-                <span style={{ width:20, textAlign:"center", fontSize:13.5, fontWeight:600, color:"#1f2937" }}>{counts[key]}</span>
-                <button onClick={()=>update(key,1)} style={{ width:32, height:32, borderRadius:"50%", border:"1px solid #d1d5db", background:"white", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:"#374151", transition:"all .15s", fontFamily:"inherit" }}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor=BRAND;e.currentTarget.style.color=BRAND;}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor="#d1d5db";e.currentTarget.style.color="#374151";}}>
-                  <PlusIcon/>
-                </button>
+        {GUEST_TYPES.map(({ key, label, sub, min }, i) => {
+          const val = counts[key];
+          const canDec = val > min;
+          const atGuestMax = (key === "adults" || key === "children") && guestTotal >= maxGuests;
+          const canInc = !atGuestMax;
+          return (
+            <div key={key}>
+              {i > 0 && <div style={{ height:1, background:"#f3f4f6", margin:"4px 0" }}/>}
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0" }}>
+                <div>
+                  <p style={{ fontSize:13.5, fontWeight:600, color:"#1f2937", margin:0 }}>{label}</p>
+                  <p style={{ fontSize:11.5, color:"#9ca3af", margin:"2px 0 0" }}>{sub}</p>
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+                  {/* Decrement */}
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); update(key, -1); }}
+                    disabled={!canDec}
+                    style={{ width:32, height:32, borderRadius:"50%", border:`1px solid ${canDec?"#d1d5db":"#f3f4f6"}`, background:"white", cursor:canDec?"pointer":"not-allowed", display:"flex", alignItems:"center", justifyContent:"center", color:canDec?"#374151":"#d1d5db", transition:"all .15s", fontFamily:"inherit" }}
+                    onMouseEnter={e=>{ if(canDec){e.currentTarget.style.borderColor=BRAND;e.currentTarget.style.color=BRAND;} }}
+                    onMouseLeave={e=>{ if(canDec){e.currentTarget.style.borderColor="#d1d5db";e.currentTarget.style.color="#374151";} }}
+                  >
+                    <MinusIcon/>
+                  </button>
+
+                  <span style={{ width:20, textAlign:"center", fontSize:13.5, fontWeight:600, color:"#1f2937", userSelect:"none" }}>{val}</span>
+
+                  {/* Increment */}
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); update(key, 1); }}
+                    disabled={!canInc}
+                    style={{ width:32, height:32, borderRadius:"50%", border:`1px solid ${canInc?"#d1d5db":"#f3f4f6"}`, background:"white", cursor:canInc?"pointer":"not-allowed", display:"flex", alignItems:"center", justifyContent:"center", color:canInc?"#374151":"#d1d5db", transition:"all .15s", fontFamily:"inherit" }}
+                    onMouseEnter={e=>{ if(canInc){e.currentTarget.style.borderColor=BRAND;e.currentTarget.style.color=BRAND;} }}
+                    onMouseLeave={e=>{ if(canInc){e.currentTarget.style.borderColor="#d1d5db";e.currentTarget.style.color="#374151";} }}
+                  >
+                    <PlusIcon/>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+
+      {/* Max guests notice */}
+      {guestTotal >= maxGuests && (
+        <p style={{ fontSize:11.5, color:BRAND, padding:"0 16px 8px", margin:0 }}>
+          This property allows a maximum of {maxGuests} guests.
+        </p>
+      )}
 
       {/* Footer */}
       <div style={{ padding:"8px 16px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", borderTop:"1px solid #f3f4f6" }}>
-        <button onClick={()=>setCounts({adults:0,children:0,infants:0,pets:0})} style={{ fontSize:12, fontWeight:600, color:"#6b7280", background:"none", border:"none", cursor:"pointer", textDecoration:"underline", textUnderlineOffset:2, fontFamily:"inherit" }}>Clear all</button>
-        <button onClick={()=>{onSelect(summary,counts);onClose();}} style={{ fontSize:12, fontWeight:700, background:BRAND, color:"white", border:"none", borderRadius:50, padding:"8px 18px", cursor:"pointer", fontFamily:"inherit" }}>
-          Apply · {summary}
+        <button type="button" onClick={() => setCounts(INITIAL_COUNTS)} style={{ fontSize:12, fontWeight:600, color:"#6b7280", background:"none", border:"none", cursor:"pointer", textDecoration:"underline", textUnderlineOffset:2, fontFamily:"inherit" }}>Clear all</button>
+        <button type="button" onClick={() => { onSelect(applyLabel, counts); onClose(); }} style={{ fontSize:12, fontWeight:700, background:BRAND, color:"white", border:"none", borderRadius:50, padding:"8px 18px", cursor:"pointer", fontFamily:"inherit" }}>
+          Apply · {applyLabel}
         </button>
       </div>
     </div>
@@ -502,9 +548,14 @@ export default function GuriGateNavbar() {
   const [whenLbl,   setWhenLbl]   = useState("");
   const [whoLbl,    setWhoLbl]    = useState("");
   const [showHostModal, setShowHostModal] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [redirectAfterAuth, setRedirectAfterAuth] = useState(null);
   const { language, setLanguage } = useLanguage();
   const navRef = useRef(null);
   const navigate = useNavigate();
+  const auth = useContext(AuthContext);
 
   // Close search dropdowns on outside click
   useEffect(()=>{
@@ -525,16 +576,24 @@ export default function GuriGateNavbar() {
 
   const handleGuestSelect = (summary) => setWhoLbl(summary === "Add guests" ? "" : summary);
 
-  const handleNavClick = (label) => {
+  const handleNavClick = async (label) => {
     setActiveNav(label);
     switch(label) {
       case "Homes":
         navigate("/");
         break;
       case "Manage Property":
-        navigate("/manage-property");
+        // Check authentication before navigating to manage-property
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          // Show auth modal and set redirect URL
+          setAuthModalOpen(true);
+          setRedirectAfterAuth("/manage-property");
+        } else {
+          navigate("/manage-property");
+        }
         break;
-      case "Services":
+      case "Support":
         // Navigate to services page when available
         break;
       default:
@@ -609,7 +668,7 @@ export default function GuriGateNavbar() {
 
           {/* Center nav */}
           <nav className="nav-center" style={{ display:"flex", alignItems:"center", gap:2, height:"100%" }}>
-            {[{l:"Homes",i:<HomeIcon/>},{l:"Manage Property",i:<CompassIcon/>,badge:"NEW"},{l:"Services",i:<BldgIcon/>,badge:"NEW"}].map(({l,i,badge})=>{
+            {[{l:"Homes",i:<img src="/home2.svg" alt="" width="15" height="15" />},{l:"Manage Property",i:<CompassIcon/>,badge:"NEW"},{l:"Support",i:<BldgIcon/>,badge:"NEW"}].map(({l,i,badge})=>{
               const a=activeNav===l;
               return (
                 <button key={l} onClick={()=>handleNavClick(l)} style={{ display:"flex", alignItems:"center", gap:6, padding:"0 15px", height:"100%", border:"none", background:"none", cursor:"pointer", fontSize:13.5, fontWeight:a?700:500, color:a?"#111827":"#6b7280", borderBottom:a?`2.5px solid ${BRAND}`:"2.5px solid transparent", position:"relative", transition:"color .15s", fontFamily:"inherit" }}
@@ -625,7 +684,13 @@ export default function GuriGateNavbar() {
 
           {/* Right side */}
           <div className="nav-actions" style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
-            <button className="host-button" onClick={() => setShowHostModal(true)} style={{ fontSize:13, fontWeight:600, color:"#374151", background:"none", border:"none", cursor:"pointer", padding:"7px 12px", borderRadius:10, transition:"background .15s", fontFamily:"inherit" }}
+            <button className="host-button" onClick={() => {
+              if (auth?.session) {
+                navigate('/become-a-host');
+              } else {
+                setShowEmailModal(true);
+              }
+            }} style={{ fontSize:13, fontWeight:600, color:"#374151", background:"none", border:"none", cursor:"pointer", padding:"7px 12px", borderRadius:10, transition:"background .15s", fontFamily:"inherit" }}
               onMouseEnter={e=>e.currentTarget.style.background="#f9fafb"}
               onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
               Become a host
@@ -647,7 +712,7 @@ export default function GuriGateNavbar() {
           </div>
         </div>
         <div className="mobile-tabs-row" style={{ display:"none", gap:10, overflowX:"auto", padding:"0 16px 14px", maxWidth:1200, margin:"0 auto" }}>
-          {[{l:"Homes",i:<HomeIcon/>},{l:"Manage Property",i:<CompassIcon/>,badge:"NEW"},{l:"Services",i:<BldgIcon/>,badge:"NEW"}].map(({l,i,badge})=>{
+          {[{l:"Homes",i:<img src="/home2.svg" alt="" width="15" height="15" />},{l:"Manage Property",i:<CompassIcon/>,badge:"NEW"},{l:"Support",i:<BldgIcon/>,badge:"NEW"}].map(({l,i,badge})=>{
             const a=activeNav===l;
             return (
               <button key={`mobile-${l}`} onClick={()=>handleNavClick(l)} style={{ display:"flex", alignItems:"center", gap:6, whiteSpace:"nowrap", padding:"8px 14px", borderRadius:999, border:a?`1.5px solid ${BRAND}`:"1.5px solid #e5e7eb", background:a?"rgba(186,0,54,0.08)":"white", color:a?BRAND:"#6b7280", fontSize:13, fontWeight:a?700:500, position:"relative", cursor:"pointer", flexShrink:0 }}>
@@ -726,6 +791,35 @@ export default function GuriGateNavbar() {
             <BecomeHost />
           </div>
         </div>
+      )}
+
+      {/* Auth modal — shown when unauthenticated user clicks Become a host */}
+      {showEmailModal && (
+        <AuthModal
+          onClose={() => setShowEmailModal(false)}
+          onSuccess={async () => {
+            setShowEmailModal(false);
+            try { await auth?.refreshProfile(); } catch (e) {}
+            navigate('/become-a-host');
+          }}
+          defaultTab="signup"
+        />
+      )}
+
+      {/* Auth modal — shown when unauthenticated user clicks Manage Property */}
+      {authModalOpen && (
+        <AuthModal
+          onClose={() => setAuthModalOpen(false)}
+          onSuccess={async () => {
+            setAuthModalOpen(false);
+            try { await auth?.refreshProfile(); } catch (e) {}
+            if (redirectAfterAuth) {
+              navigate(redirectAfterAuth);
+              setRedirectAfterAuth(null);
+            }
+          }}
+          defaultTab="login"
+        />
       )}
     </div>
   );

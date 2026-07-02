@@ -9,6 +9,10 @@ export interface DashboardKPIs {
   totalUsers: number
   totalHosts: number
   pendingPayments: number
+  residentialCount: number
+  commercialCount: number
+  landCount: number
+  hospitalityCount: number
 }
 
 // Property interfaces
@@ -31,6 +35,7 @@ export interface AdminProperty {
   deleted_at?: string
   deleted_by?: string
   created_at: string
+  property_category?: 'residential' | 'commercial' | 'land' | 'hospitality'
 }
 
 // Booking interfaces
@@ -95,20 +100,109 @@ export interface AdminUser {
   deleted_at?: string
   deleted_by?: string
   created_at: string
+  properties_count?: number
+  bookings_count?: number
 }
 
 export class AdminService {
   // Dashboard
   static async getDashboardKPIs(): Promise<DashboardKPIs> {
-    // Mock implementation - replace with actual Supabase queries
-    return {
-      totalProperties: 156,
-      pendingApprovals: 23,
-      activeBookings: 89,
-      totalRevenue: 45230,
-      totalUsers: 1243,
-      totalHosts: 45,
-      pendingPayments: 15
+    try {
+      // Get total properties and category breakdown
+      const { data: propertiesData, error: propertiesError } = await supabase
+        .from('properties')
+        .select('property_category')
+        .is('deleted_at', null)
+
+      if (propertiesError) throw propertiesError
+
+      const totalProperties = propertiesData.length
+      const residentialCount = propertiesData.filter(p => p.property_category === 'residential').length
+      const commercialCount = propertiesData.filter(p => p.property_category === 'commercial').length
+      const landCount = propertiesData.filter(p => p.property_category === 'land').length
+      const hospitalityCount = propertiesData.filter(p => p.property_category === 'hospitality').length
+
+      // Get pending approvals
+      const { count: pendingApprovals, error: pendingError } = await supabase
+        .from('properties')
+        .select('*', { count: 'exact', head: true })
+        .eq('approval_status', 'pending')
+        .is('deleted_at', null)
+
+      if (pendingError) throw pendingError
+
+      // Get total users
+      const { count: totalUsers, error: usersError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .is('deleted_at', null)
+
+      if (usersError) throw usersError
+
+      // Get total hosts
+      const { count: totalHosts, error: hostsError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'host')
+        .is('deleted_at', null)
+
+      if (hostsError) throw hostsError
+
+      // Get active bookings
+      const { count: activeBookings, error: bookingsError } = await supabase
+        .from('property_bookings')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'confirmed')
+
+      if (bookingsError) throw bookingsError
+
+      // Get pending payments
+      const { count: pendingPayments, error: paymentsError } = await supabase
+        .from('payments')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['pending', 'submitted'])
+
+      if (paymentsError) throw paymentsError
+
+      // Get total revenue (sum of confirmed bookings)
+      const { data: revenueData, error: revenueError } = await supabase
+        .from('property_bookings')
+        .select('total_price')
+        .eq('status', 'confirmed')
+
+      if (revenueError) throw revenueError
+
+      const totalRevenue = revenueData.reduce((sum, booking) => sum + (booking.total_price || 0), 0)
+
+      return {
+        totalProperties,
+        pendingApprovals: pendingApprovals || 0,
+        activeBookings: activeBookings || 0,
+        totalRevenue,
+        totalUsers: totalUsers || 0,
+        totalHosts: totalHosts || 0,
+        pendingPayments: pendingPayments || 0,
+        residentialCount,
+        commercialCount,
+        landCount,
+        hospitalityCount,
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard KPIs:', error)
+      // Return zeros on error
+      return {
+        totalProperties: 0,
+        pendingApprovals: 0,
+        activeBookings: 0,
+        totalRevenue: 0,
+        totalUsers: 0,
+        totalHosts: 0,
+        pendingPayments: 0,
+        residentialCount: 0,
+        commercialCount: 0,
+        landCount: 0,
+        hospitalityCount: 0,
+      }
     }
   }
 
@@ -132,6 +226,7 @@ export class AdminService {
         deleted_at,
         deleted_by,
         created_at,
+        property_category,
         property_images (image_url),
         profiles!owner_id (
           first_name,
@@ -163,7 +258,8 @@ export class AdminService {
       rejection_reason: property.rejection_reason,
       deleted_at: property.deleted_at,
       deleted_by: property.deleted_by,
-      created_at: property.created_at
+      created_at: property.created_at,
+      property_category: property.property_category,
     }))
   }
 
@@ -186,6 +282,7 @@ export class AdminService {
         deleted_at,
         deleted_by,
         created_at,
+        property_category,
         property_images (image_url),
         profiles!owner_id (
           first_name,
@@ -221,7 +318,8 @@ export class AdminService {
       rejection_reason: property.rejection_reason,
       deleted_at: property.deleted_at,
       deleted_by: property.deleted_by,
-      created_at: property.created_at
+      created_at: property.created_at,
+      property_category: property.property_category,
     }))
   }
 
@@ -299,6 +397,7 @@ export class AdminService {
         deleted_at,
         deleted_by,
         created_at,
+        property_category,
         property_images (image_url),
         profiles!owner_id (
           first_name,
@@ -330,7 +429,8 @@ export class AdminService {
       rejection_reason: property.rejection_reason,
       deleted_at: property.deleted_at,
       deleted_by: property.deleted_by,
-      created_at: property.created_at
+      created_at: property.created_at,
+      property_category: property.property_category,
     }))
   }
 
@@ -608,8 +708,7 @@ export class AdminService {
         deleted_at,
         deleted_by,
         created_at,
-        properties!owner_id (count),
-        property_bookings!guest_id (count)
+        properties!owner_id (count)
       `)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
@@ -644,7 +743,7 @@ export class AdminService {
       deleted_at: user.deleted_at,
       deleted_by: user.deleted_by,
       properties_count: user.properties?.[0]?.count || 0,
-      bookings_count: user.property_bookings?.[0]?.count || 0,
+      bookings_count: 0, // Will be calculated separately
       created_at: user.created_at
     }))
   }

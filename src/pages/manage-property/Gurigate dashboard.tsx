@@ -1,13 +1,23 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from 'react-router-dom';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, PieChart, Pie, Cell, Legend, Label, RadialBarChart, RadialBar, PolarRadiusAxis, PolarGrid } from 'recharts';
+import { UserRoundCog, ShieldUser } from "lucide-react";
 
 // Import page components
 import GuriGateRentals from "./Gurigate rentals";
 import GuriGateOrders from "./Gurigate orders";
 import GuriGateTransaction from "./Gurigate transaction";
-import GuriGateDiscover from "./Gurigate discover";
 import GuriGateProperty from "./Gurigate property";
 import CustomersPage from "@/pages/admin/CustomersPage";
+import ProfilePage from "./ProfilePage";
+import AdminBookings from "@/pages/admin/AdminBookings";
+import AdminTransactions from "@/pages/admin/AdminTransactions";
+import AdminHosts from "@/pages/admin/AdminHosts";
+import AdminGuests from "@/pages/admin/AdminGuests";
+import AdminVerifications from "@/pages/admin/AdminVerifications";
+import AdminDisputes from "@/pages/admin/AdminDisputes";
+import AdminReports from "@/pages/admin/AdminReports";
+import AdminNotifications from "@/pages/admin/AdminNotifications";
 
 
 // Import modal
@@ -79,56 +89,140 @@ function BarSparkline({ data, color }: { data: number[]; color: string }) {
 }
 
           
-// ── Sales Analytics Line Chart ────────────────────────────────────────────────
+// ── Sales Analytics Line Chart (Recharts) ────────────────────────────────────────
 function SalesChart() {
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const income = [2000,4500,3200,6000,5500,14000,7000,8500,6800,5200,7800,9500];
-  const expenses = [1200,2000,1800,2500,2200,3000,2600,3200,2800,2400,3100,3600];
-  const W = 560, H = 160, PL = 30, PR = 10, PT = 10, PB = 30;
-  const chartW = W - PL - PR, chartH = H - PT - PB;
-  const maxV = Math.max(...income);
-
-  const toX = (i: number) => PL + (i / (months.length - 1)) * chartW;
-  const toY = (v: number) => PT + chartH - (v / maxV) * chartH;
-
-  const incomePts = income.map((v,i)=>`${toX(i)},${toY(v)}`);
-  const expPts = expenses.map((v,i)=>`${toX(i)},${toY(v)}`);
-  const incomeArea = `M ${incomePts.join(" L ")} L ${toX(months.length-1)},${PT+chartH} L ${PL},${PT+chartH} Z`;
-  const incomeL = `M ${incomePts.join(" L ")}`;
-  const expL = `M ${expPts.join(" L ")}`;
-
-  const activeIdx = 5; // Jun highlighted
+  const data = [
+    { month: "Jan", income: 2000, expenses: 1200 },
+    { month: "Feb", income: 4500, expenses: 2000 },
+    { month: "Mar", income: 3200, expenses: 1800 },
+    { month: "Apr", income: 6000, expenses: 2500 },
+    { month: "May", income: 5500, expenses: 2200 },
+    { month: "Jun", income: 14000, expenses: 3000 },
+    { month: "Jul", income: 7000, expenses: 2600 },
+    { month: "Aug", income: 8500, expenses: 3200 },
+    { month: "Sep", income: 6800, expenses: 2800 },
+    { month: "Oct", income: 5200, expenses: 2400 },
+    { month: "Nov", income: 7800, expenses: 3100 },
+    { month: "Dec", income: 9500, expenses: 3600 },
+  ];
 
   return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <linearGradient id="ig" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#E8344E" stopOpacity="0.2"/>
-          <stop offset="100%" stopColor="#E8344E" stopOpacity="0.01"/>
-        </linearGradient>
-      </defs>
-      {/* Gridlines */}
-      {[0,0.25,0.5,0.75,1].map((p,i) => (
-        <line key={i} x1={PL} y1={PT + p*chartH} x2={W-PR} y2={PT + p*chartH} stroke="#F3F4F6" strokeWidth="1"/>
-      ))}
-      {/* Y labels */}
-      {[0,5000,10000,15000].map((v,i) => (
-        <text key={i} x={PL-4} y={toY(v)+4} textAnchor="end" fontSize="7" fill="#9CA3AF">{v===0?"0":v>=1000?`${v/1000}k`:v}</text>
-      ))}
-      {/* Area */}
-      <path d={incomeArea} fill="url(#ig)"/>
-      {/* Lines */}
-      <path d={incomeL} stroke="#E8344E" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d={expL} stroke="#93C5FD" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="4 3"/>
-      {/* Active dot */}
-      <circle cx={toX(activeIdx)} cy={toY(income[activeIdx])} r="5" fill="#E8344E" stroke="white" strokeWidth="2"/>
-      {/* Active vertical */}
-      <line x1={toX(activeIdx)} y1={PT} x2={toX(activeIdx)} y2={PT+chartH} stroke="#E8344E" strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.5"/>
-      {/* X labels */}
-      {months.map((m,i) => (
-        <text key={i} x={toX(i)} y={H-6} textAnchor="middle" fontSize="7.5" fill={i===activeIdx?"#E8344E":"#9CA3AF"} fontWeight={i===activeIdx?"700":"400"}>{m}</text>
-      ))}
-    </svg>
+    <ResponsiveContainer width="100%" height={160}>
+      <AreaChart data={data}>
+        <defs>
+          <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#E8344E" stopOpacity={0.2}/>
+            <stop offset="100%" stopColor="#E8344E" stopOpacity={0.01}/>
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="0" vertical={false} stroke="#F3F4F6" />
+        <XAxis 
+          dataKey="month" 
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: '#9CA3AF' }}
+          tickFormatter={(value, index) => index === 5 ? value : value}
+        />
+        <YAxis 
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: '#9CA3AF' }}
+          tickFormatter={(value) => value >= 1000 ? `${value/1000}k` : value}
+        />
+        <Tooltip 
+          contentStyle={{ 
+            background: 'white', 
+            border: '1px solid #F1F5F9', 
+            borderRadius: '8px',
+            fontSize: '12px'
+          }}
+        />
+        <Area 
+          type="monotone" 
+          dataKey="income" 
+          stroke="#E8344E" 
+          strokeWidth={2}
+          fill="url(#incomeGradient)"
+        />
+        <Line 
+          type="monotone" 
+          dataKey="expenses" 
+          stroke="#93C5FD" 
+          strokeWidth={1.5}
+          strokeDasharray="4 3"
+          dot={false}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ── Goals Radial Stacked Chart (Recharts) ────────────────────────────────────────
+function GoalsChart() {
+  const chartData = [{ month: "january", mobile: 570, desktop: 1260 }];
+  const totalVisitors = chartData[0].desktop + chartData[0].mobile;
+
+  return (
+    <ResponsiveContainer width="100%" height={200}>
+      <RadialBarChart
+        data={chartData}
+        endAngle={180}
+        innerRadius={60}
+        outerRadius={80}
+        cx="50%"
+        cy="80%"
+      >
+        <RadialBar
+          dataKey="mobile"
+          fill="#F59E0B"
+          stackId="a"
+          cornerRadius={5}
+          className="stroke-transparent stroke-2"
+        />
+        <RadialBar
+          dataKey="desktop"
+          stackId="a"
+          cornerRadius={5}
+          fill="#E8344E"
+          className="stroke-transparent stroke-2"
+        />
+        <Tooltip 
+          cursor={false}
+          contentStyle={{ 
+            background: 'white', 
+            border: '1px solid #F1F5F9', 
+            borderRadius: '8px',
+            fontSize: '12px'
+          }}
+        />
+        <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
+          <Label
+            content={({ viewBox }) => {
+              if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                return (
+                  <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle">
+                    <tspan
+                      x={viewBox.cx}
+                      y={(viewBox.cy || 0) - 16}
+                      style={{ fontSize: '20px', fontWeight: 700, fill: '#1F2937' }}
+                    >
+                      {totalVisitors.toLocaleString()}
+                    </tspan>
+                    <tspan
+                      x={viewBox.cx}
+                      y={(viewBox.cy || 0) + 4}
+                      style={{ fontSize: '12px', fill: '#9CA3AF' }}
+                    >
+                      Visitors
+                    </tspan>
+                  </text>
+                )
+              }
+            }}
+          />
+        </PolarRadiusAxis>
+      </RadialBarChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -143,13 +237,14 @@ const INITIAL_TRANSACTIONS = [
 
 const NAV_ITEMS = [
   { label:"Dashboard", icon:<Icon.Grid/>, section:"main" },
-  { label:"Discover", icon:<Icon.Compass/>, section:"main" },
-  { label:"Property", icon:<Icon.Building/>, section:"main" },
-  { label:"Rentals", icon:<Icon.Home/>, section:"main" },
-  { label:"Customer", icon:<Icon.User/>, section:"main" },
-  { label:"Orders", icon:<Icon.ShoppingBag/>, section:"main" },
-  { label:"Transaction", icon:<Icon.CreditCard/>, section:"main", active:true },
-  { label:"Settings", icon:<Icon.Settings/>, section:"apps" },
+  { label:"Properties", icon:<Icon.Building/>, section:"main" },
+  { label:"Customers", icon:<UserRoundCog size={16}/>, section:"main" },
+  { label:"Leases", icon:<Icon.Home/>, section:"main" },
+  { label:"Payments", icon:<Icon.CreditCard/>, section:"main" },
+  { label:"Transactions", icon:<Icon.CreditCard/>, section:"main" },
+  { label:"Documents", icon:<Icon.Inbox/>, section:"main" },
+  { label:"Reports", icon:<Icon.BarChart/>, section:"main" },
+  { label:"Settings", icon:<Icon.Settings/>, section:"configuration" },
 ];
 
 const STATUS_COLORS = {
@@ -338,6 +433,8 @@ function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: a
           <h2 style={{ fontSize:20, fontWeight:700 }}>Edit Transaction</h2>
           <button 
             onClick={onClose}
+            aria-label="Close edit transaction modal"
+            title="Close"
             style={{ background:"none", border:"none", cursor:"pointer", color:"#9CA3AF", padding:4 }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -346,11 +443,13 @@ function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: a
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom:16 }}>
-            <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Property Name</label>
+            <label htmlFor="property-name" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Property Name</label>
             <input
+              id="property-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Enter property name"
               style={{ 
                 width:"100%", 
                 padding:"10px 12px", 
@@ -364,10 +463,12 @@ function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: a
           </div>
 
           <div style={{ marginBottom:16 }}>
-            <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Property Type</label>
+            <label htmlFor="property-type" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Property Type</label>
             <select
+              id="property-type"
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              title="Select property type"
               style={{ 
                 width:"100%", 
                 padding:"10px 12px", 
@@ -387,10 +488,12 @@ function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: a
           </div>
 
           <div style={{ marginBottom:16 }}>
-            <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Transaction Type</label>
+            <label htmlFor="transaction-type" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Transaction Type</label>
             <select
+              id="transaction-type"
               value={formData.txn}
               onChange={(e) => setFormData({ ...formData, txn: e.target.value })}
+              title="Select transaction type"
               style={{ 
                 width:"100%", 
                 padding:"10px 12px", 
@@ -408,11 +511,13 @@ function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: a
           </div>
 
           <div style={{ marginBottom:16 }}>
-            <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Customer Name</label>
+            <label htmlFor="customer-name" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Customer Name</label>
             <input
+              id="customer-name"
               type="text"
               value={formData.customer}
               onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
+              placeholder="Enter customer name"
               style={{ 
                 width:"100%", 
                 padding:"10px 12px", 
@@ -426,11 +531,13 @@ function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: a
           </div>
 
           <div style={{ marginBottom:16 }}>
-            <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Date</label>
+            <label htmlFor="transaction-date" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Date</label>
             <input
+              id="transaction-date"
               type="text"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              placeholder="Enter date"
               style={{ 
                 width:"100%", 
                 padding:"10px 12px", 
@@ -444,10 +551,12 @@ function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: a
           </div>
 
           <div style={{ marginBottom:24 }}>
-            <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Status</label>
+            <label htmlFor="status" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Status</label>
             <select
+              id="status"
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              title="Select status"
               style={{ 
                 width:"100%", 
                 padding:"10px 12px", 
@@ -532,8 +641,29 @@ export default function GuriGateDashboard() {
 
   // Sync URL -> active tab (deep link support)
   useEffect(() => {
-    if (location.pathname.endsWith('/manage-property/customers')) {
+    const path = location.pathname;
+    if (path.startsWith('/settings')) {
+      setActiveNav('Settings');
+    } else if (path.endsWith('/manage-property/customers')) {
       setActiveNav('Customer');
+    } else if (path.endsWith('/manage-property/bookings')) {
+      setActiveNav('Bookings');
+    } else if (path.endsWith('/manage-property/transactions')) {
+      setActiveNav('Transactions');
+    } else if (path.endsWith('/manage-property/hosts')) {
+      setActiveNav('Hosts');
+    } else if (path.endsWith('/manage-property/guests')) {
+      setActiveNav('Guests');
+    } else if (path.endsWith('/manage-property/verifications')) {
+      setActiveNav('Verifications');
+    } else if (path.endsWith('/manage-property/disputes')) {
+      setActiveNav('Disputes');
+    } else if (path.endsWith('/manage-property/reports')) {
+      setActiveNav('Reports');
+    } else if (path.endsWith('/manage-property/notifications')) {
+      setActiveNav('Notifications');
+    } else if (path.endsWith('/manage-property/settings')) {
+      setActiveNav('Settings');
     }
   }, [location.pathname]);
 
@@ -577,24 +707,22 @@ export default function GuriGateDashboard() {
   // Routing function to render different pages
   const renderPage = () => {
     switch (activeNav) {
-      case "Rentals":
-        return <GuriGateRentals />;
-      case "Orders":
-        return <GuriGateOrders />;
-      case "Transaction":
-        return <GuriGateTransaction />;
-      case "Discover":
-        return <GuriGateDiscover />;
-      case "Property":
+      case "Properties":
         return <GuriGateProperty />;
-      case "Agents":
-        return <ComingSoonPage title="Agents" icon={<Icon.Users/>} description="Manage your real estate agents and their performance" />;
-      case "Customer":
+      case "Customers":
         return <CustomersPage />;
-      case "Analytics":
-        return <ComingSoonPage title="Analytics" icon={<Icon.BarChart/>} description="Detailed insights and analytics for your properties" />;
+      case "Leases":
+        return <GuriGateRentals />;
+      case "Payments":
+        return <GuriGateTransaction />;
+      case "Transactions":
+        return <ComingSoonPage title="Transactions" icon={<Icon.CreditCard/>} description="Activity history for lease payments and lease actions" />;
+      case "Documents":
+        return <ComingSoonPage title="Documents" icon={<Icon.Inbox/>} description="Upload and manage lease documents" />;
+      case "Reports":
+        return <ComingSoonPage title="Reports" icon={<Icon.BarChart/>} description="Property management reports and analytics" />;
       case "Settings":
-        return <ComingSoonPage title="Settings" icon={<Icon.Settings/>} description="Manage your account and application settings" />;
+        return <ProfilePage />;
       default:
         // Default Dashboard content
         return (
@@ -617,15 +745,15 @@ export default function GuriGateDashboard() {
             {/* Stat cards */}
             <div style={{ display:"grid", gridTemplateColumns:isMobile ? "1fr" : isTablet ? "repeat(2,1fr)" : "repeat(4,1fr)", gap:14, marginBottom:20 }}>
               {[
-                { label:"No. Of Rooms", value:"2,454", change:"+7.0%", data:[20,35,25,45,30,60,40,55,42,65,50,70], type:"bar", color:"#E8344E" },
-                { label:"Register Rooms", value:"1,854", change:"+7.0%", data:[30,25,40,35,50,30,45,55,40,60,50,65], type:"line", color:"#E8344E" },
-                { label:"Customers", value:"2,454", change:"+7.0%", data:[25,40,30,50,35,55,40,60,45,65,50,70], type:"bar", color:"#E8344E" },
-                { label:"Revenue", value:"$78.02M", change:"+9.0%", data:[40,35,45,30,50,40,55,45,60,50,65,55], type:"line", color:"#E8344E" },
+                { label:"Total Revenue", value:"$12,450", change:"+12.5%", data:[40,35,45,30,50,40,55,45,60,50,65,55], type:"line", color:"#E8344E" },
+                { label:"Occupied Units", value:"8", change:"+5.0%", data:[20,35,25,45,30,60,40,55,42,65,50,70], type:"bar", color:"#10B981" },
+                { label:"Vacant Units", value:"4", change:"-20.0%", data:[30,25,40,35,50,30,45,55,40,60,50,65], type:"bar", color:"#F59E0B" },
+                { label:"Active Leases", value:"8", change:"+5.0%", data:[25,40,30,50,35,55,40,60,45,65,50,70], type:"line", color:"#3B82F6" },
               ].map((card: any) => (
                 <div key={card.label} className="stat-card" style={{ background:"white", border:"1px solid #F1F5F9" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
                     <div style={{ width:32, height:32, background:"#FEF2F2", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      {card.label.includes("Revenue") ? <Icon.CreditCard/> : card.label.includes("Agent") ? <Icon.Users/> : card.label.includes("Customer") ? <Icon.User/> : <Icon.Building/>}
+                      {card.label.includes("Revenue") ? <Icon.CreditCard/> : card.label.includes("Units") ? <Icon.Building/> : card.label.includes("Leases") ? <Icon.Home/> : <Icon.User/>}
                     </div>
                     {card.type === "bar"
                       ? <BarSparkline data={card.data} color={card.color}/>
@@ -635,8 +763,8 @@ export default function GuriGateDashboard() {
                   <p style={{ fontSize:11, color:"#9CA3AF", marginBottom:4 }}>{card.label}</p>
                   <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                     <span style={{ fontSize:20, fontWeight:700, letterSpacing:"-0.5px" }}>{card.value}</span>
-                    <span className="badge" style={{ background:"#ECFDF5", color:"#059669" }}>
-                      <Icon.TrendUp/>{card.change}
+                    <span className="badge" style={{ background:card.change.includes("-") ? "#FEF2F2" : "#ECFDF5", color:card.change.includes("-") ? "#E8344E" : "#059669" }}>
+                      {card.change.includes("-") ? <Icon.TrendDown/> : <Icon.TrendUp/>}{card.change}
                     </span>
                   </div>
                 </div>
@@ -674,29 +802,21 @@ export default function GuriGateDashboard() {
                   <h2 style={{ fontSize:15, fontWeight:700 }}>Goals</h2>
                   <button style={{ background:"none", border:"none", cursor:"pointer", color:"#9CA3AF" }} title="More options"><Icon.MoreVert/></button>
                 </div>
-                <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-                  {[
-                    { icon:"💼", value:"$12,167", label:"From January", color:"#E8344E" },
-                    { icon:"💼", value:"$14,900", label:"From June", color:"#F59E0B" },
-                  ].map((g: any, i: number) => (
-                    <div key={i} style={{ flex:1, background:"#F8F9FC", borderRadius:10, padding:"10px 12px" }}>
-                      <div style={{ width:26, height:26, background:g.color+"20", borderRadius:7, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:6, fontSize:13 }}>💰</div>
-                      <p style={{ fontSize:13, fontWeight:700 }}>{g.value}</p>
-                      <p style={{ fontSize:10, color:"#9CA3AF" }}>{g.label}</p>
+                <GoalsChart/>
+                <div style={{ marginTop:16, paddingTop:16, borderTop:"1px solid #F1F5F9" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:12, fontSize:13, fontWeight:500, color:"#111827", marginBottom:4 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                      <div style={{ width:8, height:8, borderRadius:2, background:"#E8344E" }}/>
+                      <span>desktop: 1,260</span>
                     </div>
-                  ))}
-                </div>
-                {/* Legend */}
-                <div style={{ marginTop:14, display:"flex", flexDirection:"column", gap:5 }}>
-                  {[["#E8344E","Residential","54%"],["#F59E0B","Commercial","12%"],["#3B82F6","Industrial","34%"]].map(([c,l,p]: any) => (
-                    <div key={l} style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                        <div style={{ width:8, height:8, borderRadius:2, background:c }}/>
-                        <span style={{ fontSize:11, color:"#6B7280" }}>{l}</span>
-                      </div>
-                      <span style={{ fontSize:11, fontWeight:600 }}>{p}</span>
+                    <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                      <div style={{ width:8, height:8, borderRadius:2, background:"#F59E0B" }}/>
+                      <span>mobile: 570</span>
                     </div>
-                  ))}
+                  </div>
+                  <p style={{ fontSize:12, color:"#9CA3AF", margin:0 }}>
+                    Showing total visitors for the last 6 months
+                  </p>
                 </div>
               </div>
             </div>
@@ -829,6 +949,7 @@ export default function GuriGateDashboard() {
 
   return (
     <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif", background: "#F8F9FC", minHeight: "100vh", display: "flex", flexDirection: isMobile ? "column" : "row", color: "#111827", overflowX: "hidden" }}>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=verified" />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -847,6 +968,7 @@ export default function GuriGateDashboard() {
         .toggle-switch.on .toggle-knob { transform:translateX(16px); }
         .chart-card { border-radius:16px; padding:20px; }
         input[type=checkbox] { accent-color:#E8344E; width:14px; height:14px; cursor:pointer; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
       `}</style>
 
       {isMobile && sidebarOpen ? (
@@ -881,17 +1003,25 @@ export default function GuriGateDashboard() {
         </div>
 
         {/* Nav sections */}
-        {[["MAIN", NAV_ITEMS.filter((n: any) => n.section==="main")], ["APPS", NAV_ITEMS.filter((n: any) => n.section==="apps")]].map(([label, items]: any) => (
+        {[["RENT MANAGEMENT", NAV_ITEMS.filter((n: any) => n.section==="main")], ["BOOKING", NAV_ITEMS.filter((n: any) => n.section==="booking")], ["CONFIGURATION", NAV_ITEMS.filter((n: any) => n.section==="configuration")]].map(([label, items]: any) => (
           <div key={label} style={{ marginBottom:20 }}>
-            <p style={{ fontSize:14, fontWeight:700, letterSpacing:"0.08em", color:"#9CA3AF", padding:"0 14px 8px" }}>{label}</p>
+            <p style={{ fontSize:14, fontWeight:700, letterSpacing:"0.08em", color:"#111827", padding:"0 14px 8px" }}>{label}</p>
             {items.map((item: any) => (
               <button key={item.label} className={`nav-item${activeNav===item.label?" active":""}`} onClick={()=>{
                   setActiveNav(item.label);
-                  if (item.label === 'Customer') {
-                    navigate('/manage-property/customers');
-                  } else {
-                    navigate('/manage-property');
-                  }
+                  const routeMap: Record<string, string> = {
+                    'Customer': '/manage-property/customers',
+                    'Bookings': '/manage-property/bookings',
+                    'Transactions': '/manage-property/transactions',
+                    'Hosts': '/manage-property/hosts',
+                    'Guests': '/manage-property/guests',
+                    'Verifications': '/manage-property/verifications',
+                    'Disputes': '/manage-property/disputes',
+                    'Reports': '/manage-property/reports',
+                    'Notifications': '/manage-property/notifications',
+                    'Settings': '/settings/profile'
+                  };
+                  navigate(routeMap[item.label] || '/manage-property');
                 }}
                 style={{ color: activeNav===item.label?"#E8344E":"#6B7280" }}>
                 <span style={{ opacity:0.8 }}>{item.icon}</span>{item.label}

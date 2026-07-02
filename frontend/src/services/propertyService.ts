@@ -12,12 +12,16 @@ import { availabilityRepository } from '../repositories/property/availabilityRep
 import { wishlistRepository } from '../repositories/property/wishlistRepository';
 import { PropertyMapper } from '../domain/property/PropertyMapper';
 import { PropertyMetrics } from '../domain/property/PropertyMetrics';
-import {
+import { PropertyType, PropertyStatus } from '../domain/property/PropertyTypes';
+import type { Database } from '@/integrations/supabase/types_utf8';
+import type {
   IPropertyService,
+} from '../domain/property/PropertyServiceContract';
+import {
   PropertyServiceError,
   PropertyServiceErrorCode,
 } from '../domain/property/PropertyServiceContract';
-import {
+import type {
   PropertyFilters,
   PropertyListResult,
   PropertyMetrics as PropertyMetricsType,
@@ -48,15 +52,15 @@ export class PropertyService implements IPropertyService {
         page,
         pageSize,
         ownerId: filters.ownerId,
-        status: filters.status,
-        type: filters.type,
+        status: filters.status === 'all' ? undefined : this.mapStatusToDb(filters.status),
+        type: filters.type === 'all' ? undefined : this.mapTypeToDb(filters.type),
         badge: filters.badge,
         isFeatured: filters.isFeatured,
         isApproved: filters.isApproved,
       });
 
       const properties = data.map((row) =>
-        PropertyMapper.toDomain(row, null, null, null, [], [], [], row.profile)
+        PropertyMapper.toDomain(row, null, null, null, [], [], [], null)
       );
 
       return {
@@ -125,7 +129,7 @@ export class PropertyService implements IPropertyService {
       const ownerId = 'current-user'; // TODO: Get from auth context
 
       const insertData = PropertyMapper.toInsert(input, ownerId);
-      const created = await propertyRepository.createProperty(insertData);
+      const created = await propertyRepository.createProperty(insertData as any);
 
       return this.getPropertyById(created.id);
     } catch (error) {
@@ -208,7 +212,7 @@ export class PropertyService implements IPropertyService {
       });
 
       const properties = data.map((row) =>
-        PropertyMapper.toDomain(row, null, null, null, [], [], [], row.profile)
+        PropertyMapper.toDomain(row, null, null, null, [], [], [], null)
       );
 
       return {
@@ -443,7 +447,7 @@ export class PropertyService implements IPropertyService {
 
       const properties = allProperties.map((row) =>
         new Property(
-          PropertyMapper.toDomain(row, null, null, null, [], [], [], row.profile)
+          PropertyMapper.toDomain(row, null, null, null, [], [], [], null)
         )
       );
 
@@ -639,7 +643,7 @@ export class PropertyService implements IPropertyService {
       });
 
       const properties = data.map((row) =>
-        PropertyMapper.toDomain(row, null, null, null, [], [], [], row.profile)
+        PropertyMapper.toDomain(row, null, null, null, [], [], [], null)
       );
 
       return {
@@ -665,7 +669,7 @@ export class PropertyService implements IPropertyService {
       const properties = await propertyRepository.getFeaturedProperties(limit || 10);
       return properties.map((row) =>
         new Property(
-          PropertyMapper.toDomain(row, null, null, null, [], [], [], row.profile)
+          PropertyMapper.toDomain(row, null, null, null, [], [], [], null)
         )
       );
     } catch (error) {
@@ -688,14 +692,14 @@ export class PropertyService implements IPropertyService {
       const { data } = await propertyRepository.listProperties({
         page: 1,
         pageSize: limit || 5,
-        type: property.type,
+        type: this.mapTypeToDb(property.type),
       });
 
       const similar = data.filter((p: any) => p.id !== propertyId).slice(0, limit || 5);
 
       return similar.map((row) =>
         new Property(
-          PropertyMapper.toDomain(row, null, null, null, [], [], [], row.profile)
+          PropertyMapper.toDomain(row, null, null, null, [], [], [], null)
         )
       );
     } catch (error) {
@@ -738,6 +742,47 @@ export class PropertyService implements IPropertyService {
         error
       );
     }
+  }
+
+  /**
+   * Map domain status to database status
+   */
+  private mapStatusToDb(status?: PropertyStatus | 'all'): Database['public']['Enums']['property_status'] | undefined {
+    if (!status || status === 'all') return undefined;
+    // TODO: Fix schema mismatch between domain and database enums
+    // Domain: AVAILABLE | OCCUPIED | MAINTENANCE | PENDING | INACTIVE
+    // Database: active | draft | pending_approval | archived
+    const mapping: Record<string, Database['public']['Enums']['property_status']> = {
+      available: 'active',
+      occupied: 'archived',
+      maintenance: 'draft',
+      pending: 'pending_approval',
+      inactive: 'archived',
+    };
+    return mapping[status] as Database['public']['Enums']['property_status'];
+  }
+
+  /**
+   * Map domain type to database type
+   */
+  private mapTypeToDb(type?: PropertyType | 'all'): Database['public']['Enums']['property_type'] | undefined {
+    if (!type || type === 'all') return undefined;
+    // TODO: Fix schema mismatch between domain and database enums
+    // Domain: APARTMENT | HOUSE | VILLA | STUDIO | CONDO | TOWNHOUSE | COTTAGE | PENTHOUSE | LOFT | OTHER
+    // Database: apartment | villa | room | shop | office | house
+    const mapping: Record<string, Database['public']['Enums']['property_type']> = {
+      apartment: 'apartment',
+      house: 'house',
+      villa: 'villa',
+      studio: 'room',
+      condo: 'apartment',
+      townhouse: 'house',
+      cottage: 'house',
+      penthouse: 'villa',
+      loft: 'apartment',
+      other: 'house',
+    };
+    return mapping[type] as Database['public']['Enums']['property_type'];
   }
 
   /**

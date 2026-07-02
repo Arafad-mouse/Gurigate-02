@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { PropertyService } from "@/services/properties";
+import { useAuth } from "@/hooks/useAuth";
 
 const Icon = {
   Home: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
@@ -43,6 +45,7 @@ const INITIAL_PROPERTIES = [
 ];
 
 export default function GuriGateProperty() {
+  const { user } = useAuth();
   const [darkMode] = useState(false);
   const [checked, setChecked] = useState<number[]>([]);
   const [properties, setProperties] = useState(INITIAL_PROPERTIES);
@@ -61,6 +64,11 @@ export default function GuriGateProperty() {
     price: "",
     img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=60&q=80"
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
 
   const card = darkMode ? "#1E293B" : "white";
   const border = darkMode ? "#334155" : "#F1F5F9";
@@ -71,13 +79,80 @@ export default function GuriGateProperty() {
   const allChecked = checked.length === properties.length;
   const toggleAll = () => setChecked(allChecked ? [] : properties.map((p) => p.id));
 
-  const handleAddProperty = () => {
-    if (newProperty.name && newProperty.size && newProperty.location && newProperty.price) {
+  const totalPages = Math.ceil(properties.length / itemsPerPage);
+  const paginatedProperties = properties.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handleAddProperty = async () => {
+    if (!user) {
+      setSubmitError("Please log in to add a property");
+      return;
+    }
+
+    if (!newProperty.name || !newProperty.size || !newProperty.location || !newProperty.price) {
+      setSubmitError("Please fill in all required fields");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(false);
+
+    try {
+      console.log('Current user:', user);
+      
+      // Parse price to extract numeric value
+      const numericPrice = parseInt(newProperty.price.replace(/[^0-9]/g, "")) || 0;
+      
+      // Map status to badge
+      const badgeMap: { [key: string]: any } = {
+        'Rent': 'FOR_RENT',
+        'Sale': 'FOR_SALE',
+        'Sold': 'FOR_SALE'
+      };
+
+      // Transform form data to match PropertyService interface
+      const propertyData = {
+        title: newProperty.name,
+        description: `Beautiful ${newProperty.type} located in ${newProperty.location}. Size: ${newProperty.size}.`,
+        type: newProperty.type.toLowerCase() as any,
+        badge: badgeMap[newProperty.status] || 'FOR_RENT',
+        price_unit_label: newProperty.status === 'Sale' ? 'total' : 'per_night',
+        address: {
+          street: newProperty.location,
+          city: newProperty.location,
+          state: "",
+          postal_code: "",
+          country: ""
+        },
+        pricing: {
+          base_price: numericPrice,
+          currency: "USD",
+          pricing_type: (newProperty.status === 'Sale' ? 'sale' : 'nightly') as 'sale' | 'nightly' | 'monthly'
+        },
+        features: {
+          bedrooms: newProperty.beds,
+          bathrooms: 1,
+          max_guests: newProperty.beds * 2,
+          square_feet: parseInt(newProperty.size.replace(/[^0-9]/g, "")) || 0,
+          amenities: [],
+          rules: []
+        }
+      };
+
+      // Call PropertyService to insert into database
+      await PropertyService.createProperty(propertyData);
+
+      // Add to local state for immediate UI update
       const property = {
         id: Date.now(),
         ...newProperty
       };
       setProperties([...properties, property]);
+      
+      // Reset form
       setNewProperty({
         name: "",
         type: "House",
@@ -89,6 +164,15 @@ export default function GuriGateProperty() {
         img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=60&q=80"
       });
       setIsModalOpen(false);
+      setSubmitSuccess(true);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSubmitSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error adding property:', error);
+      setSubmitError(error instanceof Error ? error.message : 'Failed to add property. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -286,8 +370,8 @@ export default function GuriGateProperty() {
               </tr>
             </thead>
             <tbody>
-              {properties.map((row, idx) => (
-                <tr key={row.id} style={{ borderBottom:idx < properties.length-1 ? `1px solid ${border}` : "none", transition:"background .12s" }}
+              {paginatedProperties.map((row, idx) => (
+                <tr key={row.id} style={{ borderBottom:idx < paginatedProperties.length-1 ? `1px solid ${border}` : "none", transition:"background .12s" }}
                     onMouseEnter={e=>{e.currentTarget.style.background="rgba(232,52,78,0.025)";}}
                     onMouseLeave={e=>{e.currentTarget.style.background="";}}>
                   <td style={{ padding:"13px 22px" }}>
@@ -342,6 +426,59 @@ export default function GuriGateProperty() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"16px 22px", borderTop:`1px solid ${border}` }}>
+            <span style={{ fontSize:12, color:muted }}>
+              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, properties.length)} of {properties.length} properties
+            </span>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                style={{
+                  display:"flex", alignItems:"center", gap:4,
+                  padding:"6px 12px", borderRadius:8, border:`1px solid ${border}`,
+                  background:currentPage === 1 ? "transparent" : card,
+                  color:text, fontSize:12, fontWeight:500, cursor:currentPage === 1 ? "not-allowed" : "pointer",
+                  opacity:currentPage === 1 ? 0.5 : 1
+                }}
+              >
+                <Icon.ChevronLeft/> Previous
+              </button>
+              <div style={{ display:"flex", gap:4 }}>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    style={{
+                      width:32, height:32, borderRadius:8, border:"none",
+                      background:currentPage === page ? "#E8344E" : "transparent",
+                      color:currentPage === page ? "white" : text,
+                      fontSize:12, fontWeight:600, cursor:"pointer"
+                    }}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                style={{
+                  display:"flex", alignItems:"center", gap:4,
+                  padding:"6px 12px", borderRadius:8, border:`1px solid ${border}`,
+                  background:currentPage === totalPages ? "transparent" : card,
+                  color:text, fontSize:12, fontWeight:500, cursor:currentPage === totalPages ? "not-allowed" : "pointer",
+                  opacity:currentPage === totalPages ? 0.5 : 1
+                }}
+              >
+                Next <Icon.ChevronRight/>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add/Edit Property Modal */}
@@ -349,6 +486,18 @@ export default function GuriGateProperty() {
         <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000 }}>
           <div style={{ background:card, borderRadius:16, padding:24, width:400, border:`1px solid ${border}` }}>
             <h2 style={{ fontSize:18, fontWeight:700, marginBottom:16, color:text }}>{editingProperty ? "Edit Property" : "Add New Property"}</h2>
+            
+            {submitError && (
+              <div style={{ padding:12, marginBottom:12, borderRadius:8, background:"#FEF2F2", color:"#E8344E", fontSize:12, border:"1px solid #FECACA" }}>
+                {submitError}
+              </div>
+            )}
+            
+            {submitSuccess && (
+              <div style={{ padding:12, marginBottom:12, borderRadius:8, background:"#F0FDF4", color:"#059669", fontSize:12, border:"1px solid #BBF7D0" }}>
+                Property added successfully!
+              </div>
+            )}
             <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
               <div>
                 <label style={{ fontSize:12, fontWeight:500, color:muted, marginBottom:4, display:"block" }}>Property Name</label>
@@ -441,9 +590,10 @@ export default function GuriGateProperty() {
                 </button>
                 <button
                   onClick={editingProperty ? handleUpdateProperty : handleAddProperty}
-                  style={{ flex:1, padding:10, borderRadius:8, border:"none", background:"#E8344E", color:"white", cursor:"pointer", fontWeight:600 }}
+                  disabled={isSubmitting}
+                  style={{ flex:1, padding:10, borderRadius:8, border:"none", background:isSubmitting ? "#9CA3AF" : "#E8344E", color:"white", cursor:isSubmitting ? "not-allowed" : "pointer", fontWeight:600, opacity:isSubmitting ? 0.7 : 1 }}
                 >
-                  {editingProperty ? "Update" : "Add Property"}
+                  {isSubmitting ? "Adding..." : (editingProperty ? "Update" : "Add Property")}
                 </button>
               </div>
             </div>

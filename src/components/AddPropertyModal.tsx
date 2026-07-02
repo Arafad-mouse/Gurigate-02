@@ -10,7 +10,9 @@ import type {
 import { 
   CURRENCIES, 
   COMMON_AMENITIES, 
-  COMMON_RULES 
+  COMMON_RULES,
+  PROPERTY_CONFIGURATION,
+  PROPERTY_TYPE_LABELS
 } from "@/types/property";
 
 interface AddPropertyModalProps {
@@ -58,6 +60,8 @@ export function AddPropertyModal({ onClose, onSuccess }: AddPropertyModalProps) 
     },
   });
 
+  const [selectedBedroomOption, setSelectedBedroomOption] = useState<string>("");
+
   // Close on backdrop click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -74,6 +78,14 @@ export function AddPropertyModal({ onClose, onSuccess }: AddPropertyModalProps) 
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
 
+  // Update bedroom count when selected bedroom option changes
+  useEffect(() => {
+    if (selectedBedroomOption) {
+      const bedroomCount = parseBedroomOption(selectedBedroomOption);
+      updateFormData('features', { bedrooms: bedroomCount });
+    }
+  }, [selectedBedroomOption]);
+
   const updateFormData = (section: keyof CreatePropertyRequest, data: any) => {
     setFormData(prev => ({
       ...prev,
@@ -81,6 +93,13 @@ export function AddPropertyModal({ onClose, onSuccess }: AddPropertyModalProps) 
         ? { ...prev[section] as any, ...data }
         : data
     }));
+  };
+
+  const parseBedroomOption = (option: string): number => {
+    if (!option) return 1;
+    if (option === 'Studio' || option === 'Studio Only') return 0;
+    const match = option.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 1;
   };
 
   const validateStep = (step: FormStep): boolean => {
@@ -91,6 +110,14 @@ export function AddPropertyModal({ onClose, onSuccess }: AddPropertyModalProps) 
         if (!formData.title.trim()) stepErrors.push("Property title is required");
         if (!formData.description.trim()) stepErrors.push("Description is required");
         if (!formData.type) stepErrors.push("Property type is required");
+        
+        const config = PROPERTY_CONFIGURATION[formData.type];
+        if (config && config.isRequired && config.fieldType !== 'none') {
+          if (!selectedBedroomOption) {
+            const fieldLabel = config.fieldLabel;
+            stepErrors.push(`${fieldLabel} is required`);
+          }
+        }
         break;
       case "address":
         if (!formData.address.street.trim()) stepErrors.push("Street address is required");
@@ -103,9 +130,6 @@ export function AddPropertyModal({ onClose, onSuccess }: AddPropertyModalProps) 
         }
         break;
       case "features":
-        if (!formData.features.bedrooms || formData.features.bedrooms < 0) {
-          stepErrors.push("Bedrooms must be 0 or greater");
-        }
         if (!formData.features.bathrooms || formData.features.bathrooms < 0) {
           stepErrors.push("Bathrooms must be 0 or greater");
         }
@@ -223,13 +247,22 @@ export function AddPropertyModal({ onClose, onSuccess }: AddPropertyModalProps) 
               </label>
               <select
                 value={formData.type}
-                onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as PropertyType }))}
+                onChange={(e) => {
+                  const newType = e.target.value as PropertyType;
+                  setFormData(prev => ({ ...prev, type: newType }));
+                  setSelectedBedroomOption("");
+                  const newConfig = PROPERTY_CONFIGURATION[newType];
+                  if (newConfig?.defaultValue) {
+                    setSelectedBedroomOption(newConfig.defaultValue);
+                  }
+                }}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
               >
                 <option value="apartment">Apartment</option>
                 <option value="house">House</option>
                 <option value="villa">Villa</option>
                 <option value="studio">Studio</option>
+                <option value="hotel">Hotel</option>
                 <option value="condo">Condo</option>
                 <option value="townhouse">Townhouse</option>
                 <option value="cottage">Cottage</option>
@@ -238,6 +271,32 @@ export function AddPropertyModal({ onClose, onSuccess }: AddPropertyModalProps) 
                 <option value="other">Other</option>
               </select>
             </div>
+
+            {(() => {
+              const config = PROPERTY_CONFIGURATION[formData.type];
+              if (!config || config.fieldType === 'none') return null;
+
+              return (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {config.fieldLabel} {config.isRequired ? '*' : ''}
+                  </label>
+                  <select
+                    value={selectedBedroomOption}
+                    onChange={(e) => setSelectedBedroomOption(e.target.value)}
+                    disabled={config.isDisabled}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">Select {config.fieldLabel.toLowerCase()}...</option>
+                    {config.options.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })()}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -443,6 +502,7 @@ export function AddPropertyModal({ onClose, onSuccess }: AddPropertyModalProps) 
                   onChange={(e) => updateFormData('features', { bedrooms: parseInt(e.target.value) || 0 })}
                   min="0"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
+                  disabled={formData.type === 'hotel'}
                 />
               </div>
 

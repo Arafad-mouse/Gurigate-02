@@ -6,6 +6,7 @@ import GuriGateNavbar from '@/components/GuriGateNavbar'
 import GuriGateFooter from '@/components/GuriGateFooter'
 import HomePage from '@/pages/GuriGateLandingPage'
 import { ProfilePage } from '@/pages/ProfilePage'
+import { PreferencesPage } from '@/pages/PreferencesPage'
 import { NotificationsPage } from '@/pages/NotificationsPage'
 import { IntegrationsPage } from '@/pages/IntegrationsPage'
 import PropertyPage from '@/pages/PropertyPage'
@@ -20,9 +21,17 @@ import { AdminDashboard } from '@/pages/admin/AdminDashboard'
 import { AdminProperties } from '@/pages/admin/AdminProperties'
 import AdminBookings from '@/pages/admin/AdminBookings'
 import AdminPayments from '@/pages/admin/AdminPayments'
+import AdminTransactions from '@/pages/admin/AdminTransactions'
+import AdminHosts from '@/pages/admin/AdminHosts'
+import AdminGuests from '@/pages/admin/AdminGuests'
+import AdminVerifications from '@/pages/admin/AdminVerifications'
+import AdminDisputes from '@/pages/admin/AdminDisputes'
+import AdminReports from '@/pages/admin/AdminReports'
+import AdminNotifications from '@/pages/admin/AdminNotifications'
 import { AdminUsers } from '@/pages/admin/AdminUsers'
 import { GuriGatePropertyService } from '@/services/guriGateProperties'
 import type { LandingProperty } from '@/data/landingProperties'
+import { AuthGuard } from '@/components/AuthGuard'
 
 // 1. Import your onboarding multi-step form page component here 👇
 import BecomeHost from '@/components/host-onboarding/Become-host'
@@ -98,6 +107,14 @@ function AdminLayoutWrapper() {
   return <AdminLayout profile={authContext?.profile || null} />
 }
 
+function ManagePropertyWrapper() {
+  return (
+    <AuthGuard>
+      <GuriGateDashboard />
+    </AuthGuard>
+  )
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -106,14 +123,41 @@ function App() {
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/account/integrations" element={<IntegrationsPage />} />
+            <Route path="/settings" element={<ManagePropertyWrapper />} />
+            <Route path="/settings/:section" element={<ManagePropertyWrapper />} />
+            <Route path="/settings/preferences" element={
+              <AuthGuard>
+                <PreferencesPage />
+              </AuthGuard>
+            } />
+            <Route path="/notifications" element={
+              <AuthGuard>
+                <NotificationsPage />
+              </AuthGuard>
+            } />
+            <Route path="/account/integrations" element={
+              <AuthGuard>
+                <IntegrationsPage />
+              </AuthGuard>
+            } />
             <Route path="/property/:id" element={<PropertyPageWrapper />} />
-            <Route path="/payment" element={<PaymentPageWrapper />} />
+            <Route path="/payment" element={
+              <AuthGuard>
+                <PaymentPageWrapper />
+              </AuthGuard>
+            } />
             <Route path="/all-property" element={<AllPropertiesPage />} />
-            <Route path="/manage-property" element={<GuriGateDashboard />} />
-            <Route path="/manage-property/customers" element={<GuriGateDashboard />} />
+            <Route path="/manage-property" element={<ManagePropertyWrapper />} />
+            <Route path="/manage-property/customers" element={<ManagePropertyWrapper />} />
+            <Route path="/manage-property/bookings" element={<ManagePropertyWrapper />} />
+            <Route path="/manage-property/transactions" element={<ManagePropertyWrapper />} />
+            <Route path="/manage-property/hosts" element={<ManagePropertyWrapper />} />
+            <Route path="/manage-property/guests" element={<ManagePropertyWrapper />} />
+            <Route path="/manage-property/verifications" element={<ManagePropertyWrapper />} />
+            <Route path="/manage-property/disputes" element={<ManagePropertyWrapper />} />
+            <Route path="/manage-property/reports" element={<ManagePropertyWrapper />} />
+            <Route path="/manage-property/notifications" element={<ManagePropertyWrapper />} />
+            <Route path="/manage-property/settings" element={<ManagePropertyWrapper />} />
 
             {/* Admin Routes */}
             <Route
@@ -133,7 +177,11 @@ function App() {
             </Route>
 
             {/* 2. Added Route path to display your onboarding workflow page 👇 */}
-            <Route path="/become-a-host" element={<BecomeHost />} />
+            <Route path="/become-a-host" element={
+              <AuthGuard>
+                <BecomeHost />
+              </AuthGuard>
+            } />
 
             {/* Catch-all redirect MUST stay at the very bottom of the Routes list */}
             <Route path="*" element={<Navigate to="/" replace />} />

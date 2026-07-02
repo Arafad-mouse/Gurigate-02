@@ -155,106 +155,109 @@ export function AddCustomerModal({ onClose, onSuccess }: AddCustomerModalProps) 
           )}
 
           <div className="space-y-4">
-            {/* Full Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name *
-              </label>
-              <input
-                type="text"
-                value={formData.fullName}
-                onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                placeholder="e.g., John Doe"
-                disabled={loading || success}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none disabled:opacity-50"
-              />
+            {/* Row 1: Full Name and Email */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  value={formData.fullName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                  placeholder="e.g., John Doe"
+                  disabled={loading || success}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none disabled:opacity-50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="e.g., john@example.com"
+                  disabled={loading || success}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none disabled:opacity-50"
+                />
+              </div>
             </div>
 
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="e.g., john@example.com"
-                disabled={loading || success}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none disabled:opacity-50"
-              />
+            {/* Row 2: Phone and Customer Type */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="e.g., +1 234 567 8900"
+                  disabled={loading || success}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none disabled:opacity-50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Customer Type *
+                </label>
+                <select
+                  value={formData.customerType}
+                  onChange={(e) => setFormData(prev => ({ ...prev, customerType: e.target.value as FormData["customerType"] }))}
+                  disabled={loading || success}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none disabled:opacity-50"
+                >
+                  <option value="tenant">Tenant</option>
+                  <option value="renter">Renter</option>
+                  <option value="buyer">Buyer</option>
+                  <option value="guest">Guest</option>
+                </select>
+              </div>
             </div>
 
-            {/* Phone Number */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number *
-              </label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="e.g., +1 234 567 8900"
-                disabled={loading || success}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none disabled:opacity-50"
-              />
+            {/* Row 3: Lifecycle Status and Property Assignment */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lifecycle Status
+                </label>
+                <select
+                  value={formData.lifecycleStatus}
+                  onChange={(e) => setFormData(prev => ({ ...prev, lifecycleStatus: e.target.value as FormData["lifecycleStatus"] }))}
+                  disabled={loading || success}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none disabled:opacity-50"
+                >
+                  <option value="lead">Lead</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="suspended">Suspended</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Property Assignment (Optional)
+                </label>
+                <select
+                  value={formData.propertyId}
+                  onChange={(e) => setFormData(prev => ({ ...prev, propertyId: e.target.value }))}
+                  disabled={loading || success}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none disabled:opacity-50"
+                >
+                  <option value="">No property assigned</option>
+                  {/* TODO: Load properties from service */}
+                  <option value="prop-1">Property 1</option>
+                  <option value="prop-2">Property 2</option>
+                </select>
+              </div>
             </div>
 
-            {/* Customer Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Customer Type *
-              </label>
-              <select
-                value={formData.customerType}
-                onChange={(e) => setFormData(prev => ({ ...prev, customerType: e.target.value as FormData["customerType"] }))}
-                disabled={loading || success}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none disabled:opacity-50"
-              >
-                <option value="tenant">Tenant</option>
-                <option value="renter">Renter</option>
-                <option value="buyer">Buyer</option>
-                <option value="guest">Guest</option>
-              </select>
-            </div>
-
-            {/* Lifecycle Status */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Lifecycle Status
-              </label>
-              <select
-                value={formData.lifecycleStatus}
-                onChange={(e) => setFormData(prev => ({ ...prev, lifecycleStatus: e.target.value as FormData["lifecycleStatus"] }))}
-                disabled={loading || success}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none disabled:opacity-50"
-              >
-                <option value="lead">Lead</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="suspended">Suspended</option>
-              </select>
-            </div>
-
-            {/* Property Assignment */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Property Assignment (Optional)
-              </label>
-              <select
-                value={formData.propertyId}
-                onChange={(e) => setFormData(prev => ({ ...prev, propertyId: e.target.value }))}
-                disabled={loading || success}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none disabled:opacity-50"
-              >
-                <option value="">No property assigned</option>
-                {/* TODO: Load properties from service */}
-                <option value="prop-1">Property 1</option>
-                <option value="prop-2">Property 2</option>
-              </select>
-            </div>
-
-            {/* Notes */}
+            {/* Row 4: Notes (full width) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Notes
@@ -269,7 +272,7 @@ export function AddCustomerModal({ onClose, onSuccess }: AddCustomerModalProps) 
               />
             </div>
 
-            {/* Tags */}
+            {/* Row 5: Tags (full width) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tags

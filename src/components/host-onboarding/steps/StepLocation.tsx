@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { MapPin } from "lucide-react"
 import type { HostFormData } from "../types"
 import L from "leaflet"
@@ -26,6 +26,7 @@ export function StepLocation({ data, onChange }: StepLocationProps) {
   const mapInstanceRef = useRef<L.Map | null>(null)
   const markerRef = useRef<L.Marker | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const debounceTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return
@@ -48,13 +49,14 @@ export function StepLocation({ data, onChange }: StepLocationProps) {
     return () => {
       map.remove()
       mapInstanceRef.current = null
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
     }
   }, [])
 
-  // Geocode address and update map
-  const handleAddressChange = async (address: string) => {
-    onChange({ streetAddress: address, address: address })
-    
+  // Geocode address and update map (debounced)
+  const geocodeAddress = useCallback(async (address: string) => {
     if (!address.trim() || !mapInstanceRef.current) return
 
     setIsLoading(true)
@@ -71,7 +73,7 @@ export function StepLocation({ data, onChange }: StepLocationProps) {
 
         // Update map view
         mapInstanceRef.current.setView([newLocation.lat, newLocation.lng], 15)
-        
+
         // Update marker position
         if (markerRef.current) {
           markerRef.current.setLatLng([newLocation.lat, newLocation.lng])
@@ -89,6 +91,21 @@ export function StepLocation({ data, onChange }: StepLocationProps) {
     } finally {
       setIsLoading(false)
     }
+  }, [onChange])
+
+  // Handle address input with debouncing
+  const handleAddressChange = (address: string) => {
+    // Immediate form update
+    onChange({ streetAddress: address, address: address })
+
+    // Debounce geocoding
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      geocodeAddress(address)
+    }, 500) // 500ms debounce delay
   }
 
   return (

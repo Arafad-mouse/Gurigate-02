@@ -1,6 +1,10 @@
 export interface HostFormData {
+  // Step 2: Property category
+  propertyCategory: string;
   // Step 3: Property type
   propertyTypes: string[];
+  // Listing type: short_stay | long_rent | sale
+  listingType: string;
   // Step 4-5: Location
   address: string;
   streetAddress: string;
@@ -41,10 +45,42 @@ export interface HostFormData {
   residentialPostalCode: string;
   residentialCountry: string;
   hostingAsBusiness: string;
+  // Commercial details
+  commercialFloorArea: number;
+  commercialFloors: number;
+  commercialParkingSpaces: number;
+  commercialWashrooms: number;
+  commercialStorageRooms: number;
+  commercialUseTypes: string[];
+  commercialMonthlyRent: number;
+  commercialSecurityDeposit: number;
+  commercialMinimumLeaseMonths: number;
+  commercialServiceCharge: number;
+  // Land details
+  landSizeValue: number;
+  landSizeUnit: "sqm" | "acres" | "hectares";
+  landFeatures: string[];
+  boundaryGeojson: string;
+  ownershipDocuments: string[];
+  // Hospitality details
+  hospitalityTotalRooms: number;
+  hospitalityTotalFloors: number;
+  hospitalityMaxGuests: number;
+  hospitalityCheckInTime: string;
+  hospitalityCheckOutTime: string;
+  hospitalityRoomTypes: string[];
+  hospitalityServices: string[];
+  hospitalityFacilities: string[];
+  hospitalityInstantBooking: boolean;
+  hospitalityBookingMode: "instant" | "manual";
+  hospitalityMinStayNights: number;
+  hospitalityMaxStayNights: number;
 }
 
 export const defaultFormData: HostFormData = {
+  propertyCategory: "",
   propertyTypes: [],
+  listingType: "short_stay",
   address: "",
   streetAddress: "",
   apt: "",
@@ -74,4 +110,31 @@ export const defaultFormData: HostFormData = {
   residentialPostalCode: "",
   residentialCountry: "Somalia",
   hostingAsBusiness: "",
+  commercialFloorArea: 0,
+  commercialFloors: 1,
+  commercialParkingSpaces: 0,
+  commercialWashrooms: 0,
+  commercialStorageRooms: 0,
+  commercialUseTypes: [],
+  commercialMonthlyRent: 0,
+  commercialSecurityDeposit: 0,
+  commercialMinimumLeaseMonths: 1,
+  commercialServiceCharge: 0,
+  landSizeValue: 0,
+  landSizeUnit: "sqm",
+  landFeatures: [],
+  boundaryGeojson: "",
+  ownershipDocuments: [],
+  hospitalityTotalRooms: 0,
+  hospitalityTotalFloors: 1,
+  hospitalityMaxGuests: 1,
+  hospitalityCheckInTime: "14:00",
+  hospitalityCheckOutTime: "11:00",
+  hospitalityRoomTypes: [],
+  hospitalityServices: [],
+  hospitalityFacilities: [],
+  hospitalityInstantBooking: false,
+  hospitalityBookingMode: "manual",
+  hospitalityMinStayNights: 1,
+  hospitalityMaxStayNights: 30,
 };

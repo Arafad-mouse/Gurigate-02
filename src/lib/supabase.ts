@@ -12,4 +12,15 @@ export const isSupabaseConfigured =
   !rawSupabaseAnonKey.includes('your_supabase_anon_key') &&
   !rawSupabaseAnonKey.includes('placeholder')
 
-export const supabase = createClient(rawSupabaseUrl || fallbackUrl, rawSupabaseAnonKey || fallbackAnonKey)
+export const supabase = createClient(
+  rawSupabaseUrl || fallbackUrl,
+  rawSupabaseAnonKey || fallbackAnonKey,
+  {
+    auth: {
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+    },
+  }
+)

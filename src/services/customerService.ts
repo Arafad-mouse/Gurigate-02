@@ -1,4 +1,5 @@
 import type { Customer, CustomerMetrics, CustomerType, LifecycleStatus, BookingSummary, PaymentSummary, ContractSummary, PropertySummary, TimelineEvent } from '@/types/customer';
+import { supabase } from '@/lib/supabase';
 
 export interface ListParams {
   query?: string;
@@ -33,6 +34,22 @@ const MOCK_CUSTOMERS: Customer[] = Array.from({ length: 24 }).map((_, i) => ({
   lastActivityAt: new Date(Date.now() - i*86400000).toISOString(),
   createdAt: new Date(Date.now() - (30+i)*86400000).toISOString(),
 }));
+
+// Check if database is available
+let isDatabaseAvailable: boolean | null = null;
+
+async function checkDatabaseAvailability(): Promise<boolean> {
+  if (isDatabaseAvailable !== null) return isDatabaseAvailable;
+  
+  try {
+    const { error } = await supabase.from('customers').select('id').limit(1);
+    isDatabaseAvailable = !error;
+    return isDatabaseAvailable;
+  } catch {
+    isDatabaseAvailable = false;
+    return false;
+  }
+}
 
 function mockMetricsFor(id: string): CustomerMetrics {
   const c = MOCK_CUSTOMERS.find(x=>x.id===id)!;
@@ -70,13 +87,64 @@ function mockMetricsFor(id: string): CustomerMetrics {
 export async function listCustomers(params: ListParams): Promise<{ items: Customer[]; total: number; }>{
   const { query='', type='all', lifecycle='all', page=1, pageSize=12 } = params || {} as ListParams;
   const start = (page-1)*pageSize;
+  
+  // Try database first
+  const dbAvailable = await checkDatabaseAvailability();
+  
+  if (dbAvailable) {
+    try {
+      let queryBuilder = supabase
+        .from('customers')
+        .select('*', { count: 'exact' });
+      
+      if (query) {
+        queryBuilder = queryBuilder.or(`full_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`);
+      }
+      
+      if (type !== 'all') {
+        queryBuilder = queryBuilder.eq('customer_type', type);
+      }
+      
+      if (lifecycle !== 'all') {
+        queryBuilder = queryBuilder.eq('lifecycle_status', lifecycle);
+      }
+      
+      const { data, count, error } = await queryBuilder
+        .range(start, start + pageSize - 1)
+        .order('created_at', { ascending: false });
+      
+      if (!error && data) {
+        const items: Customer[] = data.map(c => ({
+          id: c.id,
+          fullName: c.full_name,
+          email: c.email,
+          phone: c.phone,
+          customerType: c.customer_type,
+          lifecycleStatus: c.lifecycle_status,
+          currentProperty: c.current_property,
+          propertyId: c.property_id,
+          notes: c.notes,
+          tags: c.tags || [],
+          totalBookings: c.total_bookings || 0,
+          totalRentPaid: c.total_rent_paid || 0,
+          lastActivityAt: c.last_activity_at,
+          createdAt: c.created_at,
+        }));
+        return { items, total: count || 0 };
+      }
+    } catch (error) {
+      console.error('Database query failed, falling back to mock data:', error);
+    }
+  }
+  
+  // Fallback to mock data
   const filtered = MOCK_CUSTOMERS.filter(c =>
     (!query || c.fullName.toLowerCase().includes(query.toLowerCase()) || (c.email && c.email.toLowerCase().includes(query.toLowerCase())) || c.phone?.includes(query)) &&
     (type==='all' || c.customerType===type) &&
     (lifecycle==='all' || c.lifecycleStatus===lifecycle)
   );
   const items = filtered.slice(start, start+pageSize);
-  console.log('listCustomers(mock)', { query, type, lifecycle, page, pageSize, total: filtered.length });
+  console.log('listCustomers(mock fallback)', { query, type, lifecycle, page, pageSize, total: filtered.length });
   return Promise.resolve({ items, total: filtered.length });
 }
 

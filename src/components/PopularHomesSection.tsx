@@ -9,7 +9,7 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Property {
-  id: number;
+  id: string;
   title: string;
   type: string;
   price: string;
@@ -28,7 +28,7 @@ interface PopularHomesSectionProps {
 
 const DEFAULT_PROPERTIES: Property[] = [
   {
-    id: 1,
+    id: "1",
     title: "Modern Penthouse in Kileleshwa",
     type: "Apartment in Nairobi",
     price: "$120",
@@ -37,7 +37,7 @@ const DEFAULT_PROPERTIES: Property[] = [
     image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80",
   },
   {
-    id: 2,
+    id: "2",
     title: "Modern Penthouse in Kileleshwa",
     type: "Apartment in Nairobi",
     price: "$120",
@@ -46,7 +46,7 @@ const DEFAULT_PROPERTIES: Property[] = [
     image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
   },
   {
-    id: 3,
+    id: "3",
     title: "Garden Oasis, Karen",
     type: "Villa in Nairobi",
     price: "$245",
@@ -60,9 +60,13 @@ const DEFAULT_PROPERTIES: Property[] = [
 
 function PropertyCard({ property }: { property: Property }) {
   const [liked, setLiked] = useState(false);
+  const navigate = useNavigate();
 
   return (
-    <div className="group cursor-pointer flex flex-col gap-3">
+    <div 
+      className="group cursor-pointer flex flex-col gap-3"
+      onClick={() => navigate(`/property/${property.id}`)}
+    >
       {/* Image */}
       <div className="relative rounded-2xl overflow-hidden aspect-[4/3]">
         <img
@@ -82,6 +86,7 @@ function PropertyCard({ property }: { property: Property }) {
         {/* Heart button */}
         <button
           onClick={(e) => { e.stopPropagation(); setLiked(!liked); }}
+          aria-label={liked ? "Remove from favorites" : "Add to favorites"}
           className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center transition-transform hover:scale-110"
         >
           <Heart
@@ -126,32 +131,66 @@ function PropertyCard({ property }: { property: Property }) {
 export function PopularHomesSection({
   city = "Nairobi",
   total: totalProp,
-  properties = DEFAULT_PROPERTIES,
+  properties: propProperties,
 }: PopularHomesSectionProps) {
   const navigate = useNavigate();
   const [totalCount, setTotalCount] = useState<number>(totalProp ?? 0);
+  const [properties, setProperties] = useState<Property[]>(propProperties ?? DEFAULT_PROPERTIES);
 
   useEffect(() => {
-    if (totalProp !== undefined || !isSupabaseConfigured) return;
+    if (!isSupabaseConfigured) return;
 
     let cancelled = false;
-    const fetchCount = async () => {
+    const fetchData = async () => {
       try {
-        const { count, error } = await supabase
+        // Fetch properties from database
+        const { data: propsData, error: propsError } = await supabase
+          .from('properties')
+          .select(`
+            *,
+            locations!properties_city_location_id_fkey(name),
+            property_images(url, is_primary, sort_order)
+          `)
+          .eq('status', 'active')
+          .eq('is_approved', true)
+          .limit(3);
+
+        // Fetch count
+        const { count, error: countError } = await supabase
           .from('properties')
           .select('*', { count: 'exact', head: true });
 
-        if (!cancelled && !error && count !== null) {
+        if (!cancelled && !propsError && propsData) {
+          // Convert database properties to Property format
+          const convertedProps = propsData.map((p: any) => {
+            const primaryImage = p.property_images?.find((img: any) => img.is_primary)?.url 
+              || p.property_images?.[0]?.url
+              || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80';
+            
+            return {
+              id: p.id,
+              title: p.title,
+              type: `${p.type} in ${p.locations?.name || city}`,
+              price: `$${p.price}`,
+              priceUnit: p.price_unit === 'per_night' ? 'for 2 nights' : '/night',
+              rating: p.rating_avg || 5.0,
+              image: primaryImage,
+            };
+          });
+          setProperties(convertedProps);
+        }
+
+        if (!cancelled && !countError && count !== null && totalProp === undefined) {
           setTotalCount(count);
         }
       } catch {
-        // keep initial count on failure
+        // keep initial data on failure
       }
     };
 
-    fetchCount();
+    fetchData();
     return () => { cancelled = true; };
-  }, [totalProp]);
+  }, [totalProp, city]);
 
   const handleShowAll = () => {
     navigate('/manage-property');

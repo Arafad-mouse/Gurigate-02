@@ -5,7 +5,7 @@
 import { GuriGatePropertyService } from '@/services/guriGateProperties';
 
 export interface LandingProperty {
-  id: number;
+  id: string;
   title: string;
   address: string;
   price: string;

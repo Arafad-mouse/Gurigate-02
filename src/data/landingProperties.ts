@@ -3,9 +3,10 @@
 // Maintains the same LandingProperty interface for frontend compatibility
 
 import { GuriGatePropertyService } from '@/services/guriGateProperties';
+import type { CategoryDetails } from '@/types/propertyDetails';
 
 export interface LandingProperty {
-  id: number;
+  id: string;
   title: string;
   address: string;
   price: string;
@@ -16,12 +17,15 @@ export interface LandingProperty {
   badge: "FOR SALE" | "FOR RENT" | "SHORT STAY";
   featured?: boolean;
   image: string;
+  images?: string[];
   rating?: number;
   location?: string;
   type: string;
   city: string;
   reviews?: number;
   guests?: number;
+  category?: "residential" | "commercial" | "land" | "hospitality";
+  categoryDetails?: CategoryDetails;
 }
 
 // Dynamic data fetching from Supabase

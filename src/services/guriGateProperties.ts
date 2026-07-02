@@ -1,12 +1,18 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
+
+const supabase = createClient();
 import type { LandingProperty } from '@/data/landingProperties';
+import type { PropertyWithDetails, PropertyImage } from '@/types/propertyDetails';
 
 // GuriGate property service that works with existing database schema
 export class GuriGatePropertyService {
   // Convert database property to LandingProperty format
-  private static convertToLandingProperty(dbProperty: any): LandingProperty {
+  private static convertToLandingProperty(dbProperty: PropertyWithDetails): LandingProperty {
+    const category = dbProperty.property_category as LandingProperty["category"] | undefined;
+    const categoryDetails = null;
+
     return {
-      id: parseInt(dbProperty.id.replace(/-/g, '').substring(0, 8), 16) || Math.random(),
+      id: dbProperty.id,
       title: dbProperty.title,
       address: dbProperty.location_name || `${dbProperty.city}, ${dbProperty.district || ''}`,
       price: this.formatPrice(dbProperty.price, dbProperty.purpose),
@@ -23,6 +29,8 @@ export class GuriGatePropertyService {
       city: dbProperty.city,
       reviews: dbProperty.review_count || 0,
       guests: dbProperty.max_guests || 0,
+      category,
+      categoryDetails: categoryDetails ?? undefined,
     };
   }
 
@@ -51,12 +59,12 @@ export class GuriGatePropertyService {
     }
   }
 
-  private static getPrimaryImage(primaryImageUrl?: string, images?: any[]): string {
+  private static getPrimaryImage(primaryImageUrl?: string, images?: PropertyImage[]): string {
     if (primaryImageUrl) return primaryImageUrl;
     if (!images || images.length === 0) {
       return 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80';
     }
-    const primaryImage = images.find((img: any) => img.is_primary);
+    const primaryImage = images.find((img: PropertyImage) => img.is_primary);
     return primaryImage?.url || images[0]?.url || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80';
   }
 
@@ -89,6 +97,7 @@ export class GuriGatePropertyService {
         .eq('status', 'active')
         .eq('is_approved', true)
         .eq('is_featured', true)
+        .is('deleted_at', null)
         .order('rating_avg', { ascending: false })
         .limit(6);
 
@@ -98,10 +107,10 @@ export class GuriGatePropertyService {
       }
 
       // Flatten the data structure for conversion
-      const flattenedData = data.map((property: any) => ({
+      const flattenedData = data.map((property: PropertyWithDetails) => ({
         ...property,
         city: property.locations?.name || '',
-        primary_image_url: property.property_images?.find((img: any) => img.is_primary)?.url,
+        primary_image_url: property.property_images?.find((img: PropertyImage) => img.is_primary)?.url,
         images: property.property_images
       }));
 
@@ -125,6 +134,7 @@ export class GuriGatePropertyService {
         .eq('status', 'active')
         .eq('is_approved', true)
         .eq('locations.name', city)
+        .is('deleted_at', null)
         .order('rating_avg', { ascending: false });
 
       if (error) {
@@ -133,10 +143,10 @@ export class GuriGatePropertyService {
       }
 
       // Flatten the data structure for conversion
-      const flattenedData = data.map((property: any) => ({
+      const flattenedData = data.map((property: PropertyWithDetails) => ({
         ...property,
         city: property.locations?.name || city,
-        primary_image_url: property.property_images?.find((img: any) => img.is_primary)?.url,
+        primary_image_url: property.property_images?.find((img: PropertyImage) => img.is_primary)?.url,
         images: property.property_images
       }));
 
@@ -159,6 +169,7 @@ export class GuriGatePropertyService {
         `)
         .eq('status', 'active')
         .eq('is_approved', true)
+        .is('deleted_at', null)
         .order('rating_avg', { ascending: false });
 
       if (error) {
@@ -167,10 +178,10 @@ export class GuriGatePropertyService {
       }
 
       // Flatten the data structure for conversion
-      const flattenedData = data.map((property: any) => ({
+      const flattenedData = data.map((property: PropertyWithDetails) => ({
         ...property,
         city: property.locations?.name || '',
-        primary_image_url: property.property_images?.find((img: any) => img.is_primary)?.url,
+        primary_image_url: property.property_images?.find((img: PropertyImage) => img.is_primary)?.url,
         images: property.property_images
       }));
 
@@ -192,17 +203,28 @@ export class GuriGatePropertyService {
   }): Promise<LandingProperty[]> {
     try {
       let supabaseQuery = supabase
-        .from('featured_properties')
-        .select('*');
+        .from('properties')
+        .select(`
+          *,
+          locations!properties_city_location_id_fkey(name),
+          property_images(url, is_primary, sort_order)
+        `)
+        .eq('status', 'active')
+        .eq('is_approved', true)
+        .is('deleted_at', null);
 
       // Apply filters
       if (filters?.city) {
-        supabaseQuery = supabaseQuery.eq('city', filters.city);
+        supabaseQuery = supabaseQuery.eq('locations.name', filters.city);
       }
 
       if (filters?.badge) {
-        const dbBadge = filters.badge.replace(' ', '_');
-        supabaseQuery = supabaseQuery.eq('badge', dbBadge);
+        const purposeMap: { [key: string]: string } = {
+          'FOR SALE': 'sale',
+          'FOR RENT': 'long_rent',
+          'SHORT STAY': 'short_stay'
+        };
+        supabaseQuery = supabaseQuery.eq('purpose', purposeMap[filters.badge] || 'short_stay');
       }
 
       if (filters?.bedrooms) {
@@ -220,7 +242,15 @@ export class GuriGatePropertyService {
         return [];
       }
 
-      let properties = data.map(property => this.convertToLandingProperty(property));
+      // Flatten the data structure for conversion
+      const flattenedData = data.map((property: PropertyWithDetails) => ({
+        ...property,
+        city: property.locations?.name || '',
+        primary_image_url: property.property_images?.find((img: PropertyImage) => img.is_primary)?.url,
+        images: property.property_images
+      }));
+
+      let properties = flattenedData.map(property => this.convertToLandingProperty(property));
 
       // Apply text search and price filters
       if (query.trim()) {
@@ -252,27 +282,33 @@ export class GuriGatePropertyService {
   // Get property by ID
   static async getPropertyById(id: string): Promise<LandingProperty | null> {
     try {
-      // Convert LandingProperty ID back to UUID format (approximation)
-      const numericId = parseInt(id);
-      if (isNaN(numericId)) return null;
-
       const { data, error } = await supabase
-        .from('featured_properties')
-        .select('*')
-        .limit(100); // Get recent properties and find by approximate ID
+        .from('properties')
+        .select(`
+          *,
+          locations!properties_city_location_id_fkey(name),
+          property_images(url, is_primary, sort_order)
+        `)
+        .eq('id', id)
+        .eq('status', 'active')
+        .eq('is_approved', true)
+        .is('deleted_at', null)
+        .single();
 
       if (error) {
         console.error('Error fetching property by ID:', error);
         return null;
       }
 
-      // Find property with matching ID (approximate match)
-      const property = data.find((p: any, index: number) => 
-        parseInt(p.id.replace(/-/g, '').substring(0, 8), 16) === numericId || 
-        index === numericId - 1
-      );
+      // Flatten the data structure for conversion
+      const flattenedData = {
+        ...data,
+        city: data.locations?.name || '',
+        primary_image_url: data.property_images?.find((img: PropertyImage) => img.is_primary)?.url,
+        images: data.property_images,
+      };
 
-      return property ? this.convertToLandingProperty(property) : null;
+      return this.convertToLandingProperty(flattenedData);
     } catch (error) {
       console.error('GuriGatePropertyService.getPropertyById error:', error);
       return null;

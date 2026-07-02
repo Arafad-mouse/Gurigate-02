@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   UserRoundPen, Settings2, BellDot, Gift, TentTree, Settings, Link,
   ChevronDown, Upload, Eye, EyeOff, Check, X,
@@ -6,6 +7,8 @@ import {
 } from "lucide-react";
 import { IntegrationsContent } from "./IntegrationsPage";
 import { NotificationsContent } from "./NotificationsPage";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SidebarItem { label: string; icon: React.ReactNode; }
@@ -17,6 +20,10 @@ interface ProfileForm {
   country:   string;
   city:      string;
   email:     string;
+  language:  string;
+  timeZone:  string;
+  phone:     string;
+  occupation: string;
 }
 
 interface PasswordForm {
@@ -446,12 +453,29 @@ function CityDropdown({ value, onChange, cities }: { value: string; onChange: (v
 
 // ─── Profile Section ──────────────────────────────────────────────────────────
 function ProfileSection({ onCancel }: { onCancel: () => void }) {
-  const [form, setForm] = useState<ProfileForm>({ firstName: "", lastName: "", country: "Somalia", city: "", email: "info@gurigate.com" });
+  const { user } = useAuth();
+  const supabase = createClient();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  
+  const [form, setForm] = useState<ProfileForm>({ 
+    firstName: "", 
+    lastName: "", 
+    country: "Somalia", 
+    city: "", 
+    email: "",
+    language: "English (US)",
+    timeZone: "(GMT+03:00) Africa",
+    phone: "+252 61 234 5678",
+    occupation: ""
+  });
 
   // Email
   const [editingEmail, setEditingEmail] = useState(false);
   const [newEmail, setNewEmail]         = useState("");
   const [emailSaved, setEmailSaved]     = useState(false);
+  const [emailError, setEmailError]     = useState("");
 
   // Password
   const [showPassword, setShowPassword]     = useState(false);
@@ -461,10 +485,97 @@ function ProfileSection({ onCancel }: { onCancel: () => void }) {
 
   // Avatar
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  
+  // Load profile data on mount
+  useEffect(() => {
+    async function loadProfile() {
+      if (!user) return;
+      
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, avatar_url, country, city, language, time_zone, phone, occupation')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) throw error;
+        
+        if (profile) {
+          setForm({
+            firstName: profile.first_name || '',
+            lastName: profile.last_name || '',
+            country: profile.country || 'Somalia',
+            city: profile.city || '',
+            email: user.email || '',
+            language: profile.language || 'English (US)',
+            timeZone: profile.time_zone || '(GMT+03:00) Africa',
+            phone: profile.phone || '+252 61 234 5678',
+            occupation: profile.occupation || ''
+          });
+          setAvatarUrl(profile.avatar_url);
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    loadProfile();
+  }, [user, supabase]);
+  
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setAvatarUrl(URL.createObjectURL(file));
+    if (!file || !user) return;
+    
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('File must be an image');
+      return;
+    }
+    
+    setUploadingAvatar(true);
+    
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+      
+      // Upload to Supabase storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+        
+      if (uploadError) throw uploadError;
+      
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+      
+      // Update profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+        
+      if (updateError) throw updateError;
+      
+      setAvatarUrl(publicUrl);
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      alert('Failed to upload avatar. Please try again.');
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   const selectedCountry = COUNTRY_MAP[form.country];
@@ -472,25 +583,91 @@ function ProfileSection({ onCancel }: { onCancel: () => void }) {
 
   const handleCountryChange = (name: string) => setForm(f => ({ ...f, country: name, city: "" }));
 
-  const handleSaveEmail = () => {
-    if (!newEmail || !newEmail.includes("@")) return;
-    setEmailSaved(true);
-    setTimeout(() => {
-      setForm(f => ({ ...f, email: newEmail }));
-      setEmailSaved(false); setEditingEmail(false); setNewEmail("");
-    }, 1000);
+  const handleSaveEmail = async () => {
+    if (!newEmail || !newEmail.includes("@")) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+    
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase.auth.updateUser({
+        email: newEmail
+      });
+      
+      if (error) throw error;
+      
+      setEmailSaved(true);
+      setEmailError("");
+      setTimeout(() => {
+        setForm(f => ({ ...f, email: newEmail }));
+        setEmailSaved(false); setEditingEmail(false); setNewEmail("");
+      }, 2000);
+    } catch (error: any) {
+      console.error('Error updating email:', error);
+      setEmailError(error.message || 'Failed to update email');
+    }
   };
 
-  const handleSavePassword = () => {
+  const handleSavePassword = async () => {
     setPasswordError("");
     if (!passwords.oldPassword)                       { setPasswordError("Please enter your current password."); return; }
     if (passwords.newPassword.length < 8)             { setPasswordError("New password must be at least 8 characters."); return; }
     if (passwords.newPassword !== passwords.confirmPassword) { setPasswordError("Passwords do not match."); return; }
-    setPasswordSaved(true);
-    setTimeout(() => {
-      setPasswordSaved(false); setShowPassword(false);
-      setPasswords({ oldPassword: "", newPassword: "", confirmPassword: "" });
-    }, 1500);
+    
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwords.newPassword
+      });
+      
+      if (error) throw error;
+      
+      setPasswordSaved(true);
+      setTimeout(() => {
+        setPasswordSaved(false); setShowPassword(false);
+        setPasswords({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      }, 2000);
+    } catch (error: any) {
+      console.error('Error updating password:', error);
+      setPasswordError(error.message || 'Failed to update password');
+    }
+  };
+  
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    
+    setSaving(true);
+    setSaveSuccess(false);
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: form.firstName,
+          last_name: form.lastName,
+          country: form.country,
+          city: form.city,
+          language: form.language,
+          time_zone: form.timeZone,
+          phone: form.phone,
+          occupation: form.occupation,
+          full_name: `${form.firstName} ${form.lastName}`.trim()
+        })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert('Failed to save profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const passwordStrength = (() => {
@@ -522,14 +699,33 @@ function ProfileSection({ onCancel }: { onCancel: () => void }) {
         <div>
           <p className="text-base font-bold text-gray-900 mb-3">Profile Picture</p>
           <div className="flex gap-2">
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-            <button onClick={() => fileRef.current?.click()} className="flex items-center gap-2 bg-red-600 text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-red-700 transition-colors">
-              <Upload size={14} /> Upload Image
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={uploadingAvatar} />
+            <button 
+              onClick={() => fileRef.current?.click()} 
+              disabled={uploadingAvatar}
+              className="flex items-center gap-2 bg-red-600 text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Upload size={14} /> {uploadingAvatar ? 'Uploading...' : 'Upload Image'}
             </button>
-            <button onClick={() => setAvatarUrl(null)} className="text-sm font-semibold px-4 py-2 rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
-              Remove
-            </button>
+            {avatarUrl && (
+              <button 
+                onClick={async () => {
+                  if (!user) return;
+                  try {
+                    await supabase.from('profiles').update({ avatar_url: null }).eq('id', user.id);
+                    setAvatarUrl(null);
+                  } catch (error) {
+                    console.error('Error removing avatar:', error);
+                    alert('Failed to remove avatar');
+                  }
+                }}
+                className="text-sm font-semibold px-4 py-2 rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Remove
+              </button>
+            )}
           </div>
+          <p className="text-xs text-zinc-500 font-['Manrope'] mt-2">PNG, JPG up to 5MB</p>
         </div>
       </div>
 
@@ -561,6 +757,64 @@ function ProfileSection({ onCancel }: { onCancel: () => void }) {
             <label className="text-sm font-medium text-gray-700 block mb-1.5">City</label>
             <CityDropdown value={form.city} onChange={city => setForm(f => ({ ...f, city }))} cities={cities} />
           </div>
+
+          {/* Language */}
+          <div>
+            <label htmlFor="language" className="text-sm font-medium text-gray-700 block mb-1.5">Language</label>
+            <select 
+              id="language"
+              value={form.language} 
+              onChange={e => setForm(f => ({ ...f, language: e.target.value }))}
+              title="Select your language"
+              className="w-full text-sm bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 outline-none focus:border-red-600 focus:bg-white transition-colors"
+            >
+              <option value="English (US)">English (US)</option>
+              <option value="English (UK)">English (UK)</option>
+              <option value="Arabic">Arabic</option>
+              <option value="French">French</option>
+              <option value="Spanish">Spanish</option>
+            </select>
+          </div>
+
+          {/* Time Zone */}
+          <div>
+            <label htmlFor="timezone" className="text-sm font-medium text-gray-700 block mb-1.5">Time Zone</label>
+            <select 
+              id="timezone"
+              value={form.timeZone} 
+              onChange={e => setForm(f => ({ ...f, timeZone: e.target.value }))}
+              title="Select your time zone"
+              className="w-full text-sm bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 outline-none focus:border-red-600 focus:bg-white transition-colors"
+            >
+              <option value="(GMT+03:00) Africa">(GMT+03:00) Africa</option>
+              <option value="(GMT+00:00) UTC">(GMT+00:00) UTC</option>
+              <option value="(GMT+01:00) Europe">(GMT+01:00) Europe</option>
+              <option value="(GMT-05:00) Eastern">(GMT-05:00) Eastern</option>
+              <option value="(GMT-08:00) Pacific">(GMT-08:00) Pacific</option>
+            </select>
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1.5">Phone</label>
+            <input 
+              value={form.phone} 
+              onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} 
+              placeholder="+252 61 234 5678"
+              className="w-full text-sm bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 outline-none focus:border-red-600 focus:bg-white transition-colors placeholder:text-gray-400" 
+            />
+          </div>
+
+          {/* Occupation */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1.5">Occupation</label>
+            <input 
+              value={form.occupation} 
+              onChange={e => setForm(f => ({ ...f, occupation: e.target.value }))} 
+              placeholder="Property Manager"
+              className="w-full text-sm bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 outline-none focus:border-red-600 focus:bg-white transition-colors placeholder:text-gray-400" 
+            />
+          </div>
         </div>
 
         {/* Email */}
@@ -585,15 +839,16 @@ function ProfileSection({ onCancel }: { onCancel: () => void }) {
               <p className="text-xs font-semibold text-red-600 mb-3 flex items-center gap-1.5">
                 <Mail size={12} /> Enter your new email address
               </p>
-              <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)}
+              <input type="email" value={newEmail} onChange={e => { setNewEmail(e.target.value); setEmailError(''); }}
                 placeholder="newemail@example.com" autoFocus
                 className="w-full text-sm bg-white border border-red-200 rounded-xl px-4 py-2.5 outline-none focus:border-red-400 transition-colors placeholder:text-gray-400 mb-3" />
+              {emailError && <p className="text-xs text-red-500 mb-3">{emailError}</p>}
               <div className="flex gap-2">
                 <button onClick={handleSaveEmail}
                   className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full transition-colors ${emailSaved ? "bg-green-500 text-white" : "bg-red-600 text-white hover:bg-red-700"}`}>
                   {emailSaved ? <><Check size={13} /> Saved!</> : "Update Email"}
                 </button>
-                <button onClick={() => { setEditingEmail(false); setNewEmail(""); }}
+                <button onClick={() => { setEditingEmail(false); setNewEmail(""); setEmailError(''); }}
                   className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
                   <X size={13} /> Cancel
                 </button>
@@ -604,7 +859,7 @@ function ProfileSection({ onCancel }: { onCancel: () => void }) {
       </div>
 
       {/* ── Password Card ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 mb-8 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 mb-5 overflow-hidden">
         <div className="p-5 flex items-center justify-between">
           <div>
             <p className="text-sm font-bold text-gray-900">Password login</p>
@@ -649,10 +904,36 @@ function ProfileSection({ onCancel }: { onCancel: () => void }) {
         )}
       </div>
 
+      {/* ── Two-Factor Authentication Card ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 mb-8 overflow-hidden">
+        <div className="p-5 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-bold text-gray-900">Two-Factor Authentication</p>
+            <p className="text-xs text-gray-400 mt-0.5">Status: Disabled</p>
+            <p className="text-xs text-gray-400 mt-1">Add an extra layer of security to your account</p>
+          </div>
+          <button
+            className="text-sm font-semibold px-5 py-2 rounded-full border border-gray-200 bg-white text-gray-800 hover:bg-gray-50 transition-all whitespace-nowrap ml-4"
+          >
+            Enable 2FA
+          </button>
+        </div>
+      </div>
+
       {/* ── Footer ── */}
       <div className="flex items-center justify-end gap-3 pb-8">
         <button onClick={onCancel} className="text-sm font-semibold text-gray-500 hover:text-gray-700 px-5 py-2.5 transition-colors">Cancel</button>
-        <button className="text-sm font-bold bg-red-600 text-white px-7 py-2.5 rounded-full hover:bg-red-700 transition-colors shadow-sm">Save changes</button>
+        <button 
+          onClick={handleSaveProfile}
+          disabled={saving || loading}
+          className={`text-sm font-bold px-7 py-2.5 rounded-full transition-colors shadow-sm ${
+            saveSuccess 
+              ? 'bg-green-500 text-white' 
+              : 'bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed'
+          }`}
+        >
+          {saveSuccess ? 'Saved!' : saving ? 'Saving...' : 'Save changes'}
+        </button>
       </div>
     </>
   );
@@ -773,11 +1054,25 @@ function AccountSidebar({ activeSection, onSelect }: { activeSection: string; on
 
 // ─── Profile Page (exported) ──────────────────────────────────────────────────
 export function ProfilePage({ onNavigateHome }: { onNavigateHome?: () => void }) {
+  const { section } = useParams<{ section?: string }>();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("Profile");
+
+  useEffect(() => {
+    if (section && ["Profile", "Preferences", "Notifications", "Integrations"].includes(section)) {
+      setActiveSection(section);
+    }
+  }, [section]);
+
+  const handleSectionChange = (newSection: string) => {
+    setActiveSection(newSection);
+    navigate(`/settings/${newSection.toLowerCase()}`);
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="flex max-w-7xl mx-auto w-full px-4 py-8 gap-6">
-        <AccountSidebar activeSection={activeSection} onSelect={setActiveSection} />
+        <AccountSidebar activeSection={activeSection} onSelect={handleSectionChange} />
         <main className="flex-1 min-w-0">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">{activeSection}</h1>
