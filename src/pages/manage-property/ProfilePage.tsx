@@ -5,8 +5,6 @@ import { supabase } from "@/lib/supabase";
 interface FormErrors {
   firstName?: string;
   lastName?: string;
-  country?: string;
-  city?: string;
   language?: string;
   email?: string;
 }
@@ -47,23 +45,13 @@ export default function ProfilePage({ section }: ProfilePageProps) {
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [country, setCountry] = useState("");
-  const [city, setCity] = useState("");
   const [language, setLanguage] = useState("");
-  const [timeZone, setTimeZone] = useState("");
-  const [phone, setPhone] = useState("");
-  const [occupation, setOccupation] = useState("");
   const [email, setEmail] = useState("");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [initialValues, setInitialValues] = useState({
     firstName: "",
     lastName: "",
-    country: "",
-    city: "",
     language: "",
-    timeZone: "",
-    phone: "",
-    occupation: "",
     email: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -162,12 +150,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
         if (profile) {
           setFirstName(profile.first_name || "");
           setLastName(profile.last_name || "");
-          setCountry(profile.country || "");
-          setCity(profile.city || "");
           setLanguage(profile.language || "");
-          setTimeZone(profile.time_zone || "");
-          setPhone(profile.phone || "");
-          setOccupation(profile.occupation || "");
           setEmail(profile.email || "");
           if (profile.profile_picture_url) {
             setProfilePictureUrl(profile.profile_picture_url);
@@ -175,12 +158,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
           setInitialValues({
             firstName: profile.first_name || "",
             lastName: profile.last_name || "",
-            country: profile.country || "",
-            city: profile.city || "",
             language: profile.language || "",
-            timeZone: profile.time_zone || "",
-            phone: profile.phone || "",
-            occupation: profile.occupation || "",
             email: profile.email || "",
           });
 
@@ -226,15 +204,10 @@ export default function ProfilePage({ section }: ProfilePageProps) {
     const hasChanges =
       firstName !== initialValues.firstName ||
       lastName !== initialValues.lastName ||
-      country !== initialValues.country ||
-      city !== initialValues.city ||
       language !== initialValues.language ||
-      timeZone !== initialValues.timeZone ||
-      phone !== initialValues.phone ||
-      occupation !== initialValues.occupation ||
       email !== initialValues.email;
     setHasUnsavedChanges(hasChanges);
-  }, [firstName, lastName, country, city, language, timeZone, phone, occupation, email]);
+  }, [firstName, lastName, language, email]);
 
   const validatePreferences = (): boolean => {
     const newErrors: PreferenceErrors = {};
@@ -276,18 +249,6 @@ export default function ProfilePage({ section }: ProfilePageProps) {
       newErrors.lastName = "Last name cannot contain numbers";
     }
 
-    // Country validation
-    if (!country.trim()) {
-      newErrors.country = "Country is required";
-    }
-
-    // City validation
-    if (!city.trim()) {
-      newErrors.city = "City is required";
-    } else if (city.length < 2) {
-      newErrors.city = "City must be at least 2 characters";
-    }
-
     // Language validation
     if (!language.trim()) {
       newErrors.language = "Language is required";
@@ -311,8 +272,6 @@ export default function ProfilePage({ section }: ProfilePageProps) {
       !/\d/.test(firstName) &&
       lastName.trim().length >= 2 &&
       !/\d/.test(lastName) &&
-      country.trim() !== "" &&
-      city.trim().length >= 2 &&
       language.trim() !== "" &&
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
     );
@@ -404,12 +363,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
   const handleDiscard = () => {
     setFirstName(initialValues.firstName || "");
     setLastName(initialValues.lastName || "");
-    setCountry(initialValues.country || "");
-    setCity(initialValues.city || "");
     setLanguage(initialValues.language || "");
-    setTimeZone(initialValues.timeZone || "");
-    setPhone(initialValues.phone || "");
-    setOccupation(initialValues.occupation || "");
     setEmail(initialValues.email || "");
     setHasUnsavedChanges(false);
     setErrors({});
@@ -431,13 +385,8 @@ export default function ProfilePage({ section }: ProfilePageProps) {
         .update({
           first_name: firstName,
           last_name: lastName,
-          country: country,
-          city: city,
-          language: language,
-          time_zone: timeZone,
-          phone: phone,
-          occupation: occupation,
           email: email,
+          language: language,
         })
         .eq('id', user.id);
 
@@ -451,12 +400,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
       setInitialValues({
         firstName,
         lastName,
-        country,
-        city,
         language,
-        timeZone,
-        phone,
-        occupation,
         email,
       });
 
@@ -479,29 +423,13 @@ export default function ProfilePage({ section }: ProfilePageProps) {
       case "lastName":
         setLastName(value);
         break;
-      case "country":
-        setCountry(value);
-        break;
-      case "city":
-        setCity(value);
-        break;
       case "language":
         setLanguage(value);
-        break;
-      case "timeZone":
-        setTimeZone(value);
-        break;
-      case "phone":
-        setPhone(value);
-        break;
-      case "occupation":
-        setOccupation(value);
         break;
       case "email":
         setEmail(value);
         break;
     }
-    // Clear error for this field when user starts typing
     setErrors(prev => ({ ...prev, [field]: undefined }));
   };
 
@@ -679,13 +607,13 @@ export default function ProfilePage({ section }: ProfilePageProps) {
           </div>
         </div>
 
-        {/* Personal Information Form - Two Column Grid */}
+        {/* Personal Information Form */}
         <div className="FormSection mb-8 p-6 bg-white rounded-2xl shadow-sm">
           <h2 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">Personal Information</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Row 1: First Name | Last Name */}
-            <div className="flex flex-col gap-2">
+            {/* First Name */}
+            <div className="flex flex-col gap-2 min-w-0">
               <label htmlFor="firstName" className="text-sm font-bold font-['Manrope'] text-zinc-900">
                 First Name <span className="text-rose-700">*</span>
               </label>
@@ -695,7 +623,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
                 value={firstName}
                 onChange={(e) => handleFieldChange("firstName", e.target.value)}
                 placeholder="Enter your first name"
-                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all ${
+                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all text-sm ${
                   errors.firstName ? "ring-2 ring-red-500" : ""
                 }`}
                 aria-invalid={!!errors.firstName}
@@ -707,7 +635,8 @@ export default function ProfilePage({ section }: ProfilePageProps) {
                 </p>
               )}
             </div>
-            <div className="flex flex-col gap-2">
+            {/* Last Name */}
+            <div className="flex flex-col gap-2 min-w-0">
               <label htmlFor="lastName" className="text-sm font-bold font-['Manrope'] text-zinc-900">
                 Last Name <span className="text-rose-700">*</span>
               </label>
@@ -717,7 +646,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
                 value={lastName}
                 onChange={(e) => handleFieldChange("lastName", e.target.value)}
                 placeholder="Enter your last name"
-                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all ${
+                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all text-sm ${
                   errors.lastName ? "ring-2 ring-red-500" : ""
                 }`}
                 aria-invalid={!!errors.lastName}
@@ -730,57 +659,32 @@ export default function ProfilePage({ section }: ProfilePageProps) {
               )}
             </div>
 
-            {/* Row 2: Country | City */}
-            <div className="flex flex-col gap-2">
-              <label htmlFor="country" className="text-sm font-bold font-['Manrope'] text-zinc-900">
-                Country <span className="text-rose-700">*</span>
-              </label>
-              <select
-                id="country"
-                value={country}
-                onChange={(e) => handleFieldChange("country", e.target.value)}
-                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all ${
-                  errors.country ? "ring-2 ring-red-500" : ""
-                }`}
-                aria-invalid={!!errors.country}
-                aria-describedby={errors.country ? "country-error" : undefined}
-              >
-                <option value="">Select your country</option>
-                <option value="Somali">🇸🇴 Somali</option>
-                <option value="Kenya">🇰🇪 Kenya</option>
-                <option value="Ethiopia">🇪🇹 Ethiopia</option>
-              </select>
-              {errors.country && (
-                <p id="country-error" className="text-xs text-red-500 font-['Manrope']" role="alert">
-                  {errors.country}
-                </p>
-              )}
-            </div>
-            <div className="flex flex-col gap-2">
-              <label htmlFor="city" className="text-sm font-bold font-['Manrope'] text-zinc-900">
-                City <span className="text-rose-700">*</span>
+            {/* Email */}
+            <div className="flex flex-col gap-2 min-w-0">
+              <label htmlFor="email" className="text-sm font-bold font-['Manrope'] text-zinc-900">
+                Email Address <span className="text-rose-700">*</span>
               </label>
               <input
-                id="city"
-                type="text"
-                value={city}
-                onChange={(e) => handleFieldChange("city", e.target.value)}
-                placeholder="Enter your city"
-                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all ${
-                  errors.city ? "ring-2 ring-red-500" : ""
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => handleFieldChange("email", e.target.value)}
+                placeholder="your@email.com"
+                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all text-sm ${
+                  errors.email ? "ring-2 ring-red-500" : ""
                 }`}
-                aria-invalid={!!errors.city}
-                aria-describedby={errors.city ? "city-error" : undefined}
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? "email-error" : undefined}
               />
-              {errors.city && (
-                <p id="city-error" className="text-xs text-red-500 font-['Manrope']" role="alert">
-                  {errors.city}
+              {errors.email && (
+                <p id="email-error" className="text-xs text-red-500 font-['Manrope']" role="alert">
+                  {errors.email}
                 </p>
               )}
             </div>
 
-            {/* Row 3: Language | Time Zone */}
-            <div className="flex flex-col gap-2">
+            {/* Language */}
+            <div className="flex flex-col gap-2 min-w-0">
               <label htmlFor="language" className="text-sm font-bold font-['Manrope'] text-zinc-900">
                 Language <span className="text-rose-700">*</span>
               </label>
@@ -788,7 +692,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
                 id="language"
                 value={language}
                 onChange={(e) => handleFieldChange("language", e.target.value)}
-                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all ${
+                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all text-sm ${
                   errors.language ? "ring-2 ring-red-500" : ""
                 }`}
                 aria-invalid={!!errors.language}
@@ -804,44 +708,6 @@ export default function ProfilePage({ section }: ProfilePageProps) {
                   {errors.language}
                 </p>
               )}
-            </div>
-            <div className="flex flex-col gap-2">
-              <label htmlFor="timeZone" className="text-sm font-bold font-['Manrope'] text-zinc-900">Time Zone</label>
-              <select
-                id="timeZone"
-                value={timeZone}
-                onChange={(e) => handleFieldChange("timeZone", e.target.value)}
-                className="w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all"
-              >
-                <option value="">Select your time zone</option>
-                <option value="UTC+3">UTC+3 (East Africa Time)</option>
-                <option value="UTC+2">UTC+2 (Central Africa Time)</option>
-                <option value="UTC+1">UTC+1 (West Africa Time)</option>
-              </select>
-            </div>
-
-            {/* Row 4: Phone | Occupation */}
-            <div className="flex flex-col gap-2">
-              <label htmlFor="phone" className="text-sm font-bold font-['Manrope'] text-zinc-900">Phone</label>
-              <input
-                id="phone"
-                type="tel"
-                value={phone}
-                onChange={(e) => handleFieldChange("phone", e.target.value)}
-                placeholder="+252 61 234 5678"
-                className="w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label htmlFor="occupation" className="text-sm font-bold font-['Manrope'] text-zinc-900">Occupation</label>
-              <input
-                id="occupation"
-                type="text"
-                value={occupation}
-                onChange={(e) => handleFieldChange("occupation", e.target.value)}
-                placeholder="Property Manager"
-                className="w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all"
-              />
             </div>
           </div>
         </div>
@@ -902,8 +768,8 @@ export default function ProfilePage({ section }: ProfilePageProps) {
         <>
         <div className="FormSection mb-8 p-6 bg-white rounded-2xl shadow-sm">
           <h2 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">Preferences</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="flex flex-col gap-2 min-w-0">
               <label htmlFor="pref-language" className="text-sm font-bold font-['Manrope'] text-zinc-900">
                 Language <span className="text-rose-700">*</span>
               </label>
@@ -914,7 +780,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
                   setPrefLanguage(e.target.value);
                   setPrefErrors(prev => ({ ...prev, language: undefined }));
                 }}
-                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all ${
+                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all text-sm ${
                   prefErrors.language ? "ring-2 ring-red-500" : ""
                 }`}
                 aria-invalid={!!prefErrors.language}
@@ -931,7 +797,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
                 </p>
               )}
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 min-w-0">
               <label htmlFor="pref-currency" className="text-sm font-bold font-['Manrope'] text-zinc-900">
                 Currency <span className="text-rose-700">*</span>
               </label>
@@ -942,7 +808,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
                   setPrefCurrency(e.target.value);
                   setPrefErrors(prev => ({ ...prev, currency: undefined }));
                 }}
-                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all ${
+                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all text-sm ${
                   prefErrors.currency ? "ring-2 ring-red-500" : ""
                 }`}
                 aria-invalid={!!prefErrors.currency}
@@ -960,7 +826,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
                 </p>
               )}
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 min-w-0">
               <label htmlFor="pref-timezone" className="text-sm font-bold font-['Manrope'] text-zinc-900">
                 Time Zone <span className="text-rose-700">*</span>
               </label>
@@ -971,7 +837,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
                   setPrefTimeZone(e.target.value);
                   setPrefErrors(prev => ({ ...prev, timezone: undefined }));
                 }}
-                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all ${
+                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all text-sm ${
                   prefErrors.timezone ? "ring-2 ring-red-500" : ""
                 }`}
                 aria-invalid={!!prefErrors.timezone}
