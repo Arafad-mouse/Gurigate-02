@@ -454,7 +454,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
       const filePath = `profile-pictures/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('avatars')
+        .from('profile-images')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) {
@@ -465,7 +465,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
       }
 
       const { data } = supabase.storage
-        .from('avatars')
+        .from('profile-images')
         .getPublicUrl(filePath);
 
       const publicUrl = data.publicUrl;
