@@ -35,9 +35,35 @@ interface AuthMetadata {
   lastSignIn: string;
 }
 
+interface NotificationPreferences {
+  leaseExpiration: boolean;
+  rentReminders: boolean;
+  overdueAlerts: boolean;
+  paymentReceived: boolean;
+  propertyUpdates: boolean;
+  systemAnnouncements: boolean;
+  securityAlerts: boolean;
+  newCustomer: boolean;
+  emailEnabled: boolean;
+  inAppEnabled: boolean;
+}
+
 const SUPPORTED_LANGUAGES = ['English', 'Somali', 'Arabic'];
 const SUPPORTED_CURRENCIES = ['USD ($)', 'Somaliland Shilling (SLSH)', 'Somali Shilling (SOS)', 'Ethiopian Birr (ETB)'];
 const SUPPORTED_TIMEZONES = ['UTC+0', 'UTC+1', 'UTC+2', 'UTC+3', 'UTC+4', 'UTC+5'];
+
+const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  leaseExpiration: true,
+  rentReminders: true,
+  overdueAlerts: true,
+  paymentReceived: true,
+  propertyUpdates: true,
+  systemAnnouncements: true,
+  securityAlerts: true,
+  newCustomer: false,
+  emailEnabled: true,
+  inAppEnabled: true,
+};
 
 export default function ProfilePage({ section }: ProfilePageProps) {
   const { "*": tab } = useParams();
@@ -73,6 +99,11 @@ export default function ProfilePage({ section }: ProfilePageProps) {
   const [isSavingPrefs, setIsSavingPrefs] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [authMetadata, setAuthMetadata] = useState<AuthMetadata | null>(null);
+
+  // Notification Preferences state
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFERENCES);
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
+  const [savingField, setSavingField] = useState<string | null>(null);
 
   const tabs = [
     { id: "profile", label: "Profile" },
@@ -190,6 +221,52 @@ export default function ProfilePage({ section }: ProfilePageProps) {
     loadUserProfile();
   }, []);
 
+  // Load notification preferences
+  useEffect(() => {
+    const loadNotificationPreferences = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('notification_preferences')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error loading notification preferences:', error);
+          return;
+        }
+
+        if (data) {
+          setNotificationPrefs({
+            leaseExpiration: data.lease_expiration ?? true,
+            rentReminders: data.rent_reminders ?? true,
+            overdueAlerts: data.overdue_alerts ?? true,
+            paymentReceived: data.payment_received ?? true,
+            propertyUpdates: data.property_updates ?? true,
+            systemAnnouncements: data.system_announcements ?? true,
+            securityAlerts: data.security_alerts ?? true,
+            newCustomer: data.new_customer ?? false,
+            emailEnabled: data.email_enabled ?? true,
+            inAppEnabled: data.in_app_enabled ?? true,
+          });
+        } else {
+          // Create default preferences for new users
+          await supabase.from('notification_preferences').insert({
+            user_id: user.id,
+            ...DEFAULT_NOTIFICATION_PREFERENCES,
+          });
+        }
+      } catch (error) {
+        console.error('Error loading notification preferences:', error);
+      }
+    };
+
+    loadNotificationPreferences();
+  }, []);
+
   // Track preference changes
   useEffect(() => {
     const hasChanges =
@@ -287,6 +364,77 @@ export default function ProfilePage({ section }: ProfilePageProps) {
     setPrefTimeZone(initialPrefValues.timezone);
     setHasUnsavedPrefChanges(false);
     setPrefErrors({});
+  };
+
+  const handleNotificationPreferenceChange = async (field: keyof NotificationPreferences, value: boolean) => {
+    // Validate that at least one delivery channel is enabled (for non-security fields)
+    if (['emailEnabled', 'inAppEnabled'].includes(field)) {
+      const newPrefs = { ...notificationPrefs, [field]: value };
+      if (!newPrefs.emailEnabled && !newPrefs.inAppEnabled) {
+        showToast("At least one delivery channel must be enabled", "error");
+        return;
+      }
+    }
+
+    // Security alerts cannot be disabled
+    if (field === 'securityAlerts' && !value) {
+      showToast("Security alerts cannot be disabled", "error");
+      return;
+    }
+
+    setSavingField(field);
+    const newPrefs = { ...notificationPrefs, [field]: value };
+    setNotificationPrefs(newPrefs);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showToast("User not authenticated", "error");
+        setSavingField(null);
+        return;
+      }
+
+      const updateData: Record<string, boolean> = {};
+      // Map camelCase to snake_case for database
+      const fieldMap: Record<string, string> = {
+        leaseExpiration: 'lease_expiration',
+        rentReminders: 'rent_reminders',
+        overdueAlerts: 'overdue_alerts',
+        paymentReceived: 'payment_received',
+        propertyUpdates: 'property_updates',
+        systemAnnouncements: 'system_announcements',
+        securityAlerts: 'security_alerts',
+        newCustomer: 'new_customer',
+        emailEnabled: 'email_enabled',
+        inAppEnabled: 'in_app_enabled',
+      };
+
+      updateData[fieldMap[field]] = value;
+
+      const { error } = await supabase
+        .from('notification_preferences')
+        .update(updateData)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error saving notification preferences:', error);
+        showToast("Error saving notification preferences", "error");
+        // Revert the change
+        setNotificationPrefs(prev => ({ ...prev, [field]: !value }));
+        setSavingField(null);
+        return;
+      }
+
+      showToast("Notification preferences updated", "success");
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error saving notification preferences:', errorMsg);
+      showToast("Error saving notification preferences", "error");
+      // Revert the change
+      setNotificationPrefs(prev => ({ ...prev, [field]: !value }));
+    } finally {
+      setSavingField(null);
+    }
   };
 
   const handleSavePreferences = async () => {
@@ -892,50 +1040,43 @@ export default function ProfilePage({ section }: ProfilePageProps) {
           <p className="text-zinc-600 font-['Manrope']">Manage how GuriGate will notify you about important activities across your properties.</p>
         </div>
 
-        {/* Status Card */}
-        <div className="FormSection mb-8 p-6 bg-blue-50 border border-blue-200 rounded-2xl">
-          <div className="flex items-start gap-4">
-            <div className="text-3xl">🚧</div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold font-['Manrope'] text-zinc-900 mb-1">Notification System</h3>
-              <p className="text-sm text-zinc-600 font-['Manrope'] mb-3">
-                The notification center is currently under development and will be available in a future update.
-              </p>
-              <p className="text-sm text-zinc-600 font-['Manrope']">
-                When released, you will be able to manage all notification preferences from this page.
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Notification Types */}
         <div className="FormSection mb-8 p-6 bg-white rounded-2xl shadow-sm">
-          <h3 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">Upcoming Notification Types</h3>
+          <h3 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">Notification Types</h3>
           <div className="space-y-3">
             {[
-              'Lease Expiration Reminders',
-              'Rent Payment Reminders',
-              'Overdue Payment Alerts',
-              'New Customer Notifications',
-              'New Lease Created',
-              'Payment Received',
-              'Property Updates',
-              'System Announcements',
-              'Security Alerts'
-            ].map((notificationType) => (
-              <div key={notificationType} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    disabled
-                    defaultChecked
-                    className="w-5 h-5 cursor-not-allowed opacity-50"
-                  />
-                  <span className="font-['Manrope'] text-zinc-900">{notificationType}</span>
+              { key: 'leaseExpiration', label: 'Lease Expiration Reminders', description: 'Receive reminders before leases expire.' },
+              { key: 'rentReminders', label: 'Rent Payment Reminders', description: 'Receive reminders before rent due dates.' },
+              { key: 'overdueAlerts', label: 'Overdue Payment Alerts', description: 'Receive alerts when rent becomes overdue.' },
+              { key: 'newCustomer', label: 'New Customer Notifications', description: 'Notify when a new customer is added.' },
+              { key: 'propertyUpdates', label: 'Property Updates', description: 'Notify when property information changes.' },
+              { key: 'paymentReceived', label: 'Payment Received Notifications', description: 'Notify when rent is successfully recorded.' },
+              { key: 'systemAnnouncements', label: 'System Announcements', description: 'Receive application news and updates.' },
+              { key: 'securityAlerts', label: 'Security Alerts', description: 'Receive important security notifications.' }
+            ].map((notif) => (
+              <div key={notif.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-1">
+                    <input
+                      type="checkbox"
+                      checked={notificationPrefs[notif.key as keyof NotificationPreferences] as boolean}
+                      onChange={(e) => handleNotificationPreferenceChange(notif.key as keyof NotificationPreferences, e.target.checked)}
+                      disabled={savingField === notif.key || (notif.key === 'securityAlerts' && notificationPrefs.securityAlerts)}
+                      className="w-5 h-5 cursor-pointer accent-rose-700 disabled:cursor-not-allowed"
+                      aria-busy={savingField === notif.key}
+                    />
+                    <div>
+                      <label className="font-bold font-['Manrope'] text-zinc-900 cursor-pointer">{notif.label}</label>
+                      {notif.key === 'securityAlerts' && <span className="text-xs text-rose-600 font-['Manrope'] ml-2">(Cannot be disabled)</span>}
+                    </div>
+                  </div>
+                  <p className="text-xs text-zinc-600 font-['Manrope'] ml-8">{notif.description}</p>
                 </div>
-                <span className="text-xs font-semibold text-zinc-500 font-['Manrope'] bg-white px-3 py-1 rounded-full">
-                  Available in a future update
-                </span>
+                {savingField === notif.key && (
+                  <div className="ml-4 text-zinc-400">
+                    <span className="text-xs font-['Manrope']">Saving...</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -943,19 +1084,38 @@ export default function ProfilePage({ section }: ProfilePageProps) {
 
         {/* Delivery Channels */}
         <div className="FormSection mb-8 p-6 bg-white rounded-2xl shadow-sm">
-          <h3 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">Notification Channels</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <h3 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">Delivery Channels</h3>
+          <div className="space-y-3">
             {[
-              { channel: 'Email', icon: '📧' },
-              { channel: 'SMS', icon: '📱' },
-              { channel: 'In-App Notifications', icon: '🔔' },
-              { channel: 'WhatsApp', icon: '💬' },
-              { channel: 'Push Notifications', icon: '📲' }
-            ].map(({ channel, icon }) => (
-              <div key={channel} className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-center">
-                <div className="text-3xl mb-2">{icon}</div>
-                <h4 className="font-bold font-['Manrope'] text-zinc-900 text-sm mb-2">{channel}</h4>
-                <span className="text-xs text-zinc-500 font-['Manrope']">Coming Soon</span>
+              { key: 'emailEnabled', label: 'Email', icon: '📧', enabled: true },
+              { key: 'inAppEnabled', label: 'In-App Notifications', icon: '🔔', enabled: true },
+              { key: 'smsEnabled', label: 'SMS', icon: '📱', enabled: false, status: 'Coming Soon' },
+              { key: 'whatsappEnabled', label: 'WhatsApp', icon: '💬', enabled: false, status: 'Coming Soon' },
+              { key: 'pushEnabled', label: 'Push Notifications', icon: '📲', enabled: false, status: 'Coming Soon' }
+            ].map((channel) => (
+              <div key={channel.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">{channel.icon}</span>
+                  <div>
+                    <p className="font-bold font-['Manrope'] text-zinc-900">{channel.label}</p>
+                    {!channel.enabled && <p className="text-xs text-zinc-500 font-['Manrope']">{channel.status}</p>}
+                  </div>
+                </div>
+                {channel.enabled ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={notificationPrefs[channel.key as keyof NotificationPreferences] as boolean}
+                      onChange={(e) => handleNotificationPreferenceChange(channel.key as keyof NotificationPreferences, e.target.checked)}
+                      disabled={savingField === channel.key}
+                      className="w-5 h-5 cursor-pointer accent-rose-700 disabled:cursor-not-allowed"
+                      aria-busy={savingField === channel.key}
+                    />
+                    {savingField === channel.key && <span className="text-xs text-zinc-400 font-['Manrope']">Saving...</span>}
+                  </div>
+                ) : (
+                  <span className="text-xs font-semibold text-zinc-400 font-['Manrope']">{channel.status}</span>
+                )}
               </div>
             ))}
           </div>
@@ -963,24 +1123,37 @@ export default function ProfilePage({ section }: ProfilePageProps) {
 
         {/* Service Status */}
         <div className="FormSection p-6 bg-white rounded-2xl shadow-sm">
-          <h3 className="text-lg font-bold font-['Manrope'] text-zinc-900 mb-6">Service Status</h3>
+          <h3 className="text-lg font-bold font-['Manrope'] text-zinc-900 mb-6">Notification Status</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <div>
-                <p className="font-bold font-['Manrope'] text-zinc-900">Notification Service</p>
-                <p className="text-sm text-zinc-600 font-['Manrope']">Real-time alert system</p>
+                <p className="font-bold font-['Manrope'] text-zinc-900">Email</p>
+                <p className="text-sm text-zinc-600 font-['Manrope']">Email delivery channel</p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-semibold text-zinc-500 font-['Manrope']">Not Yet Available</p>
+                <p className={`text-sm font-semibold font-['Manrope'] ${notificationPrefs.emailEnabled ? 'text-green-600' : 'text-zinc-500'}`}>
+                  {notificationPrefs.emailEnabled ? 'Enabled' : 'Disabled'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <div>
+                <p className="font-bold font-['Manrope'] text-zinc-900">In-App Notifications</p>
+                <p className="text-sm text-zinc-600 font-['Manrope']">In-app notification center</p>
+              </div>
+              <div className="text-right">
+                <p className={`text-sm font-semibold font-['Manrope'] ${notificationPrefs.inAppEnabled ? 'text-green-600' : 'text-zinc-500'}`}>
+                  {notificationPrefs.inAppEnabled ? 'Enabled' : 'Disabled'}
+                </p>
               </div>
             </div>
             <div className="flex items-center justify-between p-4">
               <div>
-                <p className="font-bold font-['Manrope'] text-zinc-900">Target Release</p>
-                <p className="text-sm text-zinc-600 font-['Manrope']">Feature availability</p>
+                <p className="font-bold font-['Manrope'] text-zinc-900">SMS / WhatsApp / Push</p>
+                <p className="text-sm text-zinc-600 font-['Manrope']">Additional channels in development</p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-semibold text-zinc-500 font-['Manrope']">Future GuriGate Update</p>
+                <p className="text-sm font-semibold text-zinc-400 font-['Manrope']">Coming Soon</p>
               </div>
             </div>
           </div>
