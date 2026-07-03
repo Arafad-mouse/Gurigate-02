@@ -29,6 +29,14 @@ interface Toast {
   type: ToastType;
 }
 
+interface AuthMetadata {
+  userId: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  lastSignIn: string;
+}
+
 const SUPPORTED_LANGUAGES = ['English', 'Somali', 'Arabic'];
 const SUPPORTED_CURRENCIES = ['USD ($)', 'Somaliland Shilling (SLSH)', 'Somali Shilling (SOS)', 'Ethiopian Birr (ETB)'];
 const SUPPORTED_TIMEZONES = ['UTC+0', 'UTC+1', 'UTC+2', 'UTC+3', 'UTC+4', 'UTC+5'];
@@ -76,6 +84,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
   const [prefErrors, setPrefErrors] = useState<PreferenceErrors>({});
   const [isSavingPrefs, setIsSavingPrefs] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [authMetadata, setAuthMetadata] = useState<AuthMetadata | null>(null);
 
   const tabs = [
     { id: "profile", label: "Profile" },
@@ -118,6 +127,24 @@ export default function ProfilePage({ section }: ProfilePageProps) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
+
+        // Load auth metadata
+        const formatDate = (date: string | null) => {
+          if (!date) return 'Never';
+          return new Date(date).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
+        };
+
+        setAuthMetadata({
+          userId: user.id,
+          email: user.email || '',
+          role: 'host', // Default role, will be updated from profile
+          createdAt: formatDate(user.created_at),
+          lastSignIn: formatDate(user.last_sign_in_at),
+        });
 
         const { data: profile, error } = await supabase
           .from('profiles')
@@ -169,6 +196,11 @@ export default function ProfilePage({ section }: ProfilePageProps) {
             currency: prefCurrency,
             timezone: prefTimeZone,
           });
+
+          // Update auth metadata with role from profile
+          if (profile.role) {
+            setAuthMetadata(prev => prev ? { ...prev, role: profile.role } : null);
+          }
         }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -989,27 +1021,13 @@ export default function ProfilePage({ section }: ProfilePageProps) {
         {activeTab === "notifications" && (
         <div className="FormSection mb-8 p-6 bg-white rounded-2xl shadow-sm">
           <h2 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">Notification Preferences</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold font-['Manrope'] text-zinc-900">Email Notifications</h3>
-                <p className="text-sm text-zinc-600 font-['Manrope']">Receive notifications via email</p>
-              </div>
-              <input type="checkbox" defaultChecked className="w-5 h-5" />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold font-['Manrope'] text-zinc-900">SMS Alerts</h3>
-                <p className="text-sm text-zinc-600 font-['Manrope']">Receive alerts via SMS</p>
-              </div>
-              <input type="checkbox" className="w-5 h-5" />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold font-['Manrope'] text-zinc-900">Push Notifications</h3>
-                <p className="text-sm text-zinc-600 font-['Manrope']">Receive push notifications</p>
-              </div>
-              <input type="checkbox" defaultChecked className="w-5 h-5" />
+          <div className="p-8 text-center bg-gray-50 rounded-xl border border-gray-200">
+            <div className="flex flex-col items-center gap-3">
+              <div className="text-4xl">🔔</div>
+              <h3 className="text-lg font-bold font-['Manrope'] text-zinc-900">Coming Soon</h3>
+              <p className="text-sm text-zinc-600 font-['Manrope'] max-w-md">
+                Notification preferences will be available once the notification system is fully integrated with GuriGate V1.
+              </p>
             </div>
           </div>
         </div>
@@ -1017,22 +1035,34 @@ export default function ProfilePage({ section }: ProfilePageProps) {
 
         {activeTab === "general" && (
         <div className="FormSection mb-8 p-6 bg-white rounded-2xl shadow-sm">
-          <h2 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">General Settings</h2>
+          <h2 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">Account Information</h2>
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold font-['Manrope'] text-zinc-900">Marketing Emails</h3>
-                <p className="text-sm text-zinc-600 font-['Manrope']">Receive marketing and promotional emails</p>
-              </div>
-              <input type="checkbox" defaultChecked className="w-5 h-5" />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold font-['Manrope'] text-zinc-900">Account Privacy</h3>
-                <p className="text-sm text-zinc-600 font-['Manrope']">Make your profile public</p>
-              </div>
-              <input type="checkbox" className="w-5 h-5" />
-            </div>
+            {authMetadata ? (
+              <>
+                <div className="pb-6 border-b border-gray-200">
+                  <label className="text-sm font-bold font-['Manrope'] text-zinc-600">User ID</label>
+                  <p className="text-base font-['Manrope'] text-zinc-900 mt-2 break-all font-mono text-sm bg-gray-50 p-3 rounded">{authMetadata.userId}</p>
+                </div>
+                <div className="pb-6 border-b border-gray-200">
+                  <label className="text-sm font-bold font-['Manrope'] text-zinc-600">Email Address</label>
+                  <p className="text-base font-['Manrope'] text-zinc-900 mt-2">{authMetadata.email}</p>
+                </div>
+                <div className="pb-6 border-b border-gray-200">
+                  <label className="text-sm font-bold font-['Manrope'] text-zinc-600">Role</label>
+                  <p className="text-base font-['Manrope'] text-zinc-900 mt-2 capitalize">{authMetadata.role}</p>
+                </div>
+                <div className="pb-6 border-b border-gray-200">
+                  <label className="text-sm font-bold font-['Manrope'] text-zinc-600">Account Created</label>
+                  <p className="text-base font-['Manrope'] text-zinc-900 mt-2">{authMetadata.createdAt}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-bold font-['Manrope'] text-zinc-600">Last Sign In</label>
+                  <p className="text-base font-['Manrope'] text-zinc-900 mt-2">{authMetadata.lastSignIn}</p>
+                </div>
+              </>
+            ) : (
+              <p className="text-zinc-600 font-['Manrope']">Loading account information...</p>
+            )}
           </div>
         </div>
         )}
@@ -1040,10 +1070,15 @@ export default function ProfilePage({ section }: ProfilePageProps) {
         {activeTab === "integrations" && (
         <div className="FormSection mb-8 p-6 bg-white rounded-2xl shadow-sm">
           <h2 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">Connected Integrations</h2>
-          <p className="text-zinc-600 font-['Manrope'] mb-6">No integrations connected yet. Connect your accounts to enhance your GuriGate experience.</p>
-          <button className="px-6 py-3 bg-gradient-to-b from-rose-700 to-rose-600 text-white text-base font-bold font-['Manrope'] rounded-full hover:shadow-md transition-shadow">
-            Browse Integrations
-          </button>
+          <div className="p-8 text-center bg-gray-50 rounded-xl border border-gray-200">
+            <div className="flex flex-col items-center gap-3">
+              <div className="text-4xl">🔗</div>
+              <h3 className="text-lg font-bold font-['Manrope'] text-zinc-900">No Integrations Available</h3>
+              <p className="text-sm text-zinc-600 font-['Manrope'] max-w-md">
+                Integration support will be added in future versions of GuriGate.
+              </p>
+            </div>
+          </div>
         </div>
         )}
       </div>
