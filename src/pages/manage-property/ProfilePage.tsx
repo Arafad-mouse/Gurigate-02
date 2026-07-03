@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 
 interface FormErrors {
   firstName?: string;
@@ -10,10 +11,32 @@ interface FormErrors {
   email?: string;
 }
 
-export default function ProfilePage() {
+interface PreferenceErrors {
+  language?: string;
+  currency?: string;
+  timezone?: string;
+}
+
+interface ProfilePageProps {
+  section?: string;
+}
+
+type ToastType = 'success' | 'error' | 'info';
+
+interface Toast {
+  id: string;
+  message: string;
+  type: ToastType;
+}
+
+const SUPPORTED_LANGUAGES = ['English', 'Somali', 'Arabic'];
+const SUPPORTED_CURRENCIES = ['USD ($)', 'Somaliland Shilling (SLSH)', 'Somali Shilling (SOS)', 'Ethiopian Birr (ETB)'];
+const SUPPORTED_TIMEZONES = ['UTC+0', 'UTC+1', 'UTC+2', 'UTC+3', 'UTC+4', 'UTC+5'];
+
+export default function ProfilePage({ section }: ProfilePageProps) {
   const { "*": tab } = useParams();
   const navigate = useNavigate();
-  
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [country, setCountry] = useState("");
@@ -36,6 +59,23 @@ export default function ProfilePage() {
     email: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string>("https://placehold.co/128x128");
+  const [isUploadingPicture, setIsUploadingPicture] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Preferences state
+  const [prefLanguage, setPrefLanguage] = useState("");
+  const [prefCurrency, setPrefCurrency] = useState("");
+  const [prefTimeZone, setPrefTimeZone] = useState("");
+  const [hasUnsavedPrefChanges, setHasUnsavedPrefChanges] = useState(false);
+  const [initialPrefValues, setInitialPrefValues] = useState({
+    language: "",
+    currency: "",
+    timezone: "",
+  });
+  const [prefErrors, setPrefErrors] = useState<PreferenceErrors>({});
+  const [isSavingPrefs, setIsSavingPrefs] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
   const tabs = [
     { id: "profile", label: "Profile" },
@@ -45,25 +85,113 @@ export default function ProfilePage() {
     { id: "integrations", label: "Integrations" },
   ];
 
-  const activeTab = tab || "profile";
+  const activeTab = section || tab || "profile";
+
+  // Toast notification helpers
+  const showToast = (message: string, type: ToastType = 'info') => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 3000);
+  };
+
+  // Detect timezone on first load
+  const detectTimezone = (): string => {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      // Map common timezone names to UTC offsets
+      if (tz.includes('Africa/Nairobi') || tz.includes('Africa/Khartoum')) return 'UTC+3';
+      if (tz.includes('Africa/Cairo') || tz.includes('Africa/Johannesburg')) return 'UTC+2';
+      if (tz.includes('Africa/Lagos')) return 'UTC+1';
+      if (tz.includes('Asia/Kolkata')) return 'UTC+5';
+      if (tz.includes('Asia/Dubai')) return 'UTC+4';
+      return 'UTC+0';
+    } catch {
+      return 'UTC+0';
+    }
+  };
+
+  // Load user profile data
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          const errorMsg = error.message || 'Failed to load profile';
+          console.error('Error loading profile:', errorMsg);
+          showToast(`Error loading profile: ${errorMsg}`, 'error');
+          return;
+        }
+
+        if (profile) {
+          setFirstName(profile.first_name || "");
+          setLastName(profile.last_name || "");
+          setCountry(profile.country || "");
+          setCity(profile.city || "");
+          setLanguage(profile.language || "");
+          setTimeZone(profile.time_zone || "");
+          setPhone(profile.phone || "");
+          setOccupation(profile.occupation || "");
+          setEmail(profile.email || "");
+          if (profile.profile_picture_url) {
+            setProfilePictureUrl(profile.profile_picture_url);
+          }
+          setInitialValues({
+            firstName: profile.first_name || "",
+            lastName: profile.last_name || "",
+            country: profile.country || "",
+            city: profile.city || "",
+            language: profile.language || "",
+            timeZone: profile.time_zone || "",
+            phone: profile.phone || "",
+            occupation: profile.occupation || "",
+            email: profile.email || "",
+          });
+
+          const prefLanguage = profile.language || 'English';
+          const prefCurrency = profile.currency || 'USD ($)';
+          const prefTimeZone = profile.timezone || detectTimezone();
+
+          setPrefLanguage(prefLanguage);
+          setPrefCurrency(prefCurrency);
+          setPrefTimeZone(prefTimeZone);
+          setInitialPrefValues({
+            language: prefLanguage,
+            currency: prefCurrency,
+            timezone: prefTimeZone,
+          });
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Error loading profile:', errorMsg);
+        showToast(`Error loading profile: ${errorMsg}`, 'error');
+      }
+    };
+
+    loadUserProfile();
+  }, []);
+
+  // Track preference changes
+  useEffect(() => {
+    const hasChanges =
+      prefLanguage !== initialPrefValues.language ||
+      prefCurrency !== initialPrefValues.currency ||
+      prefTimeZone !== initialPrefValues.timezone;
+    setHasUnsavedPrefChanges(hasChanges);
+  }, [prefLanguage, prefCurrency, prefTimeZone]);
 
   // Track form changes
   useEffect(() => {
-    setInitialValues({
-      firstName,
-      lastName,
-      country,
-      city,
-      language,
-      timeZone,
-      phone,
-      occupation,
-      email,
-    });
-  }, []);
-
-  useEffect(() => {
-    const hasChanges = 
+    const hasChanges =
       firstName !== initialValues.firstName ||
       lastName !== initialValues.lastName ||
       country !== initialValues.country ||
@@ -74,7 +202,26 @@ export default function ProfilePage() {
       occupation !== initialValues.occupation ||
       email !== initialValues.email;
     setHasUnsavedChanges(hasChanges);
-  }, [firstName, lastName, country, city, language, timeZone, phone, occupation, email, initialValues]);
+  }, [firstName, lastName, country, city, language, timeZone, phone, occupation, email]);
+
+  const validatePreferences = (): boolean => {
+    const newErrors: PreferenceErrors = {};
+
+    if (!SUPPORTED_LANGUAGES.includes(prefLanguage)) {
+      newErrors.language = "Please select a valid language";
+    }
+
+    if (!SUPPORTED_CURRENCIES.includes(prefCurrency)) {
+      newErrors.currency = "Please select a valid currency";
+    }
+
+    if (!SUPPORTED_TIMEZONES.includes(prefTimeZone)) {
+      newErrors.timezone = "Please select a valid timezone";
+    }
+
+    setPrefErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -143,6 +290,64 @@ export default function ProfilePage() {
     navigate(`/settings/${tabId}`);
   };
 
+  const handleDiscardPreferences = () => {
+    setPrefLanguage(initialPrefValues.language);
+    setPrefCurrency(initialPrefValues.currency);
+    setPrefTimeZone(initialPrefValues.timezone);
+    setHasUnsavedPrefChanges(false);
+    setPrefErrors({});
+  };
+
+  const handleSavePreferences = async () => {
+    if (!validatePreferences()) {
+      showToast("Please fix the errors in your preferences", "error");
+      return;
+    }
+
+    setIsSavingPrefs(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showToast("User not authenticated", "error");
+        setIsSavingPrefs(false);
+        return;
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          language: prefLanguage,
+          currency: prefCurrency,
+          timezone: prefTimeZone,
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        const errorMsg = error.message || 'Failed to save preferences';
+        console.error('Error saving preferences:', errorMsg);
+        showToast(`Error saving preferences: ${errorMsg}`, "error");
+        setIsSavingPrefs(false);
+        return;
+      }
+
+      setInitialPrefValues({
+        language: prefLanguage,
+        currency: prefCurrency,
+        timezone: prefTimeZone,
+      });
+
+      setHasUnsavedPrefChanges(false);
+      setPrefErrors({});
+      showToast("Preferences updated successfully", "success");
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error saving preferences:', errorMsg);
+      showToast(`Error saving preferences: ${errorMsg}`, "error");
+    } finally {
+      setIsSavingPrefs(false);
+    }
+  };
+
   const handleDiscard = () => {
     setFirstName(initialValues.firstName || "");
     setLastName(initialValues.lastName || "");
@@ -157,14 +362,60 @@ export default function ProfilePage() {
     setErrors({});
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) {
       return;
     }
-    // TODO: Implement API integration
-    console.log("Saving changes...");
-    setHasUnsavedChanges(false);
-    setErrors({});
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showToast('User not authenticated', 'error');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: firstName,
+          last_name: lastName,
+          country: country,
+          city: city,
+          language: language,
+          time_zone: timeZone,
+          phone: phone,
+          occupation: occupation,
+          email: email,
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        const errorMsg = error.message || 'Failed to save profile';
+        console.error('Error saving profile:', errorMsg);
+        showToast(`Error saving profile: ${errorMsg}`, 'error');
+        return;
+      }
+
+      setInitialValues({
+        firstName,
+        lastName,
+        country,
+        city,
+        language,
+        timeZone,
+        phone,
+        occupation,
+        email,
+      });
+
+      console.log("Profile saved successfully");
+      setHasUnsavedChanges(false);
+      setErrors({});
+      showToast('Profile saved successfully', 'success');
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error saving profile:', errorMsg);
+      showToast(`Error saving profile: ${errorMsg}`, 'error');
+    }
   };
 
   const handleFieldChange = (field: string, value: string) => {
@@ -199,6 +450,101 @@ export default function ProfilePage() {
     }
     // Clear error for this field when user starts typing
     setErrors(prev => ({ ...prev, [field]: undefined }));
+  };
+
+  const handleUploadProfilePicture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select an image file', 'error');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('File size must be less than 5MB', 'error');
+      return;
+    }
+
+    setIsUploadingPicture(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `profile-pictures/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('gurigate-uploads')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) {
+        const errorMsg = uploadError.message || 'Failed to upload image';
+        console.error('Upload error:', errorMsg);
+        showToast(`Upload failed: ${errorMsg}`, 'error');
+        return;
+      }
+
+      const { data } = supabase.storage
+        .from('gurigate-uploads')
+        .getPublicUrl(filePath);
+
+      const publicUrl = data.publicUrl;
+      setProfilePictureUrl(publicUrl);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ profile_picture_url: publicUrl })
+          .eq('id', user.id);
+
+        if (updateError) {
+          const errorMsg = updateError.message || 'Failed to save picture';
+          console.error('Database update error:', errorMsg);
+          showToast(`Error saving picture: ${errorMsg}`, 'error');
+          return;
+        }
+      }
+      showToast('Profile picture uploaded successfully', 'success');
+      console.log('Profile picture uploaded:', publicUrl);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error uploading profile picture:', errorMsg);
+      showToast(`Error uploading picture: ${errorMsg}`, 'error');
+    } finally {
+      setIsUploadingPicture(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveProfilePicture = async () => {
+    setIsUploadingPicture(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ profile_picture_url: null })
+          .eq('id', user.id);
+
+        if (error) {
+          const errorMsg = error.message || 'Failed to remove picture';
+          console.error('Error removing profile picture:', errorMsg);
+          showToast(`Error removing picture: ${errorMsg}`, 'error');
+          return;
+        }
+      }
+      setProfilePictureUrl("https://placehold.co/128x128");
+      showToast('Profile picture removed successfully', 'success');
+      console.log('Profile picture removed');
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error removing profile picture:', errorMsg);
+      showToast(`Error removing picture: ${errorMsg}`, 'error');
+    } finally {
+      setIsUploadingPicture(false);
+    }
   };
 
   return (
@@ -240,19 +586,38 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* Conditional Content Rendering Based on Active Tab */}
+        {activeTab === "profile" && (
+        <>
         {/* Profile Picture Section - Full width matching form */}
         <div className="ProfilePictureSection mb-8 p-6 bg-white rounded-2xl shadow-sm">
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="size-20 bg-gray-200 rounded-full overflow-hidden flex-shrink-0">
-              <img className="w-full h-full object-cover" src="https://placehold.co/128x128" alt="Profile" />
+              <img className="w-full h-full object-cover" src={profilePictureUrl} alt="Profile" />
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-bold font-['Manrope'] text-zinc-900 mb-3">Profile Picture</h3>
               <div className="flex gap-3">
-                <button className="px-5 py-2 bg-gradient-to-b from-rose-700 to-rose-600 text-white text-sm font-bold font-['Manrope'] rounded-full shadow-sm hover:shadow-md transition-shadow">
-                  Upload New Photo
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleUploadProfilePicture}
+                  className="hidden"
+                  id="profile-picture-input"
+                />
+                <button
+                  onClick={() => document.getElementById('profile-picture-input')?.click()}
+                  disabled={isUploadingPicture}
+                  className="px-5 py-2 bg-gradient-to-b from-rose-700 to-rose-600 text-white text-sm font-bold font-['Manrope'] rounded-full shadow-sm hover:shadow-md transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUploadingPicture ? "Uploading..." : "Upload New Photo"}
                 </button>
-                <button className="px-5 py-2 bg-zinc-100 text-zinc-900 text-sm font-bold font-['Manrope'] rounded-full hover:bg-zinc-200 transition-colors">
+                <button
+                  onClick={handleRemoveProfilePicture}
+                  disabled={isUploadingPicture || profilePictureUrl === "https://placehold.co/128x128"}
+                  className="px-5 py-2 bg-zinc-100 text-zinc-900 text-sm font-bold font-['Manrope'] rounded-full hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   Remove Photo
                 </button>
               </div>
@@ -477,6 +842,189 @@ export default function ProfilePage() {
             Save changes
           </button>
         </div>
+        </>
+        )}
+
+        {activeTab === "preferences" && (
+        <>
+        <div className="FormSection mb-8 p-6 bg-white rounded-2xl shadow-sm">
+          <h2 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">Preferences</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="pref-language" className="text-sm font-bold font-['Manrope'] text-zinc-900">
+                Language <span className="text-rose-700">*</span>
+              </label>
+              <select
+                id="pref-language"
+                value={prefLanguage}
+                onChange={(e) => {
+                  setPrefLanguage(e.target.value);
+                  setPrefErrors(prev => ({ ...prev, language: undefined }));
+                }}
+                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all ${
+                  prefErrors.language ? "ring-2 ring-red-500" : ""
+                }`}
+                aria-invalid={!!prefErrors.language}
+                aria-describedby={prefErrors.language ? "pref-language-error" : undefined}
+              >
+                <option value="">Select your language</option>
+                <option value="English">English</option>
+                <option value="Somali">Somali</option>
+                <option value="Arabic">Arabic</option>
+              </select>
+              {prefErrors.language && (
+                <p id="pref-language-error" className="text-xs text-red-500 font-['Manrope']" role="alert">
+                  {prefErrors.language}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="pref-currency" className="text-sm font-bold font-['Manrope'] text-zinc-900">
+                Currency <span className="text-rose-700">*</span>
+              </label>
+              <select
+                id="pref-currency"
+                value={prefCurrency}
+                onChange={(e) => {
+                  setPrefCurrency(e.target.value);
+                  setPrefErrors(prev => ({ ...prev, currency: undefined }));
+                }}
+                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all ${
+                  prefErrors.currency ? "ring-2 ring-red-500" : ""
+                }`}
+                aria-invalid={!!prefErrors.currency}
+                aria-describedby={prefErrors.currency ? "pref-currency-error" : undefined}
+              >
+                <option value="">Select your currency</option>
+                <option value="USD ($)">USD ($)</option>
+                <option value="Somaliland Shilling (SLSH)">Somaliland Shilling (SLSH)</option>
+                <option value="Somali Shilling (SOS)">Somali Shilling (SOS)</option>
+                <option value="Ethiopian Birr (ETB)">Ethiopian Birr (ETB)</option>
+              </select>
+              {prefErrors.currency && (
+                <p id="pref-currency-error" className="text-xs text-red-500 font-['Manrope']" role="alert">
+                  {prefErrors.currency}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="pref-timezone" className="text-sm font-bold font-['Manrope'] text-zinc-900">
+                Time Zone <span className="text-rose-700">*</span>
+              </label>
+              <select
+                id="pref-timezone"
+                value={prefTimeZone}
+                onChange={(e) => {
+                  setPrefTimeZone(e.target.value);
+                  setPrefErrors(prev => ({ ...prev, timezone: undefined }));
+                }}
+                className={`w-full px-4 py-3 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-700 transition-all ${
+                  prefErrors.timezone ? "ring-2 ring-red-500" : ""
+                }`}
+                aria-invalid={!!prefErrors.timezone}
+                aria-describedby={prefErrors.timezone ? "pref-timezone-error" : undefined}
+              >
+                <option value="">Select your time zone</option>
+                <option value="UTC+0">UTC+0</option>
+                <option value="UTC+1">UTC+1 (West Africa Time)</option>
+                <option value="UTC+2">UTC+2 (Central Africa Time)</option>
+                <option value="UTC+3">UTC+3 (East Africa Time)</option>
+                <option value="UTC+4">UTC+4</option>
+                <option value="UTC+5">UTC+5</option>
+              </select>
+              {prefErrors.timezone && (
+                <p id="pref-timezone-error" className="text-xs text-red-500 font-['Manrope']" role="alert">
+                  {prefErrors.timezone}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Actions for Preferences */}
+        <div className="FooterActions pt-6 border-t border-gray-200 flex justify-end items-center gap-4">
+          <button
+            onClick={handleDiscardPreferences}
+            disabled={!hasUnsavedPrefChanges || isSavingPrefs}
+            className="px-6 py-3 text-zinc-600 text-lg font-bold font-['Manrope'] hover:text-zinc-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSavePreferences}
+            disabled={!hasUnsavedPrefChanges || isSavingPrefs}
+            className={`px-8 py-3 text-lg font-bold font-['Manrope'] rounded-full shadow-lg transition-shadow ${
+              hasUnsavedPrefChanges && !isSavingPrefs
+                ? "bg-gradient-to-b from-rose-700 to-rose-600 text-white hover:shadow-xl cursor-pointer"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
+          >
+            {isSavingPrefs ? "Saving..." : "Save changes"}
+          </button>
+        </div>
+        </>
+        )}
+
+        {activeTab === "notifications" && (
+        <div className="FormSection mb-8 p-6 bg-white rounded-2xl shadow-sm">
+          <h2 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">Notification Preferences</h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold font-['Manrope'] text-zinc-900">Email Notifications</h3>
+                <p className="text-sm text-zinc-600 font-['Manrope']">Receive notifications via email</p>
+              </div>
+              <input type="checkbox" defaultChecked className="w-5 h-5" />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold font-['Manrope'] text-zinc-900">SMS Alerts</h3>
+                <p className="text-sm text-zinc-600 font-['Manrope']">Receive alerts via SMS</p>
+              </div>
+              <input type="checkbox" className="w-5 h-5" />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold font-['Manrope'] text-zinc-900">Push Notifications</h3>
+                <p className="text-sm text-zinc-600 font-['Manrope']">Receive push notifications</p>
+              </div>
+              <input type="checkbox" defaultChecked className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+        )}
+
+        {activeTab === "general" && (
+        <div className="FormSection mb-8 p-6 bg-white rounded-2xl shadow-sm">
+          <h2 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">General Settings</h2>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold font-['Manrope'] text-zinc-900">Marketing Emails</h3>
+                <p className="text-sm text-zinc-600 font-['Manrope']">Receive marketing and promotional emails</p>
+              </div>
+              <input type="checkbox" defaultChecked className="w-5 h-5" />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold font-['Manrope'] text-zinc-900">Account Privacy</h3>
+                <p className="text-sm text-zinc-600 font-['Manrope']">Make your profile public</p>
+              </div>
+              <input type="checkbox" className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+        )}
+
+        {activeTab === "integrations" && (
+        <div className="FormSection mb-8 p-6 bg-white rounded-2xl shadow-sm">
+          <h2 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">Connected Integrations</h2>
+          <p className="text-zinc-600 font-['Manrope'] mb-6">No integrations connected yet. Connect your accounts to enhance your GuriGate experience.</p>
+          <button className="px-6 py-3 bg-gradient-to-b from-rose-700 to-rose-600 text-white text-base font-bold font-['Manrope'] rounded-full hover:shadow-md transition-shadow">
+            Browse Integrations
+          </button>
+        </div>
+        )}
       </div>
 
       {/* Floating Save Changes Bar */}
@@ -506,6 +1054,24 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Toast Notifications */}
+      <div className="fixed top-4 right-4 z-50 space-y-2 pointer-events-none">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`px-6 py-3 rounded-lg shadow-lg font-['Manrope'] font-semibold pointer-events-auto ${
+              toast.type === 'success'
+                ? 'bg-green-100 text-green-800 border border-green-200'
+                : toast.type === 'error'
+                ? 'bg-red-100 text-red-800 border border-red-200'
+                : 'bg-blue-100 text-blue-800 border border-blue-200'
+            }`}
+          >
+            {toast.message}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
