@@ -313,19 +313,40 @@ export default function ProfilePage({ section }: ProfilePageProps) {
         return;
       }
 
+      const updateData: Record<string, string> = {};
+
+      // Build update object with only changed values
+      if (prefLanguage !== initialPrefValues.language) {
+        updateData.language = prefLanguage;
+      }
+      if (prefCurrency !== initialPrefValues.currency) {
+        updateData.currency = prefCurrency;
+      }
+      if (prefTimeZone !== initialPrefValues.timezone) {
+        updateData.timezone = prefTimeZone;
+      }
+
+      // If there are no changes, just return
+      if (Object.keys(updateData).length === 0) {
+        setHasUnsavedPrefChanges(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .update({
-          language: prefLanguage,
-          currency: prefCurrency,
-          timezone: prefTimeZone,
-        })
+        .update(updateData)
         .eq('id', user.id);
 
       if (error) {
         const errorMsg = error.message || 'Failed to save preferences';
         console.error('Error saving preferences:', errorMsg);
-        showToast(`Error saving preferences: ${errorMsg}`, "error");
+
+        // Check if it's a missing column error
+        if (errorMsg.includes('column') || errorMsg.includes('Could not find')) {
+          showToast("Database migration needed. Please contact administrator.", "error");
+        } else {
+          showToast(`Error saving preferences: ${errorMsg}`, "error");
+        }
         setIsSavingPrefs(false);
         return;
       }
