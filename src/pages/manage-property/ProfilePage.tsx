@@ -454,7 +454,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
       const filePath = `profile-pictures/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('gurigate-uploads')
+        .from('avatars')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) {
@@ -465,7 +465,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
       }
 
       const { data } = supabase.storage
-        .from('gurigate-uploads')
+        .from('avatars')
         .getPublicUrl(filePath);
 
       const publicUrl = data.publicUrl;
@@ -885,18 +885,107 @@ export default function ProfilePage({ section }: ProfilePageProps) {
         )}
 
         {activeTab === "notifications" && (
-        <div className="FormSection mb-8 p-6 bg-white rounded-2xl shadow-sm">
-          <h2 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">Notification Preferences</h2>
-          <div className="p-8 text-center bg-gray-50 rounded-xl border border-gray-200">
-            <div className="flex flex-col items-center gap-3">
-              <div className="text-4xl">🔔</div>
-              <h3 className="text-lg font-bold font-['Manrope'] text-zinc-900">Coming Soon</h3>
-              <p className="text-sm text-zinc-600 font-['Manrope'] max-w-md">
-                Notification preferences will be available once the notification system is fully integrated with GuriGate V1.
+        <>
+        {/* Header Description */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold font-['Manrope'] text-zinc-900 mb-2">Notification Preferences</h2>
+          <p className="text-zinc-600 font-['Manrope']">Manage how GuriGate will notify you about important activities across your properties.</p>
+        </div>
+
+        {/* Status Card */}
+        <div className="FormSection mb-8 p-6 bg-blue-50 border border-blue-200 rounded-2xl">
+          <div className="flex items-start gap-4">
+            <div className="text-3xl">🚧</div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold font-['Manrope'] text-zinc-900 mb-1">Notification System</h3>
+              <p className="text-sm text-zinc-600 font-['Manrope'] mb-3">
+                The notification center is currently under development and will be available in a future update.
+              </p>
+              <p className="text-sm text-zinc-600 font-['Manrope']">
+                When released, you will be able to manage all notification preferences from this page.
               </p>
             </div>
           </div>
         </div>
+
+        {/* Notification Types */}
+        <div className="FormSection mb-8 p-6 bg-white rounded-2xl shadow-sm">
+          <h3 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">Upcoming Notification Types</h3>
+          <div className="space-y-3">
+            {[
+              'Lease Expiration Reminders',
+              'Rent Payment Reminders',
+              'Overdue Payment Alerts',
+              'New Customer Notifications',
+              'New Lease Created',
+              'Payment Received',
+              'Property Updates',
+              'System Announcements',
+              'Security Alerts'
+            ].map((notificationType) => (
+              <div key={notificationType} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    disabled
+                    defaultChecked
+                    className="w-5 h-5 cursor-not-allowed opacity-50"
+                  />
+                  <span className="font-['Manrope'] text-zinc-900">{notificationType}</span>
+                </div>
+                <span className="text-xs font-semibold text-zinc-500 font-['Manrope'] bg-white px-3 py-1 rounded-full">
+                  Available in a future update
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Delivery Channels */}
+        <div className="FormSection mb-8 p-6 bg-white rounded-2xl shadow-sm">
+          <h3 className="text-xl font-bold font-['Manrope'] text-zinc-900 mb-6">Notification Channels</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {[
+              { channel: 'Email', icon: '📧' },
+              { channel: 'SMS', icon: '📱' },
+              { channel: 'In-App Notifications', icon: '🔔' },
+              { channel: 'WhatsApp', icon: '💬' },
+              { channel: 'Push Notifications', icon: '📲' }
+            ].map(({ channel, icon }) => (
+              <div key={channel} className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-center">
+                <div className="text-3xl mb-2">{icon}</div>
+                <h4 className="font-bold font-['Manrope'] text-zinc-900 text-sm mb-2">{channel}</h4>
+                <span className="text-xs text-zinc-500 font-['Manrope']">Coming Soon</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Service Status */}
+        <div className="FormSection p-6 bg-white rounded-2xl shadow-sm">
+          <h3 className="text-lg font-bold font-['Manrope'] text-zinc-900 mb-6">Service Status</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <div>
+                <p className="font-bold font-['Manrope'] text-zinc-900">Notification Service</p>
+                <p className="text-sm text-zinc-600 font-['Manrope']">Real-time alert system</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-semibold text-zinc-500 font-['Manrope']">Not Yet Available</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-4">
+              <div>
+                <p className="font-bold font-['Manrope'] text-zinc-900">Target Release</p>
+                <p className="text-sm text-zinc-600 font-['Manrope']">Feature availability</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-semibold text-zinc-500 font-['Manrope']">Future GuriGate Update</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        </>
         )}
 
         {activeTab === "general" && (
