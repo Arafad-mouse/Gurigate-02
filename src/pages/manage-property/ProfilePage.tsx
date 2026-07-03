@@ -602,7 +602,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
       const filePath = `profile-pictures/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('profile-images')
+        .from('Profile-Images')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) {
@@ -613,7 +613,7 @@ export default function ProfilePage({ section }: ProfilePageProps) {
       }
 
       const { data } = supabase.storage
-        .from('profile-images')
+        .from('Profile-Images')
         .getPublicUrl(filePath);
 
       const publicUrl = data.publicUrl;
