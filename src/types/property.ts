@@ -13,6 +13,17 @@ export interface Property {
   owner_id: string;
   created_at: string;
   updated_at: string;
+  // RMS-specific fields
+  total_units?: number;
+  occupied_units?: number;
+  vacant_units?: number;
+  occupancy_rate?: number;
+  published_to_homes?: boolean;
+  marketplace_listing_id?: string;
+  monthly_revenue?: number;
+  outstanding_rent?: number;
+  maintenance_count?: number;
+  upcoming_lease_expiry?: number;
 }
 
 export interface PropertyAddress {

@@ -1,13 +1,11 @@
-import { createClient } from '@/lib/supabase/client';
-
-const supabase = createClient();
-import type { 
-  Property, 
-  CreatePropertyRequest, 
-  PropertyStatus, 
-  PropertyAddress, 
-  PropertyPricing, 
-  PropertyFeatures 
+import { supabase } from '@/lib/supabase';
+import type {
+  Property,
+  CreatePropertyRequest,
+  PropertyStatus,
+  PropertyAddress,
+  PropertyPricing,
+  PropertyFeatures
 } from '@/types/property';
 
 // GuriGate-specific property interface matching database schema
@@ -373,5 +371,149 @@ export class PropertyService {
       isValid: errors.length === 0,
       errors
     };
+  }
+
+  // RMS: Publish property to Homes marketplace
+  static async publishToHomes(propertyId: string): Promise<Property> {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .update({
+          published_to_homes: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', propertyId)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message || 'Failed to publish property to Homes');
+      }
+
+      return data as Property;
+    } catch (error) {
+      console.error('PropertyService.publishToHomes error:', error);
+      throw error;
+    }
+  }
+
+  // RMS: Unpublish property from Homes marketplace
+  static async unpublishFromHomes(propertyId: string): Promise<Property> {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .update({
+          published_to_homes: false,
+          marketplace_listing_id: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', propertyId)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message || 'Failed to unpublish property from Homes');
+      }
+
+      return data as Property;
+    } catch (error) {
+      console.error('PropertyService.unpublishFromHomes error:', error);
+      throw error;
+    }
+  }
+
+  // RMS: Update property metrics (occupancy, revenue, etc.)
+  static async updatePropertyMetrics(
+    propertyId: string,
+    metrics: {
+      total_units?: number;
+      occupied_units?: number;
+      vacant_units?: number;
+      occupancy_rate?: number;
+      monthly_revenue?: number;
+      outstanding_rent?: number;
+      maintenance_count?: number;
+      upcoming_lease_expiry?: number;
+    }
+  ): Promise<Property> {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .update({
+          ...metrics,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', propertyId)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message || 'Failed to update property metrics');
+      }
+
+      return data as Property;
+    } catch (error) {
+      console.error('PropertyService.updatePropertyMetrics error:', error);
+      throw error;
+    }
+  }
+
+  // RMS: Get property statistics
+  static async getPropertyStats(propertyId: string): Promise<{
+    total_units: number;
+    occupied_units: number;
+    vacant_units: number;
+    occupancy_rate: number;
+    monthly_revenue: number;
+    outstanding_rent: number;
+    maintenance_count: number;
+    upcoming_lease_expiry: number;
+  }> {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('total_units, occupied_units, vacant_units, occupancy_rate, monthly_revenue, outstanding_rent, maintenance_count, upcoming_lease_expiry')
+        .eq('id', propertyId)
+        .single();
+
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch property stats');
+      }
+
+      return {
+        total_units: data.total_units || 0,
+        occupied_units: data.occupied_units || 0,
+        vacant_units: data.vacant_units || 0,
+        occupancy_rate: data.occupancy_rate || 0,
+        monthly_revenue: data.monthly_revenue || 0,
+        outstanding_rent: data.outstanding_rent || 0,
+        maintenance_count: data.maintenance_count || 0,
+        upcoming_lease_expiry: data.upcoming_lease_expiry || 0,
+      };
+    } catch (error) {
+      console.error('PropertyService.getPropertyStats error:', error);
+      throw error;
+    }
+  }
+
+  // RMS: Get all published properties for marketplace
+  static async getPublishedProperties(): Promise<Property[]> {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('published_to_homes', true)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch published properties');
+      }
+
+      return data as Property[];
+    } catch (error) {
+      console.error('PropertyService.getPublishedProperties error:', error);
+      throw error;
+    }
   }
 }

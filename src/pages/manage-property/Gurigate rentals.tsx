@@ -5,24 +5,24 @@ import { TenantService } from "@/services/tenantService";
 import type { Tenant, PaymentStatus } from "@/types/tenant";
 
 const Icon = {
-  Home: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-  Users: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
-  CreditCard: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
-  BarChart: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>,
-  Plus: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  Filter: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg>,
-  Search: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-  TrendUp: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
-  TrendDown: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>,
-  Phone: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 .18h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.11 7.83a16 16 0 006.06 6.06l1.21-1.21a2 2 0 012.11-.45c.9.33 1.85.55 2.81.7a2 2 0 011.71 2z"/></svg>,
-  Building: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round"><path d="M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18z"/><path d="M6 12H4a2 2 0 00-2 2v6a2 2 0 002 2h2"/><path d="M18 9h2a2 2 0 012 2v9a2 2 0 01-2 2h-2"/></svg>,
-  Door: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round"><path d="M3 21h18"/><path d="M9 21V5a2 2 0 012-2h2a2 2 0 012 2v16"/><circle cx="14" cy="13" r="1" fill="currentColor"/></svg>,
+  Home: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  Users: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
+  CreditCard: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
+  BarChart: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>,
+  Plus: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  Filter: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg>,
+  Search: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  TrendUp: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+  TrendDown: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>,
+  Phone: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 .18h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.11 7.83a16 16 0 006.06 6.06l1.21-1.21a2 2 0 012.11-.45c.9.33 1.85.55 2.81.7a2 2 0 011.71 2z"/></svg>,
+  Building: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18z"/><path d="M6 12H4a2 2 0 00-2 2v6a2 2 0 002 2h2"/><path d="M18 9h2a2 2 0 012 2v9a2 2 0 01-2 2h-2"/></svg>,
+  Door: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M9 21V5a2 2 0 012-2h2a2 2 0 012 2v16"/><circle cx="14" cy="13" r="1" fill="currentColor"/></svg>,
   Grid: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
-  Calendar: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-  Check: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>,
-  X: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  Trash: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>,
-  ChevronDown: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>,
+  Calendar: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+  Check: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  X: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  Trash: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>,
+  ChevronDown: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>,
 };
 
 const BUILDINGS = ["All", "Burjiomar A", "Burjiomar B", "Kulmiye Tower", "Sha'ab Complex"];
@@ -60,6 +60,8 @@ interface TenantDetailModalProps {
   tenant: TenantUI;
   onClose: () => void;
   onUpdatePayment: () => void;
+  onRenew: (id: string) => void;
+  onTerminate: (id: string) => void;
   onDelete: (id: string) => void;
   loading?: boolean;
 }
@@ -114,7 +116,7 @@ function AddTenantModal({ onClose, onAdd, loading = false }: AddTenantModalProps
       onAdd(tenantUI);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add tenant");
+      setError(err instanceof Error ? err.message : "Failed to add lease");
     }
   };
   
@@ -122,13 +124,13 @@ function AddTenantModal({ onClose, onAdd, loading = false }: AddTenantModalProps
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.35)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }}>
       <div style={{ background:"white", borderRadius:18, padding:28, width:440, boxShadow:"0 24px 60px rgba(0,0,0,.18)" }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
-          <h2 style={{ fontSize:16, fontWeight:700 }}>Add New Tenant</h2>
+          <h2 style={{ fontSize:16, fontWeight:700 }}>Add New Lease</h2>
           <button onClick={onClose} disabled={loading} style={{ background:"#f1f5f9", border:"none", borderRadius:8, width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#64748b", opacity: loading ? 0.5 : 1 }}><Icon.X/></button>
         </div>
         {error && <div style={{ background:"#FEF2F2", color:"#E8344E", padding:"10px 12px", borderRadius:8, fontSize:12, marginBottom:16 }}>{error}</div>}
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
           {[
-            { label:"Full Name", key:"name", placeholder:"Axmed Cabdalle", full:true },
+            { label:"Customer Name", key:"name", placeholder:"Axmed Cabdalle", full:true },
             { label:"Phone", key:"phone", placeholder:"+252 63 xxxxxxx" },
             { label:"Unit No.", key:"unit", placeholder:"A-101" },
             { label:"Monthly Rent ($)", key:"amount", placeholder:"150" },
@@ -159,7 +161,7 @@ function AddTenantModal({ onClose, onAdd, loading = false }: AddTenantModalProps
         </div>
         <div style={{ display:"flex", gap:10, marginTop:20 }}>
           <button onClick={onClose} disabled={loading} style={{ flex:1, padding:"10px", borderRadius:10, border:"1.5px solid #e2e8f0", background:"white", fontSize:13, fontWeight:600, cursor:"pointer", color:"#64748b", opacity: loading ? 0.5 : 1 }}>Cancel</button>
-          <button onClick={handleAdd} disabled={loading} style={{ flex:2, padding:"10px", borderRadius:10, border:"none", background:"#E8344E", color:"white", fontSize:13, fontWeight:700, cursor:"pointer", opacity: loading ? 0.7 : 1 }}>{loading ? "Adding..." : "Add Tenant"}</button>
+          <button onClick={handleAdd} disabled={loading} style={{ flex:2, padding:"10px", borderRadius:10, border:"none", background:"#E8344E", color:"white", fontSize:13, fontWeight:700, cursor:"pointer", opacity: loading ? 0.7 : 1 }}>{loading ? "Adding..." : "Add Lease"}</button>
         </div>
       </div>
     </div>
@@ -200,7 +202,7 @@ function PaymentModal({ tenant, onClose, onUpdate, loading = false }: PaymentMod
   );
 }
 
-function TenantDetailModal({ tenant, onClose, onUpdatePayment, onDelete, loading = false }: TenantDetailModalProps) {
+function TenantDetailModal({ tenant, onClose, onUpdatePayment, onRenew, onTerminate, onDelete, loading = false }: TenantDetailModalProps) {
   const statusStyle = STATUS_STYLE[tenant.status];
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.35)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={onClose}>
@@ -243,13 +245,23 @@ function TenantDetailModal({ tenant, onClose, onUpdatePayment, onDelete, loading
           ))}
         </div>
 
-        <div style={{ padding:"0 28px 24px", display:"flex", gap:10 }}>
-          <button onClick={onUpdatePayment} disabled={loading} style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px", borderRadius:10, border:"none", background:"#E8344E", color:"white", fontSize:13, fontWeight:700, cursor:"pointer", opacity: loading ? 0.7 : 1 }}>
-            <Icon.CreditCard/> Update Payment
-          </button>
-          <button onClick={()=>onDelete(tenant.id)} disabled={loading} style={{ padding:"10px 16px", borderRadius:10, border:"1.5px solid #FEE2E2", background:"#FEF2F2", fontSize:13, fontWeight:600, cursor:"pointer", color:"#E8344E", display:"flex", alignItems:"center", gap:6, opacity: loading ? 0.5 : 1 }}>
-            <Icon.Trash/> Delete
-          </button>
+        <div style={{ padding:"0 28px 24px", display:"flex", flexDirection:"column", gap:10 }}>
+          <div style={{ display:"flex", gap:10 }}>
+            <button onClick={onUpdatePayment} disabled={loading} style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px", borderRadius:10, border:"none", background:"#E8344E", color:"white", fontSize:13, fontWeight:700, cursor:"pointer", opacity: loading ? 0.7 : 1 }}>
+              <Icon.CreditCard/> Update Payment
+            </button>
+            <button onClick={()=>onRenew(tenant.id)} disabled={loading} style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px", borderRadius:10, border:"none", background:"#059669", color:"white", fontSize:13, fontWeight:700, cursor:"pointer", opacity: loading ? 0.7 : 1 }}>
+              <Icon.Calendar/> Renew
+            </button>
+          </div>
+          <div style={{ display:"flex", gap:10 }}>
+            <button onClick={()=>onTerminate(tenant.id)} disabled={loading} style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px", borderRadius:10, border:"1.5px solid #FEE2E2", background:"#FEF2F2", fontSize:13, fontWeight:600, cursor:"pointer", color:"#E8344E", opacity: loading ? 0.5 : 1 }}>
+              <Icon.X/> Terminate
+            </button>
+            <button onClick={()=>onDelete(tenant.id)} disabled={loading} style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px", borderRadius:10, border:"1.5px solid #FEE2E2", background:"#FEF2F2", fontSize:13, fontWeight:600, cursor:"pointer", color:"#E8344E", opacity: loading ? 0.5 : 1 }}>
+              <Icon.Trash/> Delete
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -341,7 +353,7 @@ export default function GuriGateRentals() {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this tenant?')) {
+    if (window.confirm('Are you sure you want to delete this lease?')) {
       try {
         setLoading(true);
         await TenantService.deleteTenant(id);
@@ -349,7 +361,39 @@ export default function GuriGateRentals() {
         if (selectedTenant?.id === id) setSelectedTenant(null);
         await loadStats();
       } catch (error) {
-        console.error("Error deleting tenant:", error);
+        console.error("Error deleting lease:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleRenew = async (id: string) => {
+    if (window.confirm('Are you sure you want to renew this lease?')) {
+      try {
+        setLoading(true);
+        await TenantService.updateTenantPaymentStatus(id, "Paid");
+        setTenants(p => p.map(t => t.id === id ? { ...t, status: "Paid" as PaymentStatus } : t));
+        if (selectedTenant?.id === id) setSelectedTenant(p => p ? { ...p, status: "Paid" as PaymentStatus } : null);
+        await loadStats();
+      } catch (error) {
+        console.error("Error renewing lease:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleTerminate = async (id: string) => {
+    if (window.confirm('Are you sure you want to terminate this lease?')) {
+      try {
+        setLoading(true);
+        await TenantService.deleteTenant(id);
+        setTenants(p => p.filter(t => t.id !== id));
+        if (selectedTenant?.id === id) setSelectedTenant(null);
+        await loadStats();
+      } catch (error) {
+        console.error("Error terminating lease:", error);
       } finally {
         setLoading(false);
       }
@@ -362,17 +406,17 @@ export default function GuriGateRentals() {
     <div style={{ padding:"28px", flex:1, overflowY:"auto" }}>
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:24 }}>
         <div>
-          <h1 style={{ fontSize:22, fontWeight:700, letterSpacing:"-0.4px", color:text }}>Rental Management</h1>
-          <p style={{ fontSize:12, color:muted, marginTop:2 }}>Manage your rental properties and tenants</p>
+          <h1 style={{ fontSize:22, fontWeight:700, letterSpacing:"-0.4px", color:text }}>Lease Management</h1>
+          <p style={{ fontSize:12, color:muted, marginTop:2 }}>Manage customer leases and property assignments</p>
         </div>
         <button onClick={()=>setShowAddModal(true)} disabled={loading} style={{ display:"flex", alignItems:"center", gap:6, background:"#E8344E", color:"white", border:"none", borderRadius:10, padding:"10px 18px", fontSize:13, fontWeight:600, cursor:"pointer", opacity: loading ? 0.7 : 1 }}>
-          <Icon.Plus/> Add Tenant
+          <Icon.Plus/> Add Lease
         </button>
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:14, marginBottom:20 }}>
         {[
-          { label:"Total Tenants", value:stats.total_tenants.toString(), change:"+2", up:true, icon:<Icon.Users/> },
+          { label:"Total Leases", value:stats.total_tenants.toString(), change:"+2", up:true, icon:<Icon.Users/> },
           { label:"Active Leases", value:stats.active_leases.toString(), change:"+1", up:true, icon:<Icon.Home/> },
           { label:"Pending Payments", value:stats.pending_payments.toString(), change:"-1", up:false, icon:<Icon.CreditCard/> },
           { label:"Occupancy Rate", value:`${stats.occupancy_rate}%`, change:"+5%", up:true, icon:<Icon.BarChart/> },
@@ -414,7 +458,7 @@ export default function GuriGateRentals() {
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:6, background:card, border:`1px solid ${bdr}`, borderRadius:10, padding:"8px 12px", flex:1, maxWidth:300 }}>
           <Icon.Search />
-          <input placeholder="Search tenants..." value={search} onChange={e=>setSearch(e.target.value)} disabled={loading} style={{ border:"none", outline:"none", background:"transparent", color:text, fontSize:13, width:"100%", opacity: loading ? 0.6 : 1 }}/>
+          <input placeholder="Search leases..." value={search} onChange={e=>setSearch(e.target.value)} disabled={loading} style={{ border:"none", outline:"none", background:"transparent", color:text, fontSize:13, width:"100%", opacity: loading ? 0.6 : 1 }}/>
         </div>
       </div>
 
@@ -422,14 +466,14 @@ export default function GuriGateRentals() {
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
           <thead>
             <tr style={{ borderBottom:`1px solid ${bdr}` }}>
-              {["Tenant","Contact","Building","Unit","Rent","Status","Join Date",""].map((h,i) => (
+              {["Customer","Contact","Building","Unit","Rent","Status","Start Date",""].map((h,i) => (
                 <th key={i} style={{ padding:"12px 14px", textAlign:"left", fontWeight:600, fontSize:11, color:muted, whiteSpace:"nowrap", letterSpacing:"0.02em" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {tenants.length===0 ? (
-              <tr><td colSpan={8} style={{ padding:"32px", textAlign:"center", color:muted, fontSize:13 }}>No tenants found</td></tr>
+              <tr><td colSpan={8} style={{ padding:"32px", textAlign:"center", color:muted, fontSize:13 }}>No leases found</td></tr>
             ) : tenants.map((t) => (
               <tr key={t.id} style={{ borderBottom:`1px solid ${bdr}`, transition:"background .12s", cursor:"pointer" }}
                   onClick={()=>{setSelectedTenant(t);setShowDetailModal(true);}}
@@ -474,7 +518,7 @@ export default function GuriGateRentals() {
       {totalPages > 1 && (
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"16px 0", marginTop:20 }}>
           <span style={{ fontSize:12, color:muted }}>
-            Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalTenants)} of {totalTenants} tenants
+            Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalTenants)} of {totalTenants} leases
           </span>
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
             <button
@@ -535,6 +579,8 @@ export default function GuriGateRentals() {
           tenant={selectedTenant}
           onClose={()=>setShowDetailModal(false)}
           onUpdatePayment={()=>{setShowDetailModal(false);setShowPaymentModal(true);}}
+          onRenew={(id)=>{setShowDetailModal(false);handleRenew(id);}}
+          onTerminate={(id)=>{setShowDetailModal(false);handleTerminate(id);}}
           onDelete={(id)=>{setShowDetailModal(false);handleDelete(id);}}
           loading={loading}
         />

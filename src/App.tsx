@@ -6,12 +6,11 @@ import GuriGateNavbar from '@/components/GuriGateNavbar'
 import GuriGateFooter from '@/components/GuriGateFooter'
 import HomePage from '@/pages/GuriGateLandingPage'
 import { ProfilePage } from '@/pages/ProfilePage'
-import { PreferencesPage } from '@/pages/PreferencesPage'
-import { NotificationsPage } from '@/pages/NotificationsPage'
-import { IntegrationsPage } from '@/pages/IntegrationsPage'
 import PropertyPage from '@/pages/PropertyPage'
 import PaymentPage from '@/pages/PaymentPage'
 import GuriGateDashboard from '@/pages/manage-property/Gurigate dashboard'
+import UnitsPage from '@/pages/manage-property/UnitsPage'
+import PropertyDetailPage from '@/pages/manage-property/PropertyDetailPage'
 import AllPropertiesPage from '@/pages/all-property'
 // CustomersPage is now rendered inside the Manage Property dashboard, not as an Admin route
 import { AuthProvider, AuthContext } from '@/lib/auth-context'
@@ -125,21 +124,6 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/settings" element={<ManagePropertyWrapper />} />
             <Route path="/settings/:section" element={<ManagePropertyWrapper />} />
-            <Route path="/settings/preferences" element={
-              <AuthGuard>
-                <PreferencesPage />
-              </AuthGuard>
-            } />
-            <Route path="/notifications" element={
-              <AuthGuard>
-                <NotificationsPage />
-              </AuthGuard>
-            } />
-            <Route path="/account/integrations" element={
-              <AuthGuard>
-                <IntegrationsPage />
-              </AuthGuard>
-            } />
             <Route path="/property/:id" element={<PropertyPageWrapper />} />
             <Route path="/payment" element={
               <AuthGuard>
@@ -148,6 +132,8 @@ function App() {
             } />
             <Route path="/all-property" element={<AllPropertiesPage />} />
             <Route path="/manage-property" element={<ManagePropertyWrapper />} />
+            <Route path="/manage-property/units" element={<AuthGuard><UnitsPage /></AuthGuard>} />
+            <Route path="/manage-property/property/:id" element={<AuthGuard><PropertyDetailPage /></AuthGuard>} />
             <Route path="/manage-property/customers" element={<ManagePropertyWrapper />} />
             <Route path="/manage-property/bookings" element={<ManagePropertyWrapper />} />
             <Route path="/manage-property/transactions" element={<ManagePropertyWrapper />} />
