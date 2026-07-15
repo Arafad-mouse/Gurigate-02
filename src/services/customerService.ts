@@ -1,14 +1,69 @@
-import type { Customer, CustomerMetrics, CustomerType, LifecycleStatus, BookingSummary, PaymentSummary, ContractSummary, PropertySummary, TimelineEvent } from '@/types/customer';
+import type { Customer, CustomerMetrics, CustomerType, LifecycleStatus, VerificationStatus, BookingSummary, PaymentSummary, ContractSummary, PropertySummary, TimelineEvent, CustomerListParams } from '@/types/customer';
 import { supabase } from '@/lib/supabase';
 
-export interface ListParams {
-  query?: string;
-  type?: CustomerType | 'all';
-  lifecycle?: LifecycleStatus | 'all';
-  page?: number;
-  pageSize?: number;
-  dateFrom?: string; // ISO
-  dateTo?: string;   // ISO
+// Backward-compatible alias for existing callers
+export interface ListParams extends CustomerListParams {}
+
+interface CustomerRow {
+  id: string;
+  profile_id: string | null;
+  customer_type: CustomerType;
+  lifecycle_status: LifecycleStatus;
+  verification_status?: VerificationStatus;
+  current_property_id?: string;
+  notes?: string;
+  tags?: string[];
+  total_bookings?: number;
+  total_rent_paid?: number;
+  last_activity_at?: string;
+  created_at: string;
+  updated_at?: string;
+  deleted_at?: string;
+  // Optional name columns for customers without profiles
+  first_name?: string | null;
+  last_name?: string | null;
+  full_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  profiles?: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    full_name: string | null;
+    email: string | null;
+    phone: string | null;
+    national_id?: string | null;
+    avatar_url?: string | null;
+    verification_status?: VerificationStatus | null;
+  } | null;
+  properties?: {
+    id: string;
+    title: string;
+  } | null;
+}
+
+interface ContractRow {
+  id: string;
+  customer_id: string;
+  property_id: string;
+  start_date: string;
+  end_date?: string | null;
+  monthly_rent_cents?: number;
+  status: 'active' | 'expired' | 'pending';
+  properties?: { id: string; title: string } | null;
+}
+
+interface PaymentRow {
+  id: string;
+  customer_id?: string;
+  profile_id?: string;
+  amount_cents?: number;
+  amount?: number;
+  payment_date?: string;
+  paid_at?: string;
+  method?: string;
+  type?: 'rent' | 'deposit' | 'other';
+  status?: string;
 }
 
 // Dev-only failure injection using ?fail=overview|bookings|payments|contracts|properties|timeline
@@ -20,144 +75,231 @@ function shouldFail(kind: 'overview'|'bookings'|'payments'|'contracts'|'properti
   } catch { return false; }
 }
 
-// ----- Mock Data (Sprint 1) --------------------------------------------------
-const MOCK_CUSTOMERS: Customer[] = Array.from({ length: 24 }).map((_, i) => ({
-  id: String(i+1),
-  fullName: ['James Brown','Wei Chen','Miya Chen','Roger Parks','Arthur Taylor','Ravi Patel','William Henry','Dianne Russell','Harry Potter','Marvin McKinney','David Smith','John Wick'][i%12],
-  email: `user${i+1}@example.com`,
-  phone: `+254-700-0${(100+i).toString().slice(-3)}`,
-  customerType: (['tenant','guest','buyer','renter'] as CustomerType[])[i%4],
-  lifecycleStatus: (['active','lead','inactive','suspended'] as LifecycleStatus[])[i%4],
-  currentProperty: i%3===0 ? 'Kilimani Heights • A-304' : undefined,
-  totalBookings: 2 + (i%4),
-  totalRentPaid: (i%6)*1000,
-  lastActivityAt: new Date(Date.now() - i*86400000).toISOString(),
-  createdAt: new Date(Date.now() - (30+i)*86400000).toISOString(),
-}));
+function computeOutstandingBalance(customer: Customer, activeContract?: ContractSummary, payments: PaymentSummary[] = []): number {
+  if (!activeContract?.rentCents) return customer.outstandingBalance || 0;
+  const totalPaid = payments.reduce((sum, p) => sum + (p.amountCents || 0), 0) + (customer.totalRentPaid || 0);
+  // Simple outstanding = expected rent to-date minus total paid (mock simplification)
+  return Math.max(0, activeContract.rentCents - totalPaid);
+}
 
-// Check if database is available
-let isDatabaseAvailable: boolean | null = null;
+// Map raw customer row (with joined profile/property data) to domain Customer
+function mapCustomer(c: CustomerRow): Customer {
+  // Use profile data if available, otherwise use direct customer columns
+  const profile = c.profiles;
+  const firstName = profile?.first_name || c.first_name || '';
+  const lastName = profile?.last_name || c.last_name || '';
+  const fullName = profile?.full_name || c.full_name || `${firstName} ${lastName}`.trim() || 'Unknown';
+  const email = profile?.email || c.email || null;
+  const phone = profile?.phone || c.phone || '';
+  const nationalId = profile?.national_id || undefined;
+  const avatarUrl = profile?.avatar_url || null;
+  const verificationStatus = (profile?.verification_status || c.verification_status || 'unverified') as VerificationStatus;
+  const currentPropertyName = c.properties?.title || c.current_property_id || undefined;
 
-async function checkDatabaseAvailability(): Promise<boolean> {
-  if (isDatabaseAvailable !== null) return isDatabaseAvailable;
-  
+  return {
+    id: c.id,
+    profileId: c.profile_id || '',
+    firstName,
+    lastName,
+    fullName,
+    email,
+    phone,
+    nationalId,
+    avatarUrl,
+    customerType: c.customer_type,
+    lifecycleStatus: c.lifecycle_status,
+    verificationStatus,
+    currentProperty: currentPropertyName,
+    propertyId: c.current_property_id,
+    totalBookings: c.total_bookings || 0,
+    totalRentPaid: Math.round((c.total_rent_paid || 0) * 100),
+    outstandingBalance: 0, // computed below via joins
+    notes: c.notes,
+    tags: c.tags || [],
+    lastActivityAt: c.last_activity_at || c.updated_at || c.created_at,
+    createdAt: c.created_at,
+  };
+}
+
+async function fetchContractSummary(customerId: string): Promise<ContractSummary | undefined> {
   try {
-    const { error } = await supabase.from('customers').select('id').limit(1);
-    isDatabaseAvailable = !error;
-    return isDatabaseAvailable;
-  } catch {
-    isDatabaseAvailable = false;
-    return false;
+    const { data, error } = await supabase
+      .from('contracts')
+      .select('id, property_id, start_date, end_date, monthly_rent_cents, status, properties(title)')
+      .eq('customer_id', customerId)
+      .eq('status', 'active')
+      .order('start_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      console.warn('Contracts table query failed:', error.message);
+      return undefined;
+    }
+    if (!data) return undefined;
+    const row = data as any;
+    return {
+      id: row.id,
+      property: row.properties?.title || 'Unknown Property',
+      propertyId: row.property_id,
+      startDate: row.start_date,
+      endDate: row.end_date || undefined,
+      status: row.status,
+      rentCents: row.monthly_rent_cents,
+    };
+  } catch (e) {
+    console.warn('Contracts table not available:', e);
+    return undefined;
   }
 }
 
-function mockMetricsFor(id: string): CustomerMetrics {
-  const c = MOCK_CUSTOMERS.find(x=>x.id===id)!;
-  const lastPayment: PaymentSummary | undefined = c.totalRentPaid>0 ? {
-    id: 'pay-'+id,
-    date: new Date(Date.now() - 3*86400000).toISOString(),
-    amountCents: 50000,
-    method: 'card',
-    type: 'rent',
-  } : undefined;
-  const activeContract: ContractSummary | undefined = c.currentProperty ? {
-    id: 'ctr-'+id,
-    property: c.currentProperty,
-    startDate: new Date(Date.now() - 90*86400000).toISOString(),
-    endDate: undefined,
-    status: 'active',
-    rentCents: 80000,
-  } : undefined;
-  const currentProperty: PropertySummary | undefined = c.currentProperty ? {
-    id: 'prop-'+id,
-    name: c.currentProperty,
-    unit: 'A-304',
-  } : undefined;
+async function fetchPaymentsSummary(customerId: string): Promise<{ totalPaid: number; lastPayment?: PaymentSummary }> {
+  try {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('id, amount_cents, amount, payment_date, paid_at, method, type, status')
+      .or(`customer_id.eq.${customerId},profile_id.eq.${customerId}`)
+      .order('payment_date', { ascending: false });
+    if (error) {
+      console.warn('Payments table query failed:', error.message);
+      return { totalPaid: 0 };
+    }
+    if (!data) return { totalPaid: 0 };
+    const rows = data as PaymentRow[];
+    const totalPaid = rows.reduce((sum, p) => sum + (p.amount_cents || Math.round((p.amount || 0) * 100)), 0);
+    const last = rows[0];
+    const lastPayment: PaymentSummary | undefined = last ? {
+      id: last.id,
+      date: last.payment_date || last.paid_at || new Date().toISOString(),
+      amountCents: last.amount_cents || Math.round((last.amount || 0) * 100),
+      method: last.method,
+      type: last.type,
+    } : undefined;
+    return { totalPaid, lastPayment };
+  } catch (e) {
+    console.warn('Payments table not available:', e);
+    return { totalPaid: 0 };
+  }
+}
+
+async function computeCustomerMetrics(customer: Customer): Promise<CustomerMetrics> {
+  const activeContract = await fetchContractSummary(customer.id);
+  const { totalPaid, lastPayment } = await fetchPaymentsSummary(customer.id);
+  const totalRentPaid = customer.totalRentPaid || totalPaid;
+  const outstandingBalance = activeContract?.rentCents
+    ? Math.max(0, activeContract.rentCents - totalRentPaid)
+    : (customer.outstandingBalance || 0);
   return {
-    totalBookings: c.totalBookings,
-    totalRentPaid: Math.round(c.totalRentPaid*100),
-    outstandingBalance: activeContract?.rentCents ? Math.max(0, activeContract.rentCents - (lastPayment?.amountCents||0)) : 0,
+    totalBookings: customer.totalBookings || 0,
+    totalRentPaid,
+    outstandingBalance,
     activeContract,
-    currentProperty,
     lastPayment,
+    currentProperty: activeContract ? { id: activeContract.propertyId || customer.propertyId || '', name: activeContract.property } : undefined,
   };
 }
 
 // ----- Service API ------------------------------------------------------------
-export async function listCustomers(params: ListParams): Promise<{ items: Customer[]; total: number; }>{
-  const { query='', type='all', lifecycle='all', page=1, pageSize=12 } = params || {} as ListParams;
+export async function listCustomers(params: ListParams = {}): Promise<{ items: Customer[]; total: number; }>{
+  const {
+    query='',
+    type='all',
+    lifecycle='all',
+    paymentStatus='all',
+    propertyId='',
+    sort='newest',
+    page=1,
+    pageSize=12,
+    dateFrom,
+    dateTo,
+  } = params;
   const start = (page-1)*pageSize;
-  
-  // Try database first
-  const dbAvailable = await checkDatabaseAvailability();
-  
-  if (dbAvailable) {
-    try {
-      let queryBuilder = supabase
-        .from('customers')
-        .select('*', { count: 'exact' });
-      
-      if (query) {
-        queryBuilder = queryBuilder.or(`full_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`);
-      }
-      
-      if (type !== 'all') {
-        queryBuilder = queryBuilder.eq('customer_type', type);
-      }
-      
-      if (lifecycle !== 'all') {
-        queryBuilder = queryBuilder.eq('lifecycle_status', lifecycle);
-      }
-      
-      const { data, count, error } = await queryBuilder
-        .range(start, start + pageSize - 1)
-        .order('created_at', { ascending: false });
-      
-      if (!error && data) {
-        const items: Customer[] = data.map(c => ({
-          id: c.id,
-          fullName: c.full_name,
-          email: c.email,
-          phone: c.phone,
-          customerType: c.customer_type,
-          lifecycleStatus: c.lifecycle_status,
-          currentProperty: c.current_property,
-          propertyId: c.property_id,
-          notes: c.notes,
-          tags: c.tags || [],
-          totalBookings: c.total_bookings || 0,
-          totalRentPaid: c.total_rent_paid || 0,
-          lastActivityAt: c.last_activity_at,
-          createdAt: c.created_at,
-        }));
-        return { items, total: count || 0 };
-      }
-    } catch (error) {
-      console.error('Database query failed, falling back to mock data:', error);
+
+  try {
+    // Select customers joined with profiles and current property
+    let q = supabase
+      .from('customers')
+      .select('*, first_name, last_name, full_name, email, phone, profiles!customers_profile_id_fkey(first_name, last_name, full_name, email, phone, avatar_url), properties!customers_current_property_id_fkey(id,title)', { count: 'exact' })
+      .is('deleted_at', null);
+
+    if (query) {
+      q = q.or(`full_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`, { foreignTable: 'profiles' });
     }
+
+    if (type !== 'all') q = q.eq('customer_type', type);
+    if (lifecycle !== 'all') q = q.eq('lifecycle_status', lifecycle);
+    if (propertyId) q = q.eq('current_property_id', propertyId);
+    if (dateFrom) q = q.gte('created_at', dateFrom);
+    if (dateTo) q = q.lte('created_at', dateTo);
+
+    const { data, count, error } = await q
+      .range(start, start + pageSize - 1)
+      .order('created_at', { ascending: sort !== 'newest' });
+
+    if (error) {
+      console.error('Database query error:', error);
+      throw new Error(`Failed to fetch customers: ${error.message}`);
+    }
+
+    const rows = (data || []) as CustomerRow[];
+    const items: Customer[] = rows.map(mapCustomer);
+
+    // Compute outstanding balance and sort by it if requested (fallback to in-memory sort)
+    if (sort === 'outstanding' || sort === 'name_asc' || sort === 'name_desc' || sort === 'last_active' || paymentStatus !== 'all') {
+      await Promise.all(items.map(async (c) => {
+        const metrics = await computeCustomerMetrics(c);
+        c.outstandingBalance = metrics.outstandingBalance;
+        c.totalRentPaid = metrics.totalRentPaid;
+      }));
+      if (sort === 'outstanding') {
+        items.sort((a, b) => b.outstandingBalance - a.outstandingBalance);
+      } else if (sort === 'name_asc') {
+        items.sort((a, b) => a.fullName.localeCompare(b.fullName));
+      } else if (sort === 'name_desc') {
+        items.sort((a, b) => b.fullName.localeCompare(a.fullName));
+      } else if (sort === 'last_active') {
+        items.sort((a, b) => new Date(b.lastActivityAt || b.createdAt).getTime() - new Date(a.lastActivityAt || a.createdAt).getTime());
+      }
+      if (paymentStatus !== 'all') {
+        const filteredItems = paymentStatus === 'overdue'
+          ? items.filter(c => c.outstandingBalance > 0)
+          : items.filter(c => (paymentStatus === 'paid') === (c.outstandingBalance === 0));
+        return { items: filteredItems.slice(start, start + pageSize), total: filteredItems.length };
+      }
+    }
+
+    return { items, total: count || 0 };
+  } catch (error) {
+    console.error('Failed to fetch customers:', error);
+    throw error;
   }
-  
-  // Fallback to mock data
-  const filtered = MOCK_CUSTOMERS.filter(c =>
-    (!query || c.fullName.toLowerCase().includes(query.toLowerCase()) || (c.email && c.email.toLowerCase().includes(query.toLowerCase())) || c.phone?.includes(query)) &&
-    (type==='all' || c.customerType===type) &&
-    (lifecycle==='all' || c.lifecycleStatus===lifecycle)
-  );
-  const items = filtered.slice(start, start+pageSize);
-  console.log('listCustomers(mock fallback)', { query, type, lifecycle, page, pageSize, total: filtered.length });
-  return Promise.resolve({ items, total: filtered.length });
 }
 
 export async function getCustomer(id: string): Promise<Customer>{
-  const c = MOCK_CUSTOMERS.find(x=>x.id===id);
-  if (!c) throw new Error('Customer not found');
-  return Promise.resolve(c);
+  const { data, error } = await supabase
+    .from('customers')
+    .select('*, profiles!customers_profile_id_fkey(first_name, last_name, full_name, email, phone, avatar_url), properties!customers_current_property_id_fkey(id,title)')
+    .eq('id', id)
+    .is('deleted_at', null)
+    .single();
+  
+  if (error) {
+    console.error('Failed to fetch customer:', error);
+    throw new Error(`Failed to fetch customer: ${error.message}`);
+  }
+  
+  if (!data) {
+    throw new Error('Customer not found');
+  }
+  
+  return mapCustomer(data as CustomerRow);
 }
 
 export async function getCustomerOverview(id: string): Promise<{ customer: Customer; metrics: CustomerMetrics }>{
   if (shouldFail('overview')) throw new Error('Injected failure (overview)');
   const customer = await getCustomer(id);
-  const metrics = mockMetricsFor(id);
+  const metrics = await computeCustomerMetrics(customer);
+  customer.outstandingBalance = metrics.outstandingBalance;
+  customer.totalRentPaid = metrics.totalRentPaid;
   return { customer, metrics };
 }
 
@@ -228,14 +370,23 @@ export async function getCustomerTimeline(id: string): Promise<TimelineEvent[]>{
 }
 
 // ----- KPI Dashboard Metrics --------------------------------------------------
-export async function getCustomerDashboardMetrics(): Promise<{ totalCustomers:number; activeTenants:number; activeGuests:number; activeBuyers:number; monthlyRevenue:number; overdueAccounts:number; }>{
-  const totalCustomers = MOCK_CUSTOMERS.length;
-  const activeTenants = MOCK_CUSTOMERS.filter(c=>c.customerType==='tenant' && c.lifecycleStatus==='active').length;
-  const activeGuests = MOCK_CUSTOMERS.filter(c=>c.customerType==='guest' && c.lifecycleStatus==='active').length;
-  const activeBuyers = MOCK_CUSTOMERS.filter(c=>c.customerType==='buyer' && c.lifecycleStatus==='active').length;
-  const monthlyRevenue = 0; // mock
-  const overdueAccounts = MOCK_CUSTOMERS.filter(c=> mockMetricsFor(c.id).outstandingBalance>0 ).length;
-  return { totalCustomers, activeTenants, activeGuests, activeBuyers, monthlyRevenue, overdueAccounts };
+export async function getCustomerDashboardMetrics(): Promise<{ totalCustomers:number; activeCustomers:number; pendingVerification:number; outstandingBalance:number; }>{
+  const { data, error } = await supabase
+    .from('customers')
+    .select('customer_type, lifecycle_status, total_rent_paid, total_bookings, current_property_id')
+    .is('deleted_at', null);
+
+  if (error) {
+    console.error('Database metrics error:', error);
+    throw new Error(`Failed to fetch customer metrics: ${error.message}`);
+  }
+
+  const rows = data as any[];
+  const totalCustomers = rows.length;
+  const activeCustomers = rows.filter((c: any) => c.lifecycle_status === 'active').length;
+  const pendingVerification = 0; // verification_status not in customers table, set to 0 for now
+  const outstandingBalance = 0; // computed from contracts/payments async in list
+  return { totalCustomers, activeCustomers, pendingVerification, outstandingBalance };
 }
 
 // ----- Realtime Placeholders --------------------------------------------------
@@ -251,65 +402,175 @@ export function subscribeToBookings(_customerId: string, _cb: (evt: unknown)=>vo
 }
 
 // ----- Action placeholders (mutations) ---------------------------------------
-export async function createCustomer(data: {
-  fullName: string;
+export interface CreateCustomerInput {
+  firstName: string;
+  lastName: string;
   email: string | null;
   phone: string;
+  nationalId?: string | null;
   customerType: CustomerType;
   lifecycleStatus: LifecycleStatus;
-  propertyId: string | null;
-  notes: string | null;
-  tags: string[];
-}): Promise<Customer> {
-  const newCustomer: Customer = {
-    id: `cust-${Date.now()}`,
-    fullName: data.fullName,
-    email: data.email,
-    phone: data.phone,
-    customerType: data.customerType,
-    lifecycleStatus: data.lifecycleStatus,
-    currentProperty: data.propertyId ? 'Assigned Property' : undefined,
-    propertyId: data.propertyId || undefined,
-    notes: data.notes || undefined,
-    tags: data.tags,
-    totalBookings: 0,
-    totalRentPaid: 0,
-    lastActivityAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-  };
-  MOCK_CUSTOMERS.unshift(newCustomer);
-  return newCustomer;
+  verificationStatus?: VerificationStatus;
+  propertyId?: string | null;
+  notes?: string | null;
+  tags?: string[];
 }
 
-export async function updateCustomer(customerId: string, data: {
-  fullName: string;
+export interface UpdateCustomerInput {
+  firstName: string;
+  lastName: string;
   email: string | null;
   phone: string;
+  nationalId?: string | null;
   customerType: CustomerType;
   lifecycleStatus: LifecycleStatus;
+  verificationStatus?: VerificationStatus;
   propertyId?: string | null;
-  notes?: string;
+  notes?: string | null;
   tags?: string[];
-}): Promise<Customer> {
-  const index = MOCK_CUSTOMERS.findIndex(c => c.id === customerId);
-  if (index === -1) throw new Error('Customer not found');
-  
-  const updated: Customer = {
-    ...MOCK_CUSTOMERS[index],
-    fullName: data.fullName,
-    email: data.email,
-    phone: data.phone,
-    customerType: data.customerType,
-    lifecycleStatus: data.lifecycleStatus,
-    currentProperty: data.propertyId ? 'Assigned Property' : undefined,
-    propertyId: data.propertyId || undefined,
-    notes: data.notes,
-    tags: data.tags,
-    lastActivityAt: new Date().toISOString(),
-  };
-  MOCK_CUSTOMERS[index] = updated;
-  console.log('updateCustomer(mock)', { customerId, updated });
-  return updated;
+}
+
+export async function createCustomer(data: CreateCustomerInput): Promise<Customer> {
+  try {
+    const fullName = `${data.firstName} ${data.lastName}`.trim();
+
+    // Create the customer record directly without profile
+    const { data: customerData, error: customerError } = await supabase
+      .from('customers')
+      .insert([
+        {
+          profile_id: null, // No profile for manually created customers
+          first_name: data.firstName,
+          last_name: data.lastName,
+          full_name: fullName,
+          email: data.email,
+          phone: data.phone,
+          customer_type: data.customerType,
+          lifecycle_status: data.lifecycleStatus,
+          current_property_id: data.propertyId || null,
+          notes: data.notes || null,
+          tags: data.tags || [],
+          total_bookings: 0,
+          total_rent_paid: 0,
+          last_activity_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ])
+      .select(`
+        *,
+        properties (
+          id,
+          title
+        )
+      `)
+      .single();
+
+    if (customerError) {
+      console.error('Failed to create customer:', customerError);
+      throw new Error(`Failed to create customer: ${customerError.message}`);
+    }
+
+    if (!customerData) {
+      throw new Error('No data returned from customer creation');
+    }
+
+    return {
+      id: customerData.id,
+      profileId: customerData.profile_id || '',
+      firstName: data.firstName,
+      lastName: data.lastName,
+      fullName: fullName,
+      email: data.email,
+      phone: data.phone,
+      nationalId: data.nationalId || undefined,
+      avatarUrl: null,
+      customerType: customerData.customer_type,
+      lifecycleStatus: customerData.lifecycle_status,
+      verificationStatus: customerData.verification_status || 'unverified',
+      currentProperty: customerData.properties?.title || undefined,
+      propertyId: customerData.current_property_id || undefined,
+      notes: customerData.notes || undefined,
+      tags: customerData.tags || [],
+      totalBookings: customerData.total_bookings || 0,
+      totalRentPaid: customerData.total_rent_paid || 0,
+      outstandingBalance: customerData.outstanding_balance || 0,
+      lastActivityAt: customerData.last_activity_at || '',
+      createdAt: customerData.created_at,
+    };
+  } catch (error) {
+    console.error('Failed to create customer:', error);
+    throw error;
+  }
+}
+
+export async function updateCustomer(customerId: string, data: UpdateCustomerInput): Promise<Customer> {
+  try {
+    const fullName = `${data.firstName} ${data.lastName}`.trim();
+
+    // Update customer record
+    const { data: customerData, error: customerError } = await supabase
+      .from('customers')
+      .update({
+        first_name: data.firstName,
+        last_name: data.lastName,
+        full_name: fullName,
+        email: data.email,
+        phone: data.phone,
+        customer_type: data.customerType,
+        lifecycle_status: data.lifecycleStatus,
+        current_property_id: data.propertyId || null,
+        notes: data.notes || null,
+        tags: data.tags,
+        last_activity_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', customerId)
+      .select(`
+        *,
+        properties (
+          id,
+          title
+        )
+      `)
+      .single();
+
+    if (customerError) {
+      console.error('Failed to update customer:', customerError);
+      throw new Error(`Failed to update customer: ${customerError.message}`);
+    }
+
+    if (!customerData) {
+      throw new Error('No data returned from customer update');
+    }
+
+    return {
+      id: customerData.id,
+      profileId: customerData.profile_id || '',
+      firstName: data.firstName,
+      lastName: data.lastName,
+      fullName: fullName,
+      email: data.email,
+      phone: data.phone,
+      nationalId: data.nationalId || undefined,
+      avatarUrl: null,
+      customerType: customerData.customer_type,
+      lifecycleStatus: customerData.lifecycle_status,
+      verificationStatus: customerData.verification_status || 'unverified',
+      currentProperty: customerData.properties?.title || undefined,
+      propertyId: customerData.current_property_id || undefined,
+      notes: customerData.notes || undefined,
+      tags: customerData.tags || [],
+      totalBookings: customerData.total_bookings || 0,
+      totalRentPaid: customerData.total_rent_paid || 0,
+      outstandingBalance: 0,
+      lastActivityAt: customerData.last_activity_at || '',
+      createdAt: customerData.created_at,
+    };
+  } catch (error) {
+    console.error('Failed to update customer:', error);
+    throw error;
+  }
 }
 
 export async function sendMessage(customerId: string, payload: { text: string }): Promise<{ ok: true }>{
@@ -327,30 +588,52 @@ export async function createContract(customerId: string, data: { propertyId: str
   return { ok: true, contractId: 'ctr-mock' };
 }
 
-export async function suspendCustomer(customerId: string, reason?: string): Promise<{ ok: true }>{
-  console.log('suspendCustomer(mock)', { customerId, reason });
-  return { ok: true };
+export async function suspendCustomer(customerId: string, reason?: string): Promise<Customer>{
+  const { data, error } = await supabase
+    .from('customers')
+    .update({
+      lifecycle_status: 'suspended',
+      notes: reason || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', customerId)
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Failed to suspend customer:', error);
+    throw new Error(`Failed to suspend customer: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error('Customer not found');
+  }
+
+  return mapCustomer(data as CustomerRow);
+}
+
+export async function importCSV(_file: File): Promise<{ imported: number; errors: string[] }> {
+  // Placeholder implementation
+  return { imported: 0, errors: ['CSV import is not implemented yet'] };
 }
 
 export async function exportCSV(scope: 'current' | 'filtered' | 'all', filters?: ListParams): Promise<Blob> {
-  let customers: Customer[];
-  if (scope === 'all') {
-    customers = MOCK_CUSTOMERS;
-  } else {
-    const result = await listCustomers(filters || {});
-    customers = result.items;
-  }
+  const result = await listCustomers(filters || {});
+  const customers = result.items;
 
   // Generate CSV content
-  const headers = ['ID', 'Full Name', 'Email', 'Phone', 'Customer Type', 'Lifecycle Status', 'Current Property', 'Total Bookings', 'Total Rent Paid', 'Last Activity', 'Created At'];
+  const headers = ['ID', 'Full Name', 'Email', 'Phone', 'National ID', 'Customer Type', 'Lifecycle Status', 'Verification Status', 'Current Property', 'Outstanding Balance', 'Total Bookings', 'Total Rent Paid', 'Last Activity', 'Created At'];
   const rows = customers.map(c => [
     c.id,
     c.fullName,
     c.email || '',
     c.phone || '',
+    c.nationalId || '',
     c.customerType,
     c.lifecycleStatus,
+    c.verificationStatus,
     c.currentProperty || '',
+    c.outstandingBalance,
     c.totalBookings,
     c.totalRentPaid,
     c.lastActivityAt,

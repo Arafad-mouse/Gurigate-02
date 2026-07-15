@@ -58,17 +58,16 @@ export interface PropertyFeatures {
 }
 
 export type PropertyType = 
-  | 'apartment'
-  | 'house'
-  | 'villa'
-  | 'studio'
+  | 'office_building'
+  | 'commercial_complex'
+  | 'shopping_mall'
+  | 'retail_shop'
+  | 'warehouse'
   | 'hotel'
-  | 'condo'
-  | 'townhouse'
-  | 'cottage'
-  | 'penthouse'
-  | 'loft'
-  | 'other';
+  | 'restaurant'
+  | 'mixed_use_building'
+  | 'industrial_building'
+  | 'business_center';
 
 export type PropertyStatus = 
   | 'available'
@@ -92,22 +91,22 @@ export interface CreatePropertyRequest {
 
 // Validation schema
 export const PROPERTY_TYPES: PropertyType[] = [
-  'apartment', 'house', 'villa', 'studio', 'hotel', 'condo', 
-  'townhouse', 'cottage', 'penthouse', 'loft', 'other'
+  'office_building', 'commercial_complex', 'shopping_mall', 'retail_shop', 
+  'warehouse', 'hotel', 'restaurant', 'mixed_use_building', 
+  'industrial_building', 'business_center'
 ];
 
 export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
-  'apartment': 'Apartment',
-  'house': 'House',
-  'villa': 'Villa',
-  'studio': 'Studio',
+  'office_building': 'Office Building',
+  'commercial_complex': 'Commercial Complex',
+  'shopping_mall': 'Shopping Mall',
+  'retail_shop': 'Retail Shop',
+  'warehouse': 'Warehouse',
   'hotel': 'Hotel',
-  'condo': 'Condo',
-  'townhouse': 'Townhouse',
-  'cottage': 'Cottage',
-  'penthouse': 'Penthouse',
-  'loft': 'Loft',
-  'other': 'Other'
+  'restaurant': 'Restaurant',
+  'mixed_use_building': 'Mixed Use Building',
+  'industrial_building': 'Industrial Building',
+  'business_center': 'Business Center'
 };
 
 export type BedroomOption = string;
@@ -123,34 +122,40 @@ export interface PropertyFieldConfig {
 }
 
 export const PROPERTY_CONFIGURATION: Record<PropertyType, PropertyFieldConfig> = {
-  'house': {
-    fieldType: 'bedrooms',
-    fieldLabel: 'Bedrooms',
-    options: ['1 Bedroom', '2 Bedrooms', '3 Bedrooms', '4 Bedrooms', '5 Bedrooms', '6+ Bedrooms'],
+  'office_building': {
+    fieldType: 'none',
+    fieldLabel: 'Units',
+    options: [],
     defaultValue: null,
-    isRequired: true
+    isRequired: false
   },
-  'villa': {
-    fieldType: 'bedrooms',
-    fieldLabel: 'Bedrooms',
-    options: ['2 Bedrooms', '3 Bedrooms', '4 Bedrooms', '5 Bedrooms', '6 Bedrooms', '7+ Bedrooms'],
+  'commercial_complex': {
+    fieldType: 'none',
+    fieldLabel: 'Units',
+    options: [],
     defaultValue: null,
-    isRequired: true
+    isRequired: false
   },
-  'apartment': {
-    fieldType: 'bedrooms',
-    fieldLabel: 'Bedrooms',
-    options: ['Studio', '1 Bedroom', '2 Bedrooms', '3 Bedrooms', '4+ Bedrooms'],
+  'shopping_mall': {
+    fieldType: 'none',
+    fieldLabel: 'Units',
+    options: [],
     defaultValue: null,
-    isRequired: true
+    isRequired: false
   },
-  'studio': {
-    fieldType: 'bedrooms',
-    fieldLabel: 'Bedrooms',
-    options: ['Studio Only'],
-    defaultValue: 'Studio Only',
-    isRequired: true,
-    isDisabled: true
+  'retail_shop': {
+    fieldType: 'none',
+    fieldLabel: 'Units',
+    options: [],
+    defaultValue: null,
+    isRequired: false
+  },
+  'warehouse': {
+    fieldType: 'none',
+    fieldLabel: 'Units',
+    options: [],
+    defaultValue: null,
+    isRequired: false
   },
   'hotel': {
     fieldType: 'roomTypes',
@@ -159,47 +164,33 @@ export const PROPERTY_CONFIGURATION: Record<PropertyType, PropertyFieldConfig> =
     defaultValue: null,
     isRequired: true
   },
-  'condo': {
-    fieldType: 'bedrooms',
-    fieldLabel: 'Bedrooms',
-    options: ['1 Bedroom', '2 Bedrooms', '3 Bedrooms', '4 Bedrooms', '5+ Bedrooms'],
+  'restaurant': {
+    fieldType: 'none',
+    fieldLabel: 'Units',
+    options: [],
     defaultValue: null,
-    isRequired: true
+    isRequired: false
   },
-  'townhouse': {
-    fieldType: 'bedrooms',
-    fieldLabel: 'Bedrooms',
-    options: ['2 Bedrooms', '3 Bedrooms', '4 Bedrooms', '5 Bedrooms', '6+ Bedrooms'],
+  'mixed_use_building': {
+    fieldType: 'none',
+    fieldLabel: 'Units',
+    options: [],
     defaultValue: null,
-    isRequired: true
+    isRequired: false
   },
-  'cottage': {
-    fieldType: 'bedrooms',
-    fieldLabel: 'Bedrooms',
-    options: ['1 Bedroom', '2 Bedrooms', '3 Bedrooms', '4 Bedrooms', '5+ Bedrooms'],
+  'industrial_building': {
+    fieldType: 'none',
+    fieldLabel: 'Units',
+    options: [],
     defaultValue: null,
-    isRequired: true
+    isRequired: false
   },
-  'penthouse': {
-    fieldType: 'bedrooms',
-    fieldLabel: 'Bedrooms',
-    options: ['2 Bedrooms', '3 Bedrooms', '4 Bedrooms', '5 Bedrooms', '6+ Bedrooms'],
+  'business_center': {
+    fieldType: 'none',
+    fieldLabel: 'Units',
+    options: [],
     defaultValue: null,
-    isRequired: true
-  },
-  'loft': {
-    fieldType: 'bedrooms',
-    fieldLabel: 'Bedrooms',
-    options: ['Studio', '1 Bedroom', '2 Bedrooms', '3 Bedrooms', '4+ Bedrooms'],
-    defaultValue: null,
-    isRequired: true
-  },
-  'other': {
-    fieldType: 'bedrooms',
-    fieldLabel: 'Bedrooms',
-    options: ['1 Bedroom', '2 Bedrooms', '3 Bedrooms', '4 Bedrooms', '5+ Bedrooms'],
-    defaultValue: null,
-    isRequired: true
+    isRequired: false
   }
 };
 

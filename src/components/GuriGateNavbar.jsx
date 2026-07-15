@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ProfileMenu } from "./ProfileMenu";
 import { LANGUAGES, useLanguage } from "../lib/language";
 import BecomeHost from "./host-onboarding/Become-host";
@@ -550,12 +550,25 @@ export default function GuriGateNavbar() {
   const [showHostModal, setShowHostModal] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [redirectAfterAuth, setRedirectAfterAuth] = useState(null);
   const { language, setLanguage } = useLanguage();
   const navRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const auth = useContext(AuthContext);
+
+  // Update active navigation based on current route
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === "/") {
+      setActiveNav("Homes");
+    } else if (path.startsWith("/manage-property")) {
+      setActiveNav("Commercial Management");
+    } else if (path.startsWith("/bookings")) {
+      setActiveNav("Bookings");
+    } else {
+      setActiveNav("Homes"); // Default fallback
+    }
+  }, [location.pathname]);
 
   // Close search dropdowns on outside click
   useEffect(()=>{
@@ -576,25 +589,17 @@ export default function GuriGateNavbar() {
 
   const handleGuestSelect = (summary) => setWhoLbl(summary === "Add guests" ? "" : summary);
 
-  const handleNavClick = async (label) => {
+  const handleNavClick = (label) => {
     setActiveNav(label);
     switch(label) {
       case "Homes":
         navigate("/");
         break;
-      case "Manage Property":
-        // Check authentication before navigating to manage-property
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          // Show auth modal and set redirect URL
-          setAuthModalOpen(true);
-          setRedirectAfterAuth("/manage-property");
-        } else {
-          navigate("/manage-property");
-        }
+      case "Commercial Management":
+        navigate("/manage-property");
         break;
-      case "Support":
-        // Navigate to services page when available
+      case "Bookings":
+        navigate("/manage-property/bookings");
         break;
       default:
         break;
@@ -668,7 +673,7 @@ export default function GuriGateNavbar() {
 
           {/* Center nav */}
           <nav className="nav-center" style={{ display:"flex", alignItems:"center", gap:2, height:"100%" }}>
-            {[{l:"Homes",i:<img src="/home2.svg" alt="" width="15" height="15" />},{l:"Manage Property",i:<CompassIcon/>,badge:"NEW"},{l:"Support",i:<BldgIcon/>,badge:"NEW"}].map(({l,i,badge})=>{
+            {[{l:"Homes",i:<img src="/home2.svg" alt="" width="15" height="15" />},{l:"Commercial Management",i:<CompassIcon/>,badge:"NEW"},{l:"Bookings",i:<BldgIcon/>,badge:"NEW"}].map(({l,i,badge})=>{
               const a=activeNav===l;
               return (
                 <button key={l} onClick={()=>handleNavClick(l)} style={{ display:"flex", alignItems:"center", gap:6, padding:"0 15px", height:"100%", border:"none", background:"none", cursor:"pointer", fontSize:13.5, fontWeight:a?700:500, color:a?"#111827":"#6b7280", borderBottom:a?`2.5px solid ${BRAND}`:"2.5px solid transparent", position:"relative", transition:"color .15s", fontFamily:"inherit" }}
@@ -712,7 +717,7 @@ export default function GuriGateNavbar() {
           </div>
         </div>
         <div className="mobile-tabs-row" style={{ display:"none", gap:10, overflowX:"auto", padding:"0 16px 14px", maxWidth:1200, margin:"0 auto" }}>
-          {[{l:"Homes",i:<img src="/home2.svg" alt="" width="15" height="15" />},{l:"Manage Property",i:<CompassIcon/>,badge:"NEW"},{l:"Support",i:<BldgIcon/>,badge:"NEW"}].map(({l,i,badge})=>{
+          {[{l:"Homes",i:<img src="/home2.svg" alt="" width="15" height="15" />},{l:"Commercial Management",i:<CompassIcon/>,badge:"NEW"},{l:"Bookings",i:<BldgIcon/>,badge:"NEW"}].map(({l,i,badge})=>{
             const a=activeNav===l;
             return (
               <button key={`mobile-${l}`} onClick={()=>handleNavClick(l)} style={{ display:"flex", alignItems:"center", gap:6, whiteSpace:"nowrap", padding:"8px 14px", borderRadius:999, border:a?`1.5px solid ${BRAND}`:"1.5px solid #e5e7eb", background:a?"rgba(186,0,54,0.08)":"white", color:a?BRAND:"#6b7280", fontSize:13, fontWeight:a?700:500, position:"relative", cursor:"pointer", flexShrink:0 }}>
@@ -806,21 +811,6 @@ export default function GuriGateNavbar() {
         />
       )}
 
-      {/* Auth modal — shown when unauthenticated user clicks Manage Property */}
-      {authModalOpen && (
-        <AuthModal
-          onClose={() => setAuthModalOpen(false)}
-          onSuccess={async () => {
-            setAuthModalOpen(false);
-            try { await auth?.refreshProfile(); } catch (e) {}
-            if (redirectAfterAuth) {
-              navigate(redirectAfterAuth);
-              setRedirectAfterAuth(null);
-            }
-          }}
-          defaultTab="login"
-        />
-      )}
     </div>
   );
 }

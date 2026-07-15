@@ -34,7 +34,7 @@ export function AddPropertyModal({ onClose, onSuccess }: AddPropertyModalProps) 
   const [formData, setFormData] = useState<CreatePropertyRequest>({
     title: "",
     description: "",
-    type: "apartment",
+    type: "office_building",
     address: {
       street: "",
       city: "",
@@ -45,13 +45,13 @@ export function AddPropertyModal({ onClose, onSuccess }: AddPropertyModalProps) 
     pricing: {
       base_price: 0,
       currency: "USD",
-      pricing_type: "nightly",
+      pricing_type: "monthly",
       security_deposit: 0,
       cleaning_fee: 0,
       service_fee: 0,
     },
     features: {
-      bedrooms: 1,
+      bedrooms: 0,
       bathrooms: 1,
       max_guests: 1,
       square_feet: 0,
@@ -258,17 +258,16 @@ export function AddPropertyModal({ onClose, onSuccess }: AddPropertyModalProps) 
                 }}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
               >
-                <option value="apartment">Apartment</option>
-                <option value="house">House</option>
-                <option value="villa">Villa</option>
-                <option value="studio">Studio</option>
+                <option value="office_building">Office Building</option>
+                <option value="commercial_complex">Commercial Complex</option>
+                <option value="shopping_mall">Shopping Mall</option>
+                <option value="retail_shop">Retail Shop</option>
+                <option value="warehouse">Warehouse</option>
                 <option value="hotel">Hotel</option>
-                <option value="condo">Condo</option>
-                <option value="townhouse">Townhouse</option>
-                <option value="cottage">Cottage</option>
-                <option value="penthouse">Penthouse</option>
-                <option value="loft">Loft</option>
-                <option value="other">Other</option>
+                <option value="restaurant">Restaurant</option>
+                <option value="mixed_use_building">Mixed Use Building</option>
+                <option value="industrial_building">Industrial Building</option>
+                <option value="business_center">Business Center</option>
               </select>
             </div>
 

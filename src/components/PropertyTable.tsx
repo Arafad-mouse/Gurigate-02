@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MoreVertical, Home, Bed, Square } from "lucide-react";
 import type { Property } from "@/types/property";
+import { PROPERTY_TYPE_LABELS } from "@/types/property";
 
 interface PropertyTableProps {
   properties: Property[];
@@ -334,10 +335,9 @@ export function PropertyTable({
                 }}>
                   <span style={{
                     fontSize: 12,
-                    color: darkMode ? "#E2E8F0" : "#111827",
-                    textTransform: "capitalize"
+                    color: darkMode ? "#E2E8F0" : "#111827"
                   }}>
-                    {property.type}
+                    {PROPERTY_TYPE_LABELS[property.type] || property.type}
                   </span>
                 </td>
 

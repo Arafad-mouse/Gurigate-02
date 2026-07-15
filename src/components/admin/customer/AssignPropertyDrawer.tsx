@@ -1,6 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { assignProperty } from '@/services/customerService';
-import { useProperties } from '../../../../frontend/src/hooks/useProperties';
+import { supabase } from '@/lib/supabase';
+
+interface Property {
+  id: string;
+  title: string;
+  city: string;
+  address?: string;
+}
 
 interface AssignPropertyDrawerProps {
   customerId: string;
@@ -15,15 +22,49 @@ export function AssignPropertyDrawer({ customerId, isOpen, onClose, onSuccess }:
   const [assigning, setAssigning] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState(false);
-  const { properties, loading, error: propertyError } = useProperties(100);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [propertyError, setPropertyError] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchProperties = async () => {
+      setLoading(true);
+      setPropertyError(undefined);
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('id, title, city')
+          .eq('is_approved', true)
+          .order('title');
+
+        if (error) {
+          setPropertyError(error.message);
+          setProperties([]);
+        } else {
+          setProperties(data || []);
+        }
+      } catch (err) {
+        setPropertyError('Failed to load properties');
+        setProperties([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProperties();
+  }, [isOpen]);
 
   const filteredProperties = useMemo(() => {
     const query = searchQuery.toLowerCase();
-    return properties.filter((property) =>
-      property.title.toLowerCase().includes(query) ||
-      property.address.city.toLowerCase().includes(query) ||
-      (property.address.state || '').toLowerCase().includes(query)
-    );
+    return properties.filter((property) => {
+      return (
+        property.title.toLowerCase().includes(query) ||
+        (property.address?.toLowerCase() || '').includes(query) ||
+        property.city.toLowerCase().includes(query)
+      );
+    });
   }, [properties, searchQuery]);
 
   const handleAssign = async () => {
@@ -79,7 +120,7 @@ export function AssignPropertyDrawer({ customerId, isOpen, onClose, onSuccess }:
               )}
               {propertyError && (
                 <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm">
-                  {propertyError.message}
+                  {propertyError}
                 </div>
               )}
 
@@ -113,7 +154,7 @@ export function AssignPropertyDrawer({ customerId, isOpen, onClose, onSuccess }:
                         }`}
                       >
                         <div className="font-medium text-gray-900">{property.title}</div>
-                        <div className="text-sm text-gray-500">{property.address.city}</div>
+                        <div className="text-sm text-gray-500">{property.city || '—'}</div>
                       </button>
                     ))
                   )}

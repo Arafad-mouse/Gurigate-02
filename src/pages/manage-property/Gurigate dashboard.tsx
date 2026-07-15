@@ -16,8 +16,9 @@ import AdminHosts from "@/pages/admin/AdminHosts";
 import AdminGuests from "@/pages/admin/AdminGuests";
 import AdminVerifications from "@/pages/admin/AdminVerifications";
 import AdminDisputes from "@/pages/admin/AdminDisputes";
-import AdminReports from "@/pages/admin/AdminReports";
 import AdminNotifications from "@/pages/admin/AdminNotifications";
+import DocumentsPage from "@/pages/admin/DocumentsPage";
+import InvoicesPage from "./InvoicesPage";
 
 
 // Import modal
@@ -45,6 +46,7 @@ const Icon = {
   MoreVert: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>,
   Moon: () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>,
   TrendUp: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+  TrendDown: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>,
   Check: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
   Settings: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
   Eye: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
@@ -237,13 +239,14 @@ const INITIAL_TRANSACTIONS = [
 
 const NAV_ITEMS = [
   { label:"Dashboard", icon:<Icon.Grid/>, section:"main" },
-  { label:"Properties", icon:<Icon.Building/>, section:"main" },
+  { label:"Buildings", icon:<Icon.Building/>, section:"main" },
+  { label:"Units", icon:<Icon.Home/>, section:"main" },
   { label:"Customers", icon:<UserRoundCog size={16}/>, section:"main" },
-  { label:"Leases", icon:<Icon.Home/>, section:"main" },
+  { label:"Leases", icon:<Icon.Calendar/>, section:"main" },
   { label:"Payments", icon:<Icon.CreditCard/>, section:"main" },
-  { label:"Transactions", icon:<Icon.CreditCard/>, section:"main" },
   { label:"Documents", icon:<Icon.Inbox/>, section:"main" },
-  { label:"Reports", icon:<Icon.BarChart/>, section:"main" },
+  { label:"Invoices", icon:<Icon.BarChart/>, section:"main" },
+  { label:"Reports", icon:<Icon.TrendUp/>, section:"main" },
   { label:"Settings", icon:<Icon.Settings/>, section:"configuration" },
 ];
 
@@ -658,8 +661,8 @@ export default function GuriGateDashboard() {
       setActiveNav('Verifications');
     } else if (path.endsWith('/manage-property/disputes')) {
       setActiveNav('Disputes');
-    } else if (path.endsWith('/manage-property/reports')) {
-      setActiveNav('Reports');
+    } else if (path.endsWith('/manage-property/invoices')) {
+      setActiveNav('Invoices');
     } else if (path.endsWith('/manage-property/notifications')) {
       setActiveNav('Notifications');
     } else if (path.endsWith('/manage-property/settings')) {
@@ -718,9 +721,9 @@ export default function GuriGateDashboard() {
       case "Transactions":
         return <ComingSoonPage title="Transactions" icon={<Icon.CreditCard/>} description="Activity history for lease payments and lease actions" />;
       case "Documents":
-        return <ComingSoonPage title="Documents" icon={<Icon.Inbox/>} description="Upload and manage lease documents" />;
-      case "Reports":
-        return <ComingSoonPage title="Reports" icon={<Icon.BarChart/>} description="Property management reports and analytics" />;
+        return <DocumentsPage />;
+      case "Invoices":
+        return <InvoicesPage />;
       case "Settings":
         return <ProfilePage />;
       default:
@@ -1003,7 +1006,7 @@ export default function GuriGateDashboard() {
         </div>
 
         {/* Nav sections */}
-        {[["RENT MANAGEMENT", NAV_ITEMS.filter((n: any) => n.section==="main")], ["BOOKING", NAV_ITEMS.filter((n: any) => n.section==="booking")], ["CONFIGURATION", NAV_ITEMS.filter((n: any) => n.section==="configuration")]].map(([label, items]: any) => (
+        {[["RENT MANAGEMENT", NAV_ITEMS.filter((n: any) => n.section==="main")], ["CONFIGURATION", NAV_ITEMS.filter((n: any) => n.section==="configuration")]].map(([label, items]: any) => (
           <div key={label} style={{ marginBottom:20 }}>
             <p style={{ fontSize:14, fontWeight:700, letterSpacing:"0.08em", color:"#111827", padding:"0 14px 8px" }}>{label}</p>
             {items.map((item: any) => (
@@ -1012,12 +1015,11 @@ export default function GuriGateDashboard() {
                   const routeMap: Record<string, string> = {
                     'Customer': '/manage-property/customers',
                     'Bookings': '/manage-property/bookings',
-                    'Transactions': '/manage-property/transactions',
                     'Hosts': '/manage-property/hosts',
                     'Guests': '/manage-property/guests',
                     'Verifications': '/manage-property/verifications',
                     'Disputes': '/manage-property/disputes',
-                    'Reports': '/manage-property/reports',
+                    'Invoices': '/manage-property/invoices',
                     'Notifications': '/manage-property/notifications',
                     'Settings': '/settings/profile'
                   };

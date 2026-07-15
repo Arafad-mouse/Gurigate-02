@@ -53,7 +53,7 @@ const PROPERTIES = [
   { id:12, name:"Pine Valley Estates", address:"1668 Lincoln Drive, USA", rating:4.5, reviews:187, beds:3, baths:2, sqft:"1100ft", priceRange:"$60,000–$68,000", img:"https://images.unsplash.com/photo-1493809842364-7889add74094?w=600&q=80", status:"Rented", type:"Apartment" },
 ];
 
-const PROPERTY_TYPES = ["All", "Apartment", "House", "Villa"];
+const PROPERTY_TYPES = ["All", "Office Building", "Commercial Complex", "Shopping Mall", "Retail Shop", "Warehouse", "Hotel", "Restaurant", "Mixed Use Building", "Industrial Building", "Business Center"];
 const PROPERTY_STATUS = ["All", "Available", "Rented"];
 
 export default function GuriGateAllProperty() {

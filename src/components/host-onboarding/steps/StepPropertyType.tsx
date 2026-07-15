@@ -24,35 +24,17 @@ const LAND_ICON     = <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" s
 const FARM_ICON     = <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2m0 0L8 9h8l-4-4ZM4 21h16M6 21V13l6-4 6 4v8" /></svg>;
 
 const TYPES_BY_CATEGORY: Record<string, PropertyTypeEntry[]> = {
-  residential: [
-    { id: "house",        label: "House",            icon: HOUSE_ICON },
-    { id: "studio",       label: "Studio Apartment", icon: STUDIO_ICON },
-    { id: "apartment",    label: "Apartment",        icon: APT_ICON },
-    { id: "villa",        label: "Villa",            icon: VILLA_ICON },
-    { id: "duplex",       label: "Duplex",           icon: DUPLEX_ICON },
-    { id: "townhouse",    label: "Townhouse",        icon: HOUSE_ICON },
-    { id: "penthouse",    label: "Penthouse",        icon: PENTHOUSE_ICON },
-    { id: "private_room", label: "Private Room",     icon: ROOM_ICON },
-    { id: "shared_room",  label: "Shared Room",      icon: SHARED_ICON },
-    { id: "guesthouse",   label: "Guesthouse",       icon: GUEST_ICON },
-  ],
   commercial: [
-    { id: "office",      label: "Office",      icon: OFFICE_ICON },
-    { id: "shop",        label: "Shop",        icon: SHOP_ICON },
-    { id: "warehouse",   label: "Warehouse",   icon: WAREHOUSE_ICON },
-    { id: "restaurant",  label: "Restaurant",  icon: RESTAURANT_ICON },
-    { id: "hotel",       label: "Hotel",       icon: HOTEL_ICON },
-  ],
-  land: [
-    { id: "residential_land", label: "Residential Land", icon: LAND_ICON },
-    { id: "commercial_land",  label: "Commercial Land",  icon: LAND_ICON },
-    { id: "farm_land",        label: "Farm Land",        icon: FARM_ICON },
-  ],
-  hospitality: [
-    { id: "hotel",  label: "Hotel",  icon: HOTEL_ICON },
-    { id: "resort", label: "Resort", icon: RESORT_ICON },
-    { id: "hostel", label: "Hostel", icon: HOSTEL_ICON },
-    { id: "lodge",  label: "Lodge",  icon: LODGE_ICON },
+    { id: "office_building",    label: "Office Building",      icon: OFFICE_ICON },
+    { id: "commercial_complex", label: "Commercial Complex",  icon: OFFICE_ICON },
+    { id: "shopping_mall",      label: "Shopping Mall",        icon: SHOP_ICON },
+    { id: "retail_shop",        label: "Retail Shop",          icon: SHOP_ICON },
+    { id: "warehouse",          label: "Warehouse",            icon: WAREHOUSE_ICON },
+    { id: "hotel",              label: "Hotel",                icon: HOTEL_ICON },
+    { id: "restaurant",         label: "Restaurant",           icon: RESTAURANT_ICON },
+    { id: "mixed_use_building", label: "Mixed Use Building",   icon: OFFICE_ICON },
+    { id: "industrial_building", label: "Industrial Building",  icon: WAREHOUSE_ICON },
+    { id: "business_center",    label: "Business Center",      icon: OFFICE_ICON },
   ],
 };
 
@@ -62,7 +44,7 @@ interface Props {
 }
 
 export function StepPropertyType({ data, onChange }: Props) {
-  const types = TYPES_BY_CATEGORY[data.propertyCategory] ?? TYPES_BY_CATEGORY.residential;
+  const types = TYPES_BY_CATEGORY[data.propertyCategory] ?? TYPES_BY_CATEGORY.commercial;
 
   const handleSelect = (id: string) => {
     onChange({ propertyTypes: [id] });
