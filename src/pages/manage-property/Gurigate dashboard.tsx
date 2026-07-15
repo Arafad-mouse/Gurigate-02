@@ -2,12 +2,17 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, PieChart, Pie, Cell, Legend, Label, RadialBarChart, RadialBar, PolarRadiusAxis, PolarGrid } from 'recharts';
 import { UserRoundCog, ShieldUser } from "lucide-react";
+import { getBuildingMetrics } from '@/services/buildingService';
+import type { BuildingMetrics } from '@/types/building';
 
 // Import page components
 import GuriGateRentals from "./Gurigate rentals";
 import GuriGateOrders from "./Gurigate orders";
 import GuriGateTransaction from "./Gurigate transaction";
 import GuriGateProperty from "./Gurigate property";
+import BuildingsPage from "@/pages/admin/BuildingsPage";
+import BuildingWorkspace from "@/pages/admin/BuildingWorkspace";
+import UnitsPage from "@/pages/admin/UnitsPage";
 import CustomersPage from "@/pages/admin/CustomersPage";
 import ProfilePage from "./ProfilePage";
 import AdminBookings from "@/pages/admin/AdminBookings";
@@ -632,6 +637,8 @@ export default function GuriGateDashboard() {
   const [panelType, setPanelType] = useState<'view' | 'edit'>('view');
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
+  const [buildingMetrics, setBuildingMetrics] = useState<BuildingMetrics | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -640,6 +647,23 @@ export default function GuriGateDashboard() {
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Load building metrics
+  useEffect(() => {
+    let mounted = true;
+    const loadMetrics = async () => {
+      try {
+        const data = await getBuildingMetrics();
+        if (mounted) setBuildingMetrics(data);
+      } catch (error) {
+        console.error('Failed to load building metrics:', error);
+      } finally {
+        if (mounted) setMetricsLoading(false);
+      }
+    };
+    loadMetrics();
+    return () => { mounted = false; };
   }, []);
 
   // Sync URL -> active tab (deep link support)
@@ -667,6 +691,17 @@ export default function GuriGateDashboard() {
       setActiveNav('Notifications');
     } else if (path.endsWith('/manage-property/settings')) {
       setActiveNav('Settings');
+    } else if (path.match(/\/manage-property\/buildings\/\w+/)) {
+      setActiveNav('BuildingWorkspace');
+      // Close sidebar when navigating to building workspace
+      setSidebarOpen(false);
+    } else if (path.endsWith('/manage-property/buildings')) {
+      setActiveNav('Buildings');
+      // Reopen sidebar when navigating back to buildings list
+      setSidebarOpen(true);
+    } else if (path.match(/\/manage-property\/units\/\w+/)) {
+      // Close sidebar when navigating to unit detail
+      setSidebarOpen(false);
     }
   }, [location.pathname]);
 
@@ -712,6 +747,12 @@ export default function GuriGateDashboard() {
     switch (activeNav) {
       case "Properties":
         return <GuriGateProperty />;
+      case "Buildings":
+        return <BuildingsPage />;
+      case "BuildingWorkspace":
+        return <BuildingWorkspace />;
+      case "Units":
+        return <UnitsPage />;
       case "Customers":
         return <CustomersPage />;
       case "Leases":
@@ -747,11 +788,15 @@ export default function GuriGateDashboard() {
 
             {/* Stat cards */}
             <div style={{ display:"grid", gridTemplateColumns:isMobile ? "1fr" : isTablet ? "repeat(2,1fr)" : "repeat(4,1fr)", gap:14, marginBottom:20 }}>
-              {[
-                { label:"Total Revenue", value:"$12,450", change:"+12.5%", data:[40,35,45,30,50,40,55,45,60,50,65,55], type:"line", color:"#E8344E" },
-                { label:"Occupied Units", value:"8", change:"+5.0%", data:[20,35,25,45,30,60,40,55,42,65,50,70], type:"bar", color:"#10B981" },
-                { label:"Vacant Units", value:"4", change:"-20.0%", data:[30,25,40,35,50,30,45,55,40,60,50,65], type:"bar", color:"#F59E0B" },
-                { label:"Active Leases", value:"8", change:"+5.0%", data:[25,40,30,50,35,55,40,60,45,65,50,70], type:"line", color:"#3B82F6" },
+              {metricsLoading ? (
+                <div className="stat-card" style={{ background:"white", border:"1px solid #F1F5F9", padding:20, gridColumn:"1/-1" }}>
+                  <p style={{ fontSize:14, color:"#9CA3AF" }}>Loading metrics...</p>
+                </div>
+              ) : buildingMetrics ? [
+                { label:"Monthly Revenue", value:`$${(buildingMetrics.monthly_revenue / 100).toLocaleString()}`, change:"+0.0%", data:[40,35,45,30,50,40,55,45,60,50,65,55], type:"line", color:"#E8344E" },
+                { label:"Occupied Units", value:buildingMetrics.occupied_units.toString(), change:"+0.0%", data:[20,35,25,45,30,60,40,55,42,65,50,70], type:"bar", color:"#10B981" },
+                { label:"Vacant Units", value:buildingMetrics.vacant_units.toString(), change:"-0.0%", data:[30,25,40,35,50,30,45,55,40,60,50,65], type:"bar", color:"#F59E0B" },
+                { label:"Total Units", value:buildingMetrics.total_units.toString(), change:"+0.0%", data:[25,40,30,50,35,55,40,60,45,65,50,70], type:"line", color:"#3B82F6" },
               ].map((card: any) => (
                 <div key={card.label} className="stat-card" style={{ background:"white", border:"1px solid #F1F5F9" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
@@ -771,7 +816,7 @@ export default function GuriGateDashboard() {
                     </span>
                   </div>
                 </div>
-              ))}
+              )) : null}
             </div>
 
             {/* Charts row */}

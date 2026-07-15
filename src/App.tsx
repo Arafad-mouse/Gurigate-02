@@ -12,6 +12,10 @@ import GuriGateDashboard from '@/pages/manage-property/Gurigate dashboard'
 import UnitsPage from '@/pages/manage-property/UnitsPage'
 import PropertyDetailPage from '@/pages/manage-property/PropertyDetailPage'
 import AllPropertiesPage from '@/pages/all-property'
+import BookingCustomersPage from '@/pages/bookings/BookingCustomersPage'
+import BuildingsPage from '@/pages/admin/BuildingsPage'
+import BuildingWorkspace from '@/pages/admin/BuildingWorkspace'
+import UnitDetailPage from '@/pages/admin/UnitDetailPage'
 // CustomersPage is now rendered inside the Manage Property dashboard, not as an Admin route
 import { AuthProvider, AuthContext } from '@/lib/auth-context'
 import { AdminLayout } from '@/components/AdminLayout'
@@ -107,11 +111,7 @@ function AdminLayoutWrapper() {
 }
 
 function ManagePropertyWrapper() {
-  return (
-    <AuthGuard>
-      <GuriGateDashboard />
-    </AuthGuard>
-  )
+  return <GuriGateDashboard />
 }
 
 function App() {
@@ -132,16 +132,20 @@ function App() {
             } />
             <Route path="/all-property" element={<AllPropertiesPage />} />
             <Route path="/manage-property" element={<ManagePropertyWrapper />} />
-            <Route path="/manage-property/units" element={<AuthGuard><UnitsPage /></AuthGuard>} />
-            <Route path="/manage-property/property/:id" element={<AuthGuard><PropertyDetailPage /></AuthGuard>} />
+            <Route path="/manage-property/units" element={<UnitsPage />} />
+            <Route path="/manage-property/property/:id" element={<PropertyDetailPage />} />
             <Route path="/manage-property/customers" element={<ManagePropertyWrapper />} />
             <Route path="/manage-property/bookings" element={<ManagePropertyWrapper />} />
+            <Route path="/manage-property/bookings/customers" element={<BookingCustomersPage />} />
+            <Route path="/manage-property/buildings" element={<BuildingsPage />} />
+            <Route path="/manage-property/buildings/:id" element={<ManagePropertyWrapper />} />
+            <Route path="/manage-property/units/:id" element={<UnitDetailPage />} />
             <Route path="/manage-property/transactions" element={<ManagePropertyWrapper />} />
             <Route path="/manage-property/hosts" element={<ManagePropertyWrapper />} />
             <Route path="/manage-property/guests" element={<ManagePropertyWrapper />} />
             <Route path="/manage-property/verifications" element={<ManagePropertyWrapper />} />
             <Route path="/manage-property/disputes" element={<ManagePropertyWrapper />} />
-            <Route path="/manage-property/reports" element={<ManagePropertyWrapper />} />
+            <Route path="/manage-property/invoices" element={<ManagePropertyWrapper />} />
             <Route path="/manage-property/notifications" element={<ManagePropertyWrapper />} />
             <Route path="/manage-property/settings" element={<ManagePropertyWrapper />} />
 
