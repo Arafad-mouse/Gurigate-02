@@ -1,0 +1,160 @@
+﻿
+src/app/auth/callback/route.ts(2,30): error TS2307: Cannot find module 'next/server' or its corresponding type declarations.
+src/components/AddPropertyModal.tsx(4,13): error TS6133: 'Plus' is declared but its value is never read.
+src/components/AddPropertyModal.tsx(4,19): error TS6133: 'Trash2' is declared but its value is never read.
+src/components/AddPropertyModal.tsx(80,20): error TS2698: Spread types may only be created from object types.
+src/components/AddPropertyModal.tsx(151,61): error TS2345: Argument of type 'CreatePropertyRequest' is not assignable to parameter of type 'CreatePropertyRequest & { badge: 
+PropertyBadge; price_unit_label: string; }'.
+src/components/EmailModal.tsx(4,24): error TS6133: 'Mail' is declared but its value is never read.
+src/components/EmailModal.tsx(4,30): error TS6133: 'Lock' is declared but its value is never read.
+src/components/EmailModal.tsx(359,10): error TS6133: 'password' is declared but its value is never read.
+src/components/GuestPicker.tsx(156,9): error TS2322: Type 'boolean' is not assignable to type 'string'.
+src/components/PropertyTable.tsx(4,10): error TS6133: 'Check' is declared but its value is never read.
+src/components/PropertyTable.tsx(4,42): error TS6133: 'Bath' is declared but its value is never read.
+src/components/RouteGuards.tsx(19,11): error TS2339: Property 'error' does not exist on type '{ user: User | null; loading: boolean; signOut: () => Promise<void>; }'.
+src/components/RouteGuards.tsx(19,18): error TS2339: Property 'isLoading' does not exist on type '{ user: User | null; loading: boolean; signOut: () => Promise<void>; }'.
+src/components/RouteGuards.tsx(19,29): error TS2339: Property 'session' does not exist on type '{ user: User | null; loading: boolean; signOut: () => Promise<void>; }'.
+src/components/RouteGuards.tsx(37,11): error TS2339: Property 'isLoading' does not exist on type '{ user: User | null; loading: boolean; signOut: () => Promise<void>; }'.
+src/components/RouteGuards.tsx(37,22): error TS2339: Property 'session' does not exist on type '{ user: User | null; loading: boolean; signOut: () => Promise<void>; }'.
+src/hooks/useProperties.ts(88,23): error TS2488: Type 'Promise<LandingProperty[]>' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/hooks/useProperties.ts(97,7): error TS2740: Type 'Promise<LandingProperty[]>' is missing the following properties from type 'any[]': length, pop, push, concat, and 29 more.
+src/hooks/useProperties.ts(97,40): error TS2554: Expected 1 arguments, but got 2.
+src/hooks/useProperties.ts(102,7): error TS2740: Type 'Promise<LandingProperty[]>' is missing the following properties from type 'any[]': length, pop, push, concat, and 29 more.
+src/hooks/useProperties.ts(102,39): error TS2554: Expected 1 arguments, but got 2.
+src/hooks/useProperties.ts(107,7): error TS2740: Type 'Promise<LandingProperty[]>' is missing the following properties from type 'any[]': length, pop, push, concat, and 29 more.
+src/hooks/useProperties.ts(107,55): error TS2554: Expected 2 arguments, but got 3.
+src/hooks/useProperties.ts(112,7): error TS2740: Type 'Promise<LandingProperty[]>' is missing the following properties from type 'any[]': length, pop, push, concat, and 29 more.
+src/hooks/useProperties.ts(112,34): error TS2345: Argument of type 'any[]' is not assignable to parameter of type 'string'.
+src/hooks/useProperties.ts(139,5): error TS2740: Type 'Promise<LandingProperty[]>' is missing the following properties from type 'LandingProperty[]': length, pop, push, concat, and 29 
+more.
+src/hooks/useProperties.ts(140,5): error TS2740: Type 'Promise<LandingProperty[]>' is missing the following properties from type 'LandingProperty[]': length, pop, push, concat, and 29 
+more.
+src/hooks/useProperties.ts(141,5): error TS2740: Type 'Promise<LandingProperty[]>' is missing the following properties from type 'LandingProperty[]': length, pop, push, concat, and 29 
+more.
+src/hooks/useProperties.ts(142,5): error TS2740: Type 'Promise<LandingProperty[]>' is missing the following properties from type 'LandingProperty[]': length, pop, push, concat, and 29 
+more.
+src/hooks/useProperties.ts(162,21): error TS6133: 'setIsLoading' is declared but its value is never read.
+src/hooks/useProperties.ts(163,17): error TS6133: 'setError' is declared but its value is never read.
+src/hooks/useProperties.ts(167,16): error TS2339: Property 'find' does not exist on type 'Promise<LandingProperty[]>'.
+src/hooks/useProperties.ts(167,22): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/lib/supabase/server.ts(2,25): error TS2307: Cannot find module 'next/headers' or its corresponding type declarations.
+src/lib/supabase/server.ts(7,5): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to 
+the types field in your tsconfig.
+src/lib/supabase/server.ts(8,5): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to 
+the types field in your tsconfig.
+src/pages/NotificationsPage.tsx(4,24): error TS6133: 'Smartphone' is declared but its value is never read.
+src/pages/ProfilePage.tsx(3,63): error TS6133: 'Bell' is declared but its value is never read.
+src/pages/ProfilePage.tsx(3,69): error TS6133: 'Share2' is declared but its value is never read.
+src/pages/ProfilePage.tsx(3,77): error TS6133: 'Briefcase' is declared but its value is never read.
+src/pages/Property management/GuriGate all property.tsx(142,24): error TS2322: Type '{ style: { color: string; }; }' is not assignable to type 'IntrinsicAttributes'.
+src/pages/Property management/GuriGate all property.tsx(160,24): error TS2322: Type '{ style: { color: string; }; }' is not assignable to type 'IntrinsicAttributes'.
+src/pages/Property management/GuriGate all property.tsx(169,28): error TS2322: Type '{ style: { width: number; height: number; margin: string; opacity: number; }; }' is not assignable 
+to type 'IntrinsicAttributes'.
+src/pages/Property management/GuriGate all property.tsx(185,28): error TS2322: Type '{ size: number; fill: string; }' is not assignable to type 'IntrinsicAttributes'.
+src/pages/Property management/GuriGate all property.tsx(200,30): error TS2322: Type '{ size: number; }' is not assignable to type 'IntrinsicAttributes'.
+src/pages/Property management/Gurigate customers.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/pages/Property management/Gurigate customers.tsx(71,19): error TS6133: 'name' is declared but its value is never read.
+src/pages/Property management/Gurigate customers.tsx(71,19): error TS7031: Binding element 'name' implicitly has an 'any' type.
+src/pages/Property management/Gurigate customers.tsx(84,27): error TS7031: Binding element 'onClose' implicitly has an 'any' type.
+src/pages/Property management/Gurigate customers.tsx(84,36): error TS7031: Binding element 'onAdd' implicitly has an 'any' type.
+src/pages/Property management/Gurigate customers.tsx(84,43): error TS7031: Binding element 'dark' implicitly has an 'any' type.
+src/pages/Property management/Gurigate customers.tsx(93,16): error TS7006: Parameter 'k' implicitly has an 'any' type.
+src/pages/Property management/Gurigate customers.tsx(93,19): error TS7006: Parameter 'v' implicitly has an 'any' type.
+src/pages/Property management/Gurigate customers.tsx(127,76): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ 
+name: string; phone: string; rooms: string; building: string; unit: string; amount: string; nextDue: string; }'.
+src/pages/Property management/Gurigate customers.tsx(162,25): error TS7031: Binding element 'tenant' implicitly has an 'any' type.
+src/pages/Property management/Gurigate customers.tsx(162,33): error TS7031: Binding element 'onClose' implicitly has an 'any' type.
+src/pages/Property management/Gurigate customers.tsx(162,42): error TS7031: Binding element 'onSave' implicitly has an 'any' type.
+src/pages/Property management/Gurigate customers.tsx(162,50): error TS7031: Binding element 'dark' implicitly has an 'any' type.
+src/pages/Property management/Gurigate customers.tsx(177,83): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ 
+Paid: { bg: string; color: string; dot: string; }; Pending: { bg: string; color: string; dot: string; }; Overdue: { bg: string; color: string; dot: string; }; }'.
+src/pages/Property management/Gurigate customers.tsx(227,25): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/pages/Property management/Gurigate customers.tsx(228,25): error TS7006: Parameter 'id' implicitly has an 'any' type.
+src/pages/Property management/Gurigate customers.tsx(228,106): error TS2345: Argument of type 'null' is not assignable to parameter of type 'SetStateAction<{ id: string; name: string; 
+phone: string; rooms: number; building: string; unit: string; rentDate: string; nextDue: string; amount: number; status: string; }>'.
+src/pages/Property management/Gurigate customers.tsx(229,25): error TS7006: Parameter 'id' implicitly has an 'any' type.
+src/pages/Property management/Gurigate customers.tsx(229,29): error TS7006: Parameter 'status' implicitly has an 'any' type.
+src/pages/Property management/Gurigate customers.tsx(270,16): error TS2322: Type 'string | { id: string; icon: (s?: number) => Element; section: string; }[]' is not assignable to type 
+'Key | null | undefined'.
+src/pages/Property management/Gurigate customers.tsx(271,115): error TS2322: Type 'string | { id: string; icon: (s?: number) => Element; section: string; }[]' is not assignable to type 
+'ReactNode'.
+src/pages/Property management/Gurigate customers.tsx(272,20): error TS2339: Property 'map' does not exist on type 'string | { id: string; icon: (s?: number) => Element; section: 
+string; }[]'.
+src/pages/Property management/Gurigate customers.tsx(272,24): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/pages/Property management/Gurigate customers.tsx(439,94): error TS7053: Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{ 1: 
+string; 2: string; 3: string; }'.
+src/pages/Property management/Gurigate customers.tsx(453,176): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ 
+Paid: { bg: string; color: string; dot: string; }; Pending: { bg: string; color: string; dot: string; }; Overdue: { bg: string; color: string; dot: string; }; }'.
+src/pages/Property management/Gurigate customers.tsx(453,205): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ 
+Paid: { bg: string; color: string; dot: string; }; Pending: { bg: string; color: string; dot: string; }; Overdue: { bg: string; color: string; dot: string; }; }'.
+src/pages/Property management/Gurigate customers.tsx(454,98): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ 
+Paid: { bg: string; color: string; dot: string; }; Pending: { bg: string; color: string; dot: string; }; Overdue: { bg: string; color: string; dot: string; }; }'.
+src/pages/Property management/Gurigate customers.tsx(462,84): error TS2345: Argument of type '{ id: string; name: string; phone: string; rooms: number; building: string; unit: string; 
+rentDate: string; nextDue: string; amount: number; status: string; }' is not assignable to parameter of type 'SetStateAction<null>'.
+src/pages/Property management/Gurigate customers.tsx(517,37): error TS7053: Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{ 1: 
+string; 2: string; 3: string; }'.
+src/pages/Property management/Gurigate customers.tsx(531,164): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ 
+Paid: { bg: string; color: string; dot: string; }; Pending: { bg: string; color: string; dot: string; }; Overdue: { bg: string; color: string; dot: string; }; }'.
+src/pages/Property management/Gurigate customers.tsx(531,195): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ 
+Paid: { bg: string; color: string; dot: string; }; Pending: { bg: string; color: string; dot: string; }; Overdue: { bg: string; color: string; dot: string; }; }'.
+src/pages/Property management/Gurigate customers.tsx(532,88): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ 
+Paid: { bg: string; color: string; dot: string; }; Pending: { bg: string; color: string; dot: string; }; Overdue: { bg: string; color: string; dot: string; }; }'.
+src/pages/Property management/Gurigate customers.tsx(538,54): error TS2345: Argument of type '{ id: string; name: string; phone: string; rooms: number; building: string; unit: string; 
+rentDate: string; nextDue: string; amount: number; status: string; }' is not assignable to parameter of type 'SetStateAction<null>'.
+src/pages/Property management/Gurigate dashboard.tsx(38,22): error TS7031: Binding element 'data' implicitly has an 'any' type.
+src/pages/Property management/Gurigate dashboard.tsx(38,28): error TS7031: Binding element 'color' implicitly has an 'any' type.
+src/pages/Property management/Gurigate dashboard.tsx(41,25): error TS7006: Parameter 'v' implicitly has an 'any' type.
+src/pages/Property management/Gurigate dashboard.tsx(41,28): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/pages/Property management/Gurigate dashboard.tsx(57,25): error TS7031: Binding element 'data' implicitly has an 'any' type.
+src/pages/Property management/Gurigate dashboard.tsx(57,31): error TS7031: Binding element 'color' implicitly has an 'any' type.
+src/pages/Property management/Gurigate dashboard.tsx(64,18): error TS7006: Parameter 'v' implicitly has an 'any' type.
+src/pages/Property management/Gurigate dashboard.tsx(64,21): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/pages/Property management/Gurigate dashboard.tsx(120,15): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/pages/Property management/Gurigate dashboard.tsx(121,15): error TS7006: Parameter 'v' implicitly has an 'any' type.
+src/pages/Property management/Gurigate discover.tsx(29,7): error TS6133: 'NAV_ITEMS' is declared but its value is never read.
+src/pages/Property management/Gurigate discover.tsx(54,10): error TS6133: 'PropertyCard' is declared but its value is never read.
+src/pages/Property management/Gurigate discover.tsx(54,25): error TS7031: Binding element 'property' implicitly has an 'any' type.
+src/pages/Property management/Gurigate discover.tsx(54,35): error TS7031: Binding element 'dark' implicitly has an 'any' type.
+src/pages/Property management/Gurigate discover.tsx(69,37): error TS2339: Property 'style' does not exist on type 'EventTarget'.
+src/pages/Property management/Gurigate discover.tsx(70,37): error TS2339: Property 'style' does not exist on type 'EventTarget'.
+src/pages/Property management/Gurigate discover.tsx(179,28): error TS2322: Type '{ size: number; fill: string; }' is not assignable to type 'IntrinsicAttributes'.
+src/pages/Property management/Gurigate discover.tsx(188,30): error TS2322: Type '{ size: number; }' is not assignable to type 'IntrinsicAttributes'.
+src/pages/Property management/Gurigate discover.tsx(211,30): error TS2322: Type '{ size: number; fill: string; stroke: string; strokeWidth: string; }' is not assignable to type 
+'IntrinsicAttributes'.
+src/pages/Property management/Gurigate orders.tsx(81,19): error TS7031: Binding element 'name' implicitly has an 'any' type.
+src/pages/Property management/Gurigate orders.tsx(121,23): error TS2345: Argument of type 'string[]' is not assignable to parameter of type 'SetStateAction<never[]>'.
+src/pages/Property management/Gurigate orders.tsx(123,18): error TS7006: Parameter 'id' implicitly has an 'any' type.
+src/pages/Property management/Gurigate orders.tsx(123,35): error TS2345: Argument of type '(p: never[]) => any[]' is not assignable to parameter of type 'SetStateAction<never[]>'.
+src/pages/Property management/Gurigate orders.tsx(123,51): error TS2345: Argument of type 'any' is not assignable to parameter of type 'never'.
+src/pages/Property management/Gurigate orders.tsx(161,16): error TS2322: Type 'string | { label: string; icon: Element; section: string; }[]' is not assignable to type 'Key | null | 
+undefined'.
+src/pages/Property management/Gurigate orders.tsx(162,115): error TS2322: Type 'string | { label: string; icon: Element; section: string; }[]' is not assignable to type 'ReactNode'.
+src/pages/Property management/Gurigate orders.tsx(163,20): error TS2339: Property 'map' does not exist on type 'string | { label: string; icon: Element; section: string; }[]'.
+src/pages/Property management/Gurigate orders.tsx(163,24): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/pages/Property management/Gurigate orders.tsx(298,52): error TS2345: Argument of type 'string' is not assignable to parameter of type 'never'.
+src/pages/Property management/Gurigate orders.tsx(316,45): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ Rental: 
+{ bg: string; color: string; }; Purchase: { bg: string; color: string; }; "Short Stay": { bg: string; color: string; }; }'.
+src/pages/Property management/Gurigate orders.tsx(327,45): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ Active: 
+{ bg: string; color: string; }; Unverified: { bg: string; color: string; }; Suspended: { bg: string; color: string; }; Deactivated: { bg: string; color: string; }; Pending: { bg: 
+string; color: string; }; }'.
+src/pages/Property management/Gurigate property.tsx(33,7): error TS6133: 'NAV_ITEMS' is declared but its value is never read.
+src/pages/Property management/Gurigate property.tsx(58,7): error TS6133: 'STATUS_STYLE' is declared but its value is never read.
+src/pages/Property management/Gurigate property.tsx(64,7): error TS6133: 'STAT_CARDS' is declared but its value is never read.
+src/pages/Property management/Gurigate property.tsx(71,7): error TS6133: 'PAGE_SIZE' is declared but its value is never read.
+src/pages/Property management/Gurigate property.tsx(72,7): error TS6133: 'TOTAL_PAGES' is declared but its value is never read.
+src/pages/Property management/Gurigate property.tsx(75,20): error TS6133: 'setDarkMode' is declared but its value is never read.
+src/pages/Property management/Gurigate property.tsx(78,9): error TS6133: 'bg' is declared but its value is never read.
+src/pages/Property management/Gurigate rentals.tsx(38,7): error TS6133: 'NAV_ITEMS' is declared but its value is never read.
+src/pages/Property management/Gurigate rentals.tsx(75,7): error TS6133: 'ROOM_LABEL' is declared but its value is never read.
+src/pages/Property management/Gurigate rentals.tsx(109,19): error TS6133: 'name' is declared but its value is never read.
+src/pages/Property management/Gurigate rentals.tsx(213,20): error TS6133: 'setDarkMode' is declared but its value is never read.
+src/pages/Property management/Gurigate rentals.tsx(222,9): error TS6133: 'bg' is declared but its value is never read.
+src/pages/Property management/Gurigate rentals.tsx(227,9): error TS6133: 'rowHov' is declared but its value is never read.
+src/pages/Property management/Gurigate rentals.tsx(237,9): error TS6133: 'stats' is declared but its value is never read.
+src/pages/Property management/Gurigate transaction.tsx(285,10): error TS6133: 'sortField' is declared but its value is never read.
+src/pages/Property management/Gurigate transaction.tsx(285,21): error TS6133: 'setSortField' is declared but its value is never read.
+src/pages/Property management/Gurigate transaction.tsx(328,139): error TS2345: Argument of type '([label, items]: [string, any[]]) => JSX.Element' is not assignable to parameter of 
+type '(value: (string | { label: string; icon: ReactNode; section: string; }[])[], index: number, array: (string | { label: string; icon: ReactNode; section: string; }[])[][]) => 
+Element'.
+
+
