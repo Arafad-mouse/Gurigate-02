@@ -12,7 +12,7 @@ import GuriGateTransaction from "./Gurigate transaction";
 import GuriGateProperty from "./Gurigate property";
 import BuildingsPage from "@/pages/admin/BuildingsPage";
 import BuildingWorkspace from "@/pages/admin/BuildingWorkspace";
-import UnitsPage from "@/pages/admin/UnitsPage";
+import UnitsPage from "@/pages/manage-property/UnitsPage";
 import CustomersPage from "@/pages/admin/CustomersPage";
 import ProfilePage from "./ProfilePage";
 import AdminBookings from "@/pages/admin/AdminBookings";
@@ -22,7 +22,6 @@ import AdminGuests from "@/pages/admin/AdminGuests";
 import AdminVerifications from "@/pages/admin/AdminVerifications";
 import AdminDisputes from "@/pages/admin/AdminDisputes";
 import AdminNotifications from "@/pages/admin/AdminNotifications";
-import DocumentsPage from "@/pages/admin/DocumentsPage";
 import InvoicesPage from "./InvoicesPage";
 
 
@@ -762,7 +761,7 @@ export default function GuriGateDashboard() {
       case "Transactions":
         return <ComingSoonPage title="Transactions" icon={<Icon.CreditCard/>} description="Activity history for lease payments and lease actions" />;
       case "Documents":
-        return <DocumentsPage />;
+        return <ComingSoonPage title="Documents" icon={<Icon.Inbox/>} description="Document management and storage" />;
       case "Invoices":
         return <InvoicesPage />;
       case "Settings":
