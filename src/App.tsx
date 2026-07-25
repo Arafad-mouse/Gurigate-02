@@ -33,12 +33,26 @@ import { AdminUsers } from '@/pages/admin/AdminUsers'
 import { GuriGatePropertyService } from '@/services/guriGateProperties'
 import type { LandingProperty } from '@/data/landingProperties'
 import { AuthGuard } from '@/components/AuthGuard'
+import { ProtectedBookingRoute } from '@/components/ProtectedBookingRoute'
+import { BookingLayout } from '@/components/BookingLayout'
 
 // 1. Import your onboarding multi-step form page component here 👇
 import BecomeHost from '@/components/host-onboarding/Become-host'
 
 // Booking Operations pages
+import BookingDashboard from '@/pages/bookings/BookingDashboard'
+import ReservationsPage from '@/pages/bookings/ReservationsPage'
+import TodayCheckInsPage from '@/pages/bookings/TodayCheckInsPage'
+import TodayCheckOutsPage from '@/pages/bookings/TodayCheckOutsPage'
+import BookingCalendar from '@/pages/bookings/BookingCalendar'
 import GuestsPage from '@/pages/bookings/GuestsPage'
+import PaymentsPage from '@/pages/bookings/PaymentsPage'
+import MessagesPage from '@/pages/bookings/MessagesPage'
+import ReviewsPage from '@/pages/bookings/ReviewsPage'
+import ListingsPage from '@/pages/bookings/ListingsPage'
+import SettingsPage from '@/pages/bookings/SettingsPage'
+import BookingDetailPage from '@/pages/bookings/BookingDetailPage'
+import BookingListPage from '@/pages/bookings/BookingListPage'
 
 function PropertyPageWrapper() {
   const { id } = useParams()
@@ -115,6 +129,11 @@ function ManagePropertyWrapper() {
   return <GuriGateDashboard />
 }
 
+function BookingLayoutWrapper() {
+  const authContext = useContext(AuthContext)
+  return <BookingLayout profile={authContext?.profile || null} />
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -164,6 +183,30 @@ function App() {
               <Route path="bookings" element={<AdminBookings />} />
               <Route path="payments" element={<AdminPayments />} />
               <Route path="users" element={<AdminUsers />} />
+            </Route>
+
+            {/* Booking Operations Routes */}
+            <Route
+              path="/booking"
+              element={
+                <ProtectedBookingRoute>
+                  <BookingLayoutWrapper />
+                </ProtectedBookingRoute>
+              }
+            >
+              <Route path="dashboard" element={<BookingDashboard />} />
+              <Route path="reservations" element={<ReservationsPage />} />
+              <Route path="check-ins" element={<TodayCheckInsPage />} />
+              <Route path="check-outs" element={<TodayCheckOutsPage />} />
+              <Route path="calendar" element={<BookingCalendar />} />
+              <Route path="guests" element={<GuestsPage />} />
+              <Route path="payments" element={<PaymentsPage />} />
+              <Route path="messages" element={<MessagesPage />} />
+              <Route path="reviews" element={<ReviewsPage />} />
+              <Route path="listings" element={<ListingsPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route path=":id" element={<BookingDetailPage />} />
+              <Route path="list" element={<BookingListPage />} />
             </Route>
 
             {/* 2. Added Route path to display your onboarding workflow page 👇 */}
