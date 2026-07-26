@@ -100,6 +100,14 @@ export const CustomerProfileDrawer: React.FC<CustomerProfileDrawerProps> = ({ st
                     <span className="text-gray-900">{customer.currentProperty || '—'}</span>
                   </div>
                   <div className="flex justify-between">
+                    <span className="text-gray-500">Floor</span>
+                    <span className="text-gray-900">{customer.currentFloor || '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Unit</span>
+                    <span className="text-gray-900">{customer.currentUnit || '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-gray-500">Last Activity</span>
                     <span className="text-gray-900">{new Date(customer.lastActivityAt).toLocaleDateString()}</span>
                   </div>

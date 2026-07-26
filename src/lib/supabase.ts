@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
 const fallbackUrl = 'https://placeholder.supabase.co'
 const fallbackAnonKey = 'placeholder-anon-key'
@@ -12,15 +12,9 @@ export const isSupabaseConfigured =
   !rawSupabaseAnonKey.includes('your_supabase_anon_key') &&
   !rawSupabaseAnonKey.includes('placeholder')
 
-export const supabase = createClient(
+let _client: ReturnType<typeof createBrowserClient> | null = null
+
+export const supabase = _client ?? (_client = createBrowserClient(
   rawSupabaseUrl || fallbackUrl,
   rawSupabaseAnonKey || fallbackAnonKey,
-  {
-    auth: {
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-    },
-  }
-)
+))

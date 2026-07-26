@@ -563,7 +563,7 @@ export default function GuriGateNavbar() {
       setActiveNav("Homes");
     } else if (path.startsWith("/manage-property")) {
       setActiveNav("Commercial Management");
-    } else if (path.startsWith("/bookings")) {
+    } else if (path.startsWith("/booking")) {
       setActiveNav("Bookings");
     } else {
       setActiveNav("Homes"); // Default fallback
@@ -593,13 +593,18 @@ export default function GuriGateNavbar() {
     setActiveNav(label);
     switch(label) {
       case "Homes":
-        navigate("/");
+        navigate("/explore");
         break;
       case "Commercial Management":
         navigate("/manage-property");
         break;
       case "Bookings":
-        navigate("/manage-property/bookings");
+        if (auth?.session) {
+          navigate("/booking/dashboard");
+        } else {
+          try { sessionStorage.setItem('intendedDestination', '/booking/dashboard'); } catch {}
+          setShowEmailModal(true);
+        }
         break;
       default:
         break;
@@ -776,7 +781,7 @@ export default function GuriGateNavbar() {
 
             {/* Search button */}
             <div className="search-cta-wrap" style={{ display:"flex", alignItems:"center", padding:"5px 6px 5px 0", flexShrink:0 }}>
-              <button className="search-submit" style={{ background:BRAND, color:"white", border:"none", borderRadius:50, padding:"11px 22px", display:"flex", alignItems:"center", gap:7, fontSize:14, fontWeight:700, cursor:"pointer", transition:"all .15s", boxShadow:`0 3px 10px rgba(186,0,54,.4)`, fontFamily:"inherit" }}
+              <button className="search-submit" onClick={()=>{const p=new URLSearchParams();if(where)p.set("q",where);navigate(`/explore?${p.toString()}`);}} style={{ background:BRAND, color:"white", border:"none", borderRadius:50, padding:"11px 22px", display:"flex", alignItems:"center", gap:7, fontSize:14, fontWeight:700, cursor:"pointer", transition:"all .15s", boxShadow:`0 3px 10px rgba(186,0,54,.4)`, fontFamily:"inherit" }}
                 onMouseEnter={e=>{e.currentTarget.style.background="#9a0028";e.currentTarget.style.boxShadow=`0 5px 16px rgba(186,0,54,.5)`;}}
                 onMouseLeave={e=>{e.currentTarget.style.background=BRAND;e.currentTarget.style.boxShadow=`0 3px 10px rgba(186,0,54,.4)`;}}>
                 <SearchIcon/> Search
@@ -798,14 +803,24 @@ export default function GuriGateNavbar() {
         </div>
       )}
 
-      {/* Auth modal — shown when unauthenticated user clicks Become a host */}
+      {/* Auth modal — shown when unauthenticated user clicks Become a host or Bookings */}
       {showEmailModal && (
         <AuthModal
           onClose={() => setShowEmailModal(false)}
           onSuccess={async () => {
             setShowEmailModal(false);
-            try { await auth?.refreshProfile(); } catch (e) {}
-            navigate('/become-a-host');
+            try { await auth?.refreshProfile(); } catch {}
+            try {
+              const dest = sessionStorage.getItem('intendedDestination');
+              if (dest) {
+                sessionStorage.removeItem('intendedDestination');
+                navigate(dest);
+              } else {
+                navigate('/become-a-host');
+              }
+            } catch {
+              navigate('/become-a-host');
+            }
           }}
           defaultTab="signup"
         />

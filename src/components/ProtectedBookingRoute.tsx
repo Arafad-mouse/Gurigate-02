@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { AuthContext } from '@/lib/auth-context'
 import { AuthModal } from '@/components/AuthModal'
 
@@ -16,21 +16,20 @@ export function ProtectedBookingRoute({ children }: ProtectedBookingRouteProps) 
   const authContext = useContext(AuthContext)
   const { session, isLoading } = authContext || { session: null, isLoading: false }
   const [showAuthModal, setShowAuthModal] = useState(false)
-  const [hasRedirected, setHasRedirected] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
 
   useEffect(() => {
-    if (!isLoading && !session && !hasRedirected) {
+    if (!isLoading && !session) {
       // Store the intended destination in sessionStorage
       try {
         sessionStorage.setItem('intendedDestination', location.pathname + location.search)
-      } catch (e) {
+      } catch {
         // Storage might be blocked
       }
       setShowAuthModal(true)
-      setHasRedirected(true)
     }
-  }, [session, isLoading, hasRedirected, location])
+  }, [session, isLoading, location])
 
   const handleAuthSuccess = () => {
     setShowAuthModal(false)
@@ -39,11 +38,12 @@ export function ProtectedBookingRoute({ children }: ProtectedBookingRouteProps) 
       const intendedDestination = sessionStorage.getItem('intendedDestination')
       if (intendedDestination) {
         sessionStorage.removeItem('intendedDestination')
-        window.location.href = intendedDestination
+        navigate(intendedDestination)
+      } else {
+        navigate('/booking/dashboard')
       }
-    } catch (e) {
-      // Storage might be blocked, just reload the page
-      window.location.reload()
+    } catch {
+      navigate('/booking/dashboard')
     }
   }
 
@@ -52,10 +52,10 @@ export function ProtectedBookingRoute({ children }: ProtectedBookingRouteProps) 
     // Clear stored destination and redirect to home
     try {
       sessionStorage.removeItem('intendedDestination')
-    } catch (e) {
+    } catch {
       // Storage might be blocked
     }
-    window.location.href = '/'
+    navigate('/')
   }
 
   if (isLoading) {

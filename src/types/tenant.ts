@@ -1,11 +1,27 @@
 export type PaymentStatus = 'Paid' | 'Pending' | 'Overdue';
 export type LeaseStatus = 'active' | 'inactive' | 'terminated';
 
+export interface Building {
+  id: string;
+  name: string;
+}
+
+export interface Floor {
+  id: string;
+  floor_number: number;
+}
+
+export interface Unit {
+  id: string;
+  room_number: string;
+}
+
 export interface Tenant {
   id: string;
   owner_id: string;
   property_id?: string;
   building_id?: string;
+  floor_id?: string;
   unit_id?: string;
   full_name: string;
   phone: string;
@@ -16,6 +32,10 @@ export interface Tenant {
   move_in_date: string;
   created_at: string;
   updated_at: string;
+  // Joined relationships
+  buildings?: Building;
+  floors?: Floor;
+  units?: Unit;
 }
 
 export interface TenantFormData {
@@ -23,6 +43,7 @@ export interface TenantFormData {
   phone: string;
   building?: string;
   unit?: string;
+  floor_id?: string;
   monthly_rent: number;
   next_due_date: string;
   rooms?: number;
@@ -39,6 +60,6 @@ export interface TenantListParams {
   page?: number;
   pageSize?: number;
   building?: string;
-  status?: PaymentStatus;
+  status?: PaymentStatus | 'All';
   search?: string;
 }

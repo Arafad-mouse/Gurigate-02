@@ -12,10 +12,8 @@ import GuriGateDashboard from '@/pages/manage-property/Gurigate dashboard'
 import UnitsPage from '@/pages/manage-property/UnitsPage'
 import PropertyDetailPage from '@/pages/manage-property/PropertyDetailPage'
 import AllPropertiesPage from '@/pages/all-property'
-import BookingCustomersPage from '@/pages/bookings/BookingCustomersPage'
 import BuildingsPage from '@/pages/admin/BuildingsPage'
 import BuildingWorkspace from '@/pages/admin/BuildingWorkspace'
-import UnitDetailPage from '@/pages/admin/UnitDetailPage'
 // CustomersPage is now rendered inside the Manage Property dashboard, not as an Admin route
 import { AuthProvider, AuthContext } from '@/lib/auth-context'
 import { AdminLayout } from '@/components/AdminLayout'
@@ -53,6 +51,15 @@ import MessagesPage from '@/pages/bookings/MessagesPage'
 import ReviewsPage from '@/pages/bookings/ReviewsPage'
 import ListingsPage from '@/pages/bookings/ListingsPage'
 import SettingsPage from '@/pages/bookings/SettingsPage'
+import BookingDetailPage from '@/pages/bookings/BookingDetailPage'
+import BookingListPage from '@/pages/bookings/BookingListPage'
+import ReportsPage from '@/pages/bookings/ReportsPage'
+
+// Homes Marketplace pages
+import ExplorePage from '@/pages/ExplorePage'
+import ListingDetailPage from '@/pages/ListingDetailPage'
+import BookingConfirmationPage from '@/pages/BookingConfirmationPage'
+import WishlistPage from '@/pages/marketplace/WishlistPage'
 
 function PropertyPageWrapper() {
   const { id } = useParams()
@@ -156,7 +163,6 @@ function App() {
             <Route path="/manage-property/property/:id" element={<PropertyDetailPage />} />
             <Route path="/manage-property/customers" element={<ManagePropertyWrapper />} />
             <Route path="/manage-property/bookings" element={<ManagePropertyWrapper />} />
-            <Route path="/manage-property/bookings/customers" element={<BookingCustomersPage />} />
             <Route path="/manage-property/buildings" element={<BuildingsPage />} />
             <Route path="/manage-property/buildings/:id" element={<ManagePropertyWrapper />} />
             <Route path="/manage-property/units/:id" element={<ManagePropertyWrapper />} />
@@ -206,6 +212,9 @@ function App() {
               <Route path="reviews" element={<ReviewsPage />} />
               <Route path="listings" element={<ListingsPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path=":id" element={<BookingDetailPage />} />
+              <Route path="list" element={<BookingListPage />} />
+              <Route path="reports" element={<ReportsPage />} />
             </Route>
 
             {/* 2. Added Route path to display your onboarding workflow page 👇 */}
@@ -214,6 +223,16 @@ function App() {
                 <BecomeHost />
               </AuthGuard>
             } />
+
+            {/* Homes Marketplace Routes */}
+            <Route path="/explore" element={<ExplorePage />} />
+            <Route path="/homes/:id" element={<ListingDetailPage />} />
+            <Route path="/booking-confirmation" element={
+              <AuthGuard>
+                <BookingConfirmationPage />
+              </AuthGuard>
+            } />
+            <Route path="/wishlist" element={<WishlistPage />} />
 
             {/* Catch-all redirect MUST stay at the very bottom of the Routes list */}
             <Route path="*" element={<Navigate to="/" replace />} />

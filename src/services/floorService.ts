@@ -30,10 +30,10 @@ export async function listFloors(params: FloorListParams = {}): Promise<Floor[]>
 
 function getSampleFloors(buildingId?: string): Floor[] {
   const floors: Floor[] = [
-    { id: 'f1', building_id: buildingId || '1', floor_number: 1, units_count: 10, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-    { id: 'f2', building_id: buildingId || '1', floor_number: 2, units_count: 10, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-    { id: 'f3', building_id: buildingId || '1', floor_number: 3, units_count: 10, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-    { id: 'f4', building_id: buildingId || '1', floor_number: 4, units_count: 10, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    { id: 'f1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p', building_id: buildingId || '1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p', floor_number: 1, units_count: 10, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    { id: 'f2b3c4d5e-6f7g-8h9i-0j1k-2l3m4n5o6p7q', building_id: buildingId || '1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p', floor_number: 2, units_count: 10, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    { id: 'f3c4d5e6f-7g8h-9i0j-1k2l-3m4n5o6p7q8r', building_id: buildingId || '1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p', floor_number: 3, units_count: 10, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    { id: 'f4d5e6f7g-8h9i-0j1k-2l3m-4n5o6p7q8r9s', building_id: buildingId || '1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p', floor_number: 4, units_count: 10, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
   ];
   return floors;
 }

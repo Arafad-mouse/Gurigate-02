@@ -5,9 +5,9 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 type ProfileRecord = {
   first_name: string | null
   last_name: string | null
-  full_name: string | null
-  avatar_url: string | null
-  role: string | null
+  full_name?: string | null
+  avatar_url?: string | null
+  role?: string | null
 }
 
 export type AuthProfile = {
@@ -116,7 +116,7 @@ async function readProfileRecord(userId: string) {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('first_name, last_name, full_name, avatar_url, role')
+      .select('first_name, last_name')
       .eq('id', userId)
       .maybeSingle()
 

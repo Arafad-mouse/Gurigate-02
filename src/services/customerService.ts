@@ -36,10 +36,6 @@ interface CustomerRow {
     avatar_url?: string | null;
     verification_status?: VerificationStatus | null;
   } | null;
-  properties?: {
-    id: string;
-    title: string;
-  } | null;
 }
 
 interface ContractRow {
@@ -94,7 +90,9 @@ function mapCustomer(c: CustomerRow): Customer {
   const nationalId = profile?.national_id || undefined;
   const avatarUrl = profile?.avatar_url || null;
   const verificationStatus = (profile?.verification_status || c.verification_status || 'unverified') as VerificationStatus;
-  const currentPropertyName = c.properties?.title || c.current_property_id || undefined;
+  // Building name is fetched separately in computeCustomerMetrics
+  // Set to undefined initially so computeCustomerMetrics will fetch the name
+  const currentPropertyName = undefined;
 
   return {
     id: c.id,
@@ -111,6 +109,8 @@ function mapCustomer(c: CustomerRow): Customer {
     verificationStatus,
     currentProperty: currentPropertyName,
     propertyId: c.current_property_id,
+    currentFloor: (c as any).current_floor || undefined,
+    currentUnit: (c as any).current_unit || undefined,
     totalBookings: c.total_bookings || 0,
     totalRentPaid: Math.round((c.total_rent_paid || 0) * 100),
     outstandingBalance: 0, // computed below via joins
@@ -122,59 +122,15 @@ function mapCustomer(c: CustomerRow): Customer {
 }
 
 async function fetchContractSummary(customerId: string): Promise<ContractSummary | undefined> {
-  try {
-    const { data, error } = await supabase
-      .from('contracts')
-      .select('id, property_id, start_date, end_date, monthly_rent_cents, status, properties(title)')
-      .eq('customer_id', customerId)
-      .eq('status', 'active')
-      .order('start_date', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (error) {
-      console.warn('Contracts table query failed:', error.message);
-      return undefined;
-    }
-    if (!data) return undefined;
-    const row = data as any;
-    return {
-      id: row.id,
-      property: row.properties?.title || 'Unknown Property',
-      propertyId: row.property_id,
-      startDate: row.start_date,
-      endDate: row.end_date || undefined,
-      status: row.status,
-      rentCents: row.monthly_rent_cents,
-    };
-  } catch (e) {
-    console.warn('Contracts table not available:', e);
-    return undefined;
-  }
+  // Contracts table doesn't exist in RMS - return undefined
+  return undefined;
 }
 
 async function fetchPaymentsSummary(customerId: string): Promise<{ totalPaid: number; lastPayment?: PaymentSummary }> {
   try {
-    const { data, error } = await supabase
-      .from('payments')
-      .select('id, amount_cents, amount, payment_date, paid_at, method, type, status')
-      .or(`customer_id.eq.${customerId},profile_id.eq.${customerId}`)
-      .order('payment_date', { ascending: false });
-    if (error) {
-      console.warn('Payments table query failed:', error.message);
-      return { totalPaid: 0 };
-    }
-    if (!data) return { totalPaid: 0 };
-    const rows = data as PaymentRow[];
-    const totalPaid = rows.reduce((sum, p) => sum + (p.amount_cents || Math.round((p.amount || 0) * 100)), 0);
-    const last = rows[0];
-    const lastPayment: PaymentSummary | undefined = last ? {
-      id: last.id,
-      date: last.payment_date || last.paid_at || new Date().toISOString(),
-      amountCents: last.amount_cents || Math.round((last.amount || 0) * 100),
-      method: last.method,
-      type: last.type,
-    } : undefined;
-    return { totalPaid, lastPayment };
+    // Payments table is for bookings, not RMS customer leases
+    // Return empty for now - RMS will need its own payment tracking
+    return { totalPaid: 0 };
   } catch (e) {
     console.warn('Payments table not available:', e);
     return { totalPaid: 0 };
@@ -188,13 +144,31 @@ async function computeCustomerMetrics(customer: Customer): Promise<CustomerMetri
   const outstandingBalance = activeContract?.rentCents
     ? Math.max(0, activeContract.rentCents - totalRentPaid)
     : (customer.outstandingBalance || 0);
+
+  // Fetch building name if customer has current_property_id (RMS uses buildings)
+  let currentPropertyName = customer.currentProperty;
+  if (customer.propertyId) {
+    try {
+      const { data: building } = await supabase
+        .from('buildings')
+        .select('name')
+        .eq('id', customer.propertyId)
+        .single();
+      if (building) {
+        currentPropertyName = building.name;
+      }
+    } catch (e) {
+      // Ignore error, building might not exist
+    }
+  }
+
   return {
     totalBookings: customer.totalBookings || 0,
     totalRentPaid,
     outstandingBalance,
     activeContract,
     lastPayment,
-    currentProperty: activeContract ? { id: activeContract.propertyId || customer.propertyId || '', name: activeContract.property } : undefined,
+    currentProperty: currentPropertyName ? { id: customer.propertyId || '', name: currentPropertyName } : undefined,
   };
 }
 
@@ -215,11 +189,11 @@ export async function listCustomers(params: ListParams = {}): Promise<{ items: C
   const start = (page-1)*pageSize;
 
   try {
-    // Select customers joined with profiles and current property
+    // Select customers joined with profiles
+    // Building name is fetched separately in computeCustomerMetrics since foreign key now points to buildings
     let q = supabase
       .from('customers')
-      .select('*, first_name, last_name, full_name, email, phone, profiles!customers_profile_id_fkey(first_name, last_name, full_name, email, phone, avatar_url), properties!customers_current_property_id_fkey(id,title)', { count: 'exact' })
-      .is('deleted_at', null);
+      .select('*, first_name, last_name, full_name, email, phone, profiles!customers_profile_id_fkey(first_name, last_name, email, phone)', { count: 'exact' });
 
     if (query) {
       q = q.or(`full_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`, { foreignTable: 'profiles' });
@@ -243,13 +217,18 @@ export async function listCustomers(params: ListParams = {}): Promise<{ items: C
     const rows = (data || []) as CustomerRow[];
     const items: Customer[] = rows.map(mapCustomer);
 
-    // Compute outstanding balance and sort by it if requested (fallback to in-memory sort)
+    // Always compute outstanding balance for KPI display and fetch building name
+    await Promise.all(items.map(async (c) => {
+      const metrics = await computeCustomerMetrics(c);
+      c.outstandingBalance = metrics.outstandingBalance;
+      c.totalRentPaid = metrics.totalRentPaid;
+      if (metrics.currentProperty) {
+        c.currentProperty = metrics.currentProperty.name;
+      }
+    }));
+
+    // Sort by it if requested (fallback to in-memory sort)
     if (sort === 'outstanding' || sort === 'name_asc' || sort === 'name_desc' || sort === 'last_active' || paymentStatus !== 'all') {
-      await Promise.all(items.map(async (c) => {
-        const metrics = await computeCustomerMetrics(c);
-        c.outstandingBalance = metrics.outstandingBalance;
-        c.totalRentPaid = metrics.totalRentPaid;
-      }));
       if (sort === 'outstanding') {
         items.sort((a, b) => b.outstandingBalance - a.outstandingBalance);
       } else if (sort === 'name_asc') {
@@ -277,20 +256,19 @@ export async function listCustomers(params: ListParams = {}): Promise<{ items: C
 export async function getCustomer(id: string): Promise<Customer>{
   const { data, error } = await supabase
     .from('customers')
-    .select('*, profiles!customers_profile_id_fkey(first_name, last_name, full_name, email, phone, avatar_url), properties!customers_current_property_id_fkey(id,title)')
+    .select('*, profiles!customers_profile_id_fkey(first_name, last_name, email, phone), properties!customers_current_property_id_fkey(id,title)')
     .eq('id', id)
-    .is('deleted_at', null)
     .single();
-  
+
   if (error) {
     console.error('Failed to fetch customer:', error);
     throw new Error(`Failed to fetch customer: ${error.message}`);
   }
-  
+
   if (!data) {
     throw new Error('Customer not found');
   }
-  
+
   return mapCustomer(data as CustomerRow);
 }
 
@@ -370,11 +348,10 @@ export async function getCustomerTimeline(id: string): Promise<TimelineEvent[]>{
 }
 
 // ----- KPI Dashboard Metrics --------------------------------------------------
-export async function getCustomerDashboardMetrics(): Promise<{ totalCustomers:number; activeCustomers:number; pendingVerification:number; outstandingBalance:number; }>{
+export async function getCustomerDashboardMetrics(): Promise<{ totalCustomers:number; activeTenants:number; activeGuests:number; activeBuyers:number; monthlyRevenue:number; overdueAccounts:number; }>{
   const { data, error } = await supabase
     .from('customers')
-    .select('customer_type, lifecycle_status, total_rent_paid, total_bookings, current_property_id')
-    .is('deleted_at', null);
+    .select('customer_type, lifecycle_status, total_rent_paid, total_bookings, current_property_id');
 
   if (error) {
     console.error('Database metrics error:', error);
@@ -383,10 +360,12 @@ export async function getCustomerDashboardMetrics(): Promise<{ totalCustomers:nu
 
   const rows = data as any[];
   const totalCustomers = rows.length;
-  const activeCustomers = rows.filter((c: any) => c.lifecycle_status === 'active').length;
-  const pendingVerification = 0; // verification_status not in customers table, set to 0 for now
-  const outstandingBalance = 0; // computed from contracts/payments async in list
-  return { totalCustomers, activeCustomers, pendingVerification, outstandingBalance };
+  const activeTenants = rows.filter((c: any) => c.customer_type === 'tenant' && c.lifecycle_status === 'active').length;
+  const activeGuests = rows.filter((c: any) => c.customer_type === 'guest' && c.lifecycle_status === 'active').length;
+  const activeBuyers = rows.filter((c: any) => c.customer_type === 'buyer' && c.lifecycle_status === 'active').length;
+  const monthlyRevenue = rows.reduce((sum: number, c: any) => sum + (c.total_rent_paid || 0), 0);
+  const overdueAccounts = rows.filter((c: any) => c.lifecycle_status === 'suspended').length;
+  return { totalCustomers, activeTenants, activeGuests, activeBuyers, monthlyRevenue, overdueAccounts };
 }
 
 // ----- Realtime Placeholders --------------------------------------------------

@@ -34,6 +34,7 @@ const menuItems: MenuItem[] = [
   { path: '/booking/messages', label: 'Messages', icon: Icon.MessageSquare },
   { path: '/booking/reviews', label: 'Reviews', icon: Icon.Star },
   { path: '/booking/listings', label: 'Listings', icon: Icon.Home },
+  { path: '/booking/reports', label: 'Reports', icon: Icon.TrendingUp },
   { path: '/booking/settings', label: 'Settings', icon: Icon.Settings },
 ]
 

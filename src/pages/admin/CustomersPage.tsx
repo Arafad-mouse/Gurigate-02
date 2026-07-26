@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import EntityCard from '@/components/admin/entity-card/EntityCard';
+import { CustomerCard } from '@/components/admin/customer/CustomerCard';
 import { AddCustomerModal } from '@/components/admin/customer/AddCustomerModal';
 import { EditCustomerModal } from '@/components/admin/customer/EditCustomerModal';
 import { AssignPropertyDrawer } from '@/components/admin/customer/AssignPropertyDrawer';
@@ -19,11 +19,11 @@ function Money({ cents }: { cents?: number }) {
 
 function KPISkeleton() {
   return (
-    <div className="animate-pulse grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="rounded-xl border border-gray-200 p-4 bg-white">
-          <div className="h-3 bg-gray-100 rounded w-24 mb-2" />
-          <div className="h-5 bg-gray-100 rounded w-16" />
+    <div className="animate-pulse grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="rounded-xl border border-gray-200 p-6 bg-white">
+          <div className="h-4 bg-gray-100 rounded w-32 mb-3" />
+          <div className="h-8 bg-gray-100 rounded w-24" />
         </div>
       ))}
     </div>
@@ -32,16 +32,25 @@ function KPISkeleton() {
 
 function CardSkeleton() {
   return (
-    <div className="animate-pulse grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="rounded-xl border border-gray-200 p-4 bg-white">
-          <div className="h-8 bg-gray-100 rounded mb-3" />
-          <div className="grid grid-cols-2 gap-2">
-            <div className="h-4 bg-gray-100 rounded" />
-            <div className="h-4 bg-gray-100 rounded" />
+    <div className="animate-pulse grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="rounded-xl border border-gray-200 p-5 bg-white">
+          <div className="flex items-start gap-4 mb-4">
+            <div className="w-14 h-14 bg-gray-100 rounded-xl" />
+            <div className="flex-1">
+              <div className="h-5 bg-gray-100 rounded w-32 mb-2" />
+              <div className="h-4 bg-gray-100 rounded w-20" />
+            </div>
+          </div>
+          <div className="space-y-2 mb-4">
+            <div className="h-4 bg-gray-100 rounded w-full" />
+            <div className="h-4 bg-gray-100 rounded w-3/4" />
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
             <div className="h-4 bg-gray-100 rounded" />
             <div className="h-4 bg-gray-100 rounded" />
           </div>
+          <div className="h-10 bg-gray-100 rounded" />
         </div>
       ))}
     </div>
@@ -84,7 +93,7 @@ export default function CustomersPage() {
 
   // Data state
   const [kpiLoading, setKpiLoading] = useState(true);
-  const [kpi, setKpi] = useState<{ totalCustomers:number; activeTenants:number; activeGuests:number; activeBuyers:number; monthlyRevenue:number; overdueAccounts:number }|null>(null);
+  const [kpi, setKpi] = useState<{ totalCustomers:number; activeTenants:number; outstandingBalance:number; occupancyRate:number }|null>(null);
   const [listLoading, setListLoading] = useState(true);
   const [items, setItems] = useState<Customer[]>([]);
 
@@ -95,7 +104,18 @@ export default function CustomersPage() {
       try {
         const res = await getCustomerDashboardMetrics();
         if (mounted) {
-          setKpi(res);
+          // Transform service response to new KPI format
+          const totalOutstanding = items.reduce((sum, c) => sum + (c.outstandingBalance || 0), 0);
+          const occupancyRate = res.totalCustomers > 0 
+            ? Math.round((res.activeTenants / res.totalCustomers) * 100) 
+            : 0;
+          
+          setKpi({
+            totalCustomers: res.totalCustomers,
+            activeTenants: res.activeTenants,
+            outstandingBalance: totalOutstanding,
+            occupancyRate,
+          });
           setKpiLoading(false);
         }
       } catch {
@@ -104,7 +124,7 @@ export default function CustomersPage() {
     };
     load();
     return () => { mounted = false; };
-  }, []);
+  }, [items]);
 
   // Load list whenever filters change
   useEffect(() => {
@@ -249,63 +269,66 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {/* KPI Row */}
+      {/* KPI Row - 4 Larger Cards */}
       {kpiLoading && <KPISkeleton/>}
       {!kpiLoading && kpi && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
-          {([
-            ['Total Customers', kpi.totalCustomers],
-            ['Active Tenants', kpi.activeTenants],
-            ['Active Guests', kpi.activeGuests],
-            ['Active Buyers', kpi.activeBuyers],
-            ['Monthly Revenue', '$0 (mock)'],
-            ['Overdue Accounts', kpi.overdueAccounts],
-          ] as const).map(([label, value], i) => (
-            <div key={i} className="rounded-xl border border-gray-200 p-4 bg-white">
-              <div className="text-xs text-gray-500 mb-1">{label}</div>
-              <div className="text-lg font-bold text-gray-900">{typeof value==='number'? value : value}</div>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="rounded-xl border border-gray-200 p-6 bg-white hover:shadow-md transition-shadow">
+            <div className="text-sm text-gray-500 mb-2">Total Customers</div>
+            <div className="text-3xl font-bold text-gray-900">{kpi.totalCustomers}</div>
+          </div>
+          <div className="rounded-xl border border-gray-200 p-6 bg-white hover:shadow-md transition-shadow">
+            <div className="text-sm text-gray-500 mb-2">Active Tenants</div>
+            <div className="text-3xl font-bold text-gray-900">{kpi.activeTenants}</div>
+          </div>
+          <div className="rounded-xl border border-gray-200 p-6 bg-white hover:shadow-md transition-shadow">
+            <div className="text-sm text-gray-500 mb-2">Outstanding Balance</div>
+            <div className="text-3xl font-bold text-gray-900">${(kpi.outstandingBalance / 100).toLocaleString()}</div>
+          </div>
+          <div className="rounded-xl border border-gray-200 p-6 bg-white hover:shadow-md transition-shadow">
+            <div className="text-sm text-gray-500 mb-2">Occupancy Rate</div>
+            <div className="text-3xl font-bold text-gray-900">{kpi.occupancyRate}%</div>
+          </div>
         </div>
       )}
 
-      {/* Search + Filters */}
-      <div className="flex flex-col gap-4 mb-4">
+      {/* Search + Filters - Reorganized Toolbar */}
+      <div className="flex flex-col gap-4 mb-6">
         {/* Search Input */}
         <input
           value={query}
           onChange={e=>setQuery(e.target.value)}
           placeholder="Search by name, email, phone, ID"
-          className="w-full md:max-w-sm border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-200"
+          className="w-full md:max-w-md border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300"
         />
 
-        {/* Filter Groups */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="flex flex-col gap-4 flex-1">
-            {/* Customer Type */}
-            <div>
-              <div className="text-xs font-medium text-gray-500 mb-2">Customer Type</div>
-              <div className="flex gap-2 flex-wrap">
-                {(['tenant','renter','buyer','guest'] as const).map(t => (
-                  <button key={t} onClick={()=>setTypeFilter(t)}
-                    className={`px-3 py-1.5 rounded-lg text-sm border ${typeFilter===t? 'bg-rose-50 border-rose-200 text-rose-700':'border-gray-200'}`}
-                  >{t[0].toUpperCase()+t.slice(1)}</button>
-                ))}
-              </div>
-            </div>
+        {/* Filter Bar - Single Row */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Customer Type Filter */}
+          <select
+            value={typeFilter}
+            onChange={e => setTypeFilter(e.target.value as any)}
+            className="px-3 py-2 rounded-lg text-sm border border-gray-200 bg-white outline-none focus:ring-2 focus:ring-rose-200"
+          >
+            <option value="all">All Types</option>
+            <option value="tenant">Tenant</option>
+            <option value="renter">Renter</option>
+            <option value="buyer">Buyer</option>
+            <option value="guest">Guest</option>
+          </select>
 
-            {/* Status */}
-            <div>
-              <div className="text-xs font-medium text-gray-500 mb-2">Status</div>
-              <div className="flex gap-2 flex-wrap">
-                {(['lead','active','inactive','suspended'] as const).map(l => (
-                  <button key={l} onClick={()=>setLifeFilter(l)}
-                    className={`px-3 py-1.5 rounded-lg text-sm border ${lifeFilter===l? 'bg-rose-50 border-rose-200 text-rose-700':'border-gray-200'}`}
-                  >{l[0].toUpperCase()+l.slice(1)}</button>
-                ))}
-              </div>
-            </div>
-          </div>
+          {/* Status Filter */}
+          <select
+            value={lifeFilter}
+            onChange={e => setLifeFilter(e.target.value as any)}
+            className="px-3 py-2 rounded-lg text-sm border border-gray-200 bg-white outline-none focus:ring-2 focus:ring-rose-200"
+          >
+            <option value="all">All Statuses</option>
+            <option value="lead">Lead</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="suspended">Suspended</option>
+          </select>
 
           {/* Clear Filters Button */}
           <button
@@ -314,41 +337,31 @@ export default function CustomersPage() {
               setTypeFilter('all');
               setLifeFilter('all');
             }}
-            className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 md:self-start"
+            className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50"
           >
-            Clear Filters
+            Reset Filters
           </button>
         </div>
       </div>
 
-      {/* Grid */}
+      {/* Grid - 3 Column Responsive */}
       {listLoading && <CardSkeleton/>}
       {!listLoading && items.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-300 p-10 text-center text-sm text-gray-500 bg-white">No customers found</div>
+        <div className="rounded-xl border border-dashed border-gray-300 p-12 text-center text-sm text-gray-500 bg-white">
+          <div className="text-gray-400 mb-2">No customers found</div>
+          <div className="text-xs">Try adjusting your filters or search terms</div>
+        </div>
       )}
       {!listLoading && items.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((c) => (
-            <EntityCard
+            <CustomerCard
               key={c.id}
-              avatar={undefined}
-              title={c.fullName}
-              subtitle={c.email || c.phone || ''}
-              badges={[{ label: c.customerType }, { label: c.lifecycleStatus }]}
-              meta={[
-                { label: 'Current Property', value: c.currentProperty || '—' },
-                { label: 'Outstanding', value: <Money cents={0}/> },
-                { label: 'Total Bookings', value: c.totalBookings ?? 0 },
-                { label: 'Last Activity', value: c.lastActivityAt ? new Date(c.lastActivityAt).toLocaleDateString() : '—' },
-              ]}
-              actions={[
-                { key:'view', label:'View Customer', onClick:()=> onCardClick(c.id) },
-                { key:'edit', label:'Edit Customer', onClick:()=> handleCardEdit(c.id) },
-                { key:'assign', label:'Assign Property', onClick:()=> handleCardAssignProperty(c.id) },
-                { key:'contract', label:'Create Contract', onClick:()=> handleCardCreateContract(c.id) },
-                { key:'suspend', label:'Suspend Customer', onClick:()=> handleCardSuspend(c.id), danger: true },
-              ]}
-              onClick={()=> onCardClick(c.id)}
+              customer={c}
+              onView={() => onCardClick(c.id)}
+              onEdit={() => handleCardEdit(c.id)}
+              onAssign={() => handleCardAssignProperty(c.id)}
+              onMore={() => handleCardSuspend(c.id)}
             />
           ))}
         </div>
@@ -484,7 +497,6 @@ export default function CustomersPage() {
       <CustomerProfileDrawer
         state={drawer}
         onClose={closeDrawer}
-        onTabChange={(tab) => setDrawer(d => ({ ...d, activeTab: tab }))}
         onAssignProperty={handleDrawerAssignProperty}
         onCreateContract={handleDrawerCreateContract}
         onSuspend={handleDrawerSuspend}

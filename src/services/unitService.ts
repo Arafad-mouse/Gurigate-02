@@ -31,7 +31,6 @@ export async function getBuildings(params?: BuildingListParams) {
   let query = supabase
     .from('buildings')
     .select('*', { count: 'exact' })
-    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   if (owner_id) {
@@ -53,7 +52,6 @@ export async function getBuildingById(id: string) {
     .from('buildings')
     .select('*')
     .eq('id', id)
-    .is('deleted_at', null)
     .single();
 
   if (error) throw error;
@@ -92,7 +90,7 @@ export async function updateBuilding(id: string, formData: Partial<BuildingFormD
 export async function deleteBuilding(id: string) {
   const { error } = await supabase
     .from('buildings')
-    .update({ deleted_at: new Date().toISOString() })
+    .delete()
     .eq('id', id);
 
   if (error) throw error;
@@ -100,17 +98,16 @@ export async function deleteBuilding(id: string) {
 
 export async function getBuildingStats(buildingId: string): Promise<BuildingStats> {
   const { data: rooms, error } = await supabase
-    .from('rooms')
+    .from('units')
     .select('status')
-    .eq('building_id', buildingId)
-    .is('deleted_at', null);
+    .eq('building_id', buildingId);
 
   if (error) throw error;
 
   const total_units = rooms?.length || 0;
-  const occupied_units = rooms?.filter(r => r.status === 'occupied').length || 0;
-  const vacant_units = rooms?.filter(r => r.status === 'vacant').length || 0;
-  const maintenance_units = rooms?.filter(r => r.status === 'maintenance').length || 0;
+  const occupied_units = rooms?.filter((r: any) => r.status === 'occupied').length || 0;
+  const vacant_units = rooms?.filter((r: any) => r.status === 'available').length || 0;
+  const maintenance_units = rooms?.filter((r: any) => r.status === 'under_maintenance').length || 0;
   const occupancy_rate = total_units > 0 ? (occupied_units / total_units) * 100 : 0;
 
   return {
@@ -124,22 +121,21 @@ export async function getBuildingStats(buildingId: string): Promise<BuildingStat
 
 // Room CRUD Operations
 export async function getRooms(params?: RoomListParams) {
-  const { page = 1, pageSize = 20, building_id, status, search } = params || {};
+  const { page = 1, pageSize = 20, building_id, floor_id, status, search } = params || {};
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
   let query = supabase
-    .from('rooms')
-    .select(`
-      *,
-      buildings(name),
-      room_types(name)
-    `, { count: 'exact' })
-    .is('deleted_at', null)
-    .order('room_number', { ascending: true });
+    .from('units')
+    .select('*', { count: 'exact' })
+    .order('unit_number', { ascending: true });
 
   if (building_id) {
     query = query.eq('building_id', building_id);
+  }
+
+  if (floor_id) {
+    query = query.eq('floor_id', floor_id);
   }
 
   if (status) {
@@ -147,17 +143,28 @@ export async function getRooms(params?: RoomListParams) {
   }
 
   if (search) {
-    query = query.ilike('room_number', `%${search}%`);
+    query = query.ilike('unit_number', `%${search}%`);
   }
 
   const { data, error, count } = await query.range(from, to);
 
   if (error) throw error;
 
-  const roomsWithDetails: RoomWithDetails[] = (data || []).map(room => ({
+  // Fetch building names separately since no FK relationship exists
+  const buildingIds = [...new Set((data || []).map((r: any) => r.building_id).filter(Boolean))];
+  let buildingMap: Record<string, any> = {};
+  if (buildingIds.length > 0) {
+    const { data: buildings } = await supabase
+      .from('buildings')
+      .select('id, name')
+      .in('id', buildingIds);
+    (buildings || []).forEach((b: any) => { buildingMap[b.id] = b; });
+  }
+
+  const roomsWithDetails: RoomWithDetails[] = (data || []).map((room: any) => ({
     ...room,
-    building_name: room.buildings?.name,
-    room_type_name: room.room_types?.name,
+    building_name: buildingMap[room.building_id]?.name,
+    room_type_name: undefined,
   }));
 
   return { rooms: roomsWithDetails, total: count || 0 };
@@ -165,14 +172,9 @@ export async function getRooms(params?: RoomListParams) {
 
 export async function getRoomById(id: string) {
   const { data, error } = await supabase
-    .from('rooms')
-    .select(`
-      *,
-      buildings(*),
-      room_types(*)
-    `)
+    .from('units')
+    .select('*')
     .eq('id', id)
-    .is('deleted_at', null)
     .single();
 
   if (error) throw error;
@@ -181,7 +183,7 @@ export async function getRoomById(id: string) {
 
 export async function createRoom(formData: RoomFormData) {
   const { data, error } = await supabase
-    .from('rooms')
+    .from('units')
     .insert(formData)
     .select()
     .single();
@@ -192,7 +194,7 @@ export async function createRoom(formData: RoomFormData) {
 
 export async function updateRoom(id: string, formData: Partial<RoomFormData>) {
   const { data, error } = await supabase
-    .from('rooms')
+    .from('units')
     .update({
       ...formData,
       updated_at: new Date().toISOString(),
@@ -207,16 +209,16 @@ export async function updateRoom(id: string, formData: Partial<RoomFormData>) {
 
 export async function deleteRoom(id: string) {
   const { error } = await supabase
-    .from('rooms')
-    .update({ deleted_at: new Date().toISOString() })
+    .from('units')
+    .delete()
     .eq('id', id);
 
   if (error) throw error;
 }
 
-export async function updateRoomStatus(id: string, status: 'vacant' | 'reserved' | 'occupied' | 'maintenance' | 'inactive') {
+export async function updateRoomStatus(id: string, status: 'available' | 'reserved' | 'occupied' | 'under_maintenance' | 'cleaning' | 'blocked') {
   const { data, error } = await supabase
-    .from('rooms')
+    .from('units')
     .update({ 
       status,
       updated_at: new Date().toISOString(),

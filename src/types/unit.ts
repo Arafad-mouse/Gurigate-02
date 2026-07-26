@@ -1,6 +1,6 @@
 // Unit types for Manage Property (RMS) module
 
-export type UnitStatus = 'vacant' | 'reserved' | 'occupied' | 'maintenance' | 'inactive';
+export type UnitStatus = 'available' | 'reserved' | 'occupied' | 'under_maintenance' | 'cleaning' | 'blocked';
 
 export interface Building {
   id: string;
@@ -80,6 +80,8 @@ export interface RoomWithDetails extends Room {
   room_type_name?: string;
   current_customer?: string;
   current_lease?: string;
+  base_rent?: number; // in cents
+  unit_number?: string; // alternative field name
 }
 
 export interface BuildingListParams {
@@ -93,6 +95,7 @@ export interface RoomListParams {
   page?: number;
   pageSize?: number;
   building_id?: string;
+  floor_id?: string;
   status?: UnitStatus;
   search?: string;
 }
