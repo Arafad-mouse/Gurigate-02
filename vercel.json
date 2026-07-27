@@ -4,5 +4,5 @@
   "installCommand": "pnpm install",
   "framework": null,
   "ignoreCommand": "git diff --quiet HEAD^ HEAD .",
-  "ignorePaths": ["frontend/**", "backend/**", "frontend", "backend", "frontend/src/**", "backend/src/**"]
+  "ignorePaths": ["frontend", "backend"]
 }
