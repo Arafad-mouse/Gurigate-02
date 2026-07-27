@@ -3,6 +3,5 @@
   "outputDirectory": "dist",
   "installCommand": "pnpm install",
   "framework": null,
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD .",
-  "ignorePaths": ["frontend", "backend"]
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ."
 }
