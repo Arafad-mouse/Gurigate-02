@@ -1,5 +1,5 @@
 // Centralized status constants for GuriGate
-// Prevents frontend/backend inconsistency and provides type safety
+// Prevents inconsistency and provides type safety
 
 export const PROPERTY_APPROVAL_STATUS = {
   DRAFT: 'draft',

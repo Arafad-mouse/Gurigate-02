@@ -5,10 +5,10 @@
  * Allows admins to approve, reject, suspend, and feature properties.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { DataTable } from '../../components/admin/table/DataTable';
 import { ApprovalBadge } from '../../components/admin/table/ApprovalBadge';
-import { useProperties } from '../../../frontend/src/hooks/useProperties';
+import { GuriGatePropertyService } from '@/services/guriGateProperties';
 
 interface PropertyRow {
   id: string;
@@ -21,16 +21,35 @@ interface PropertyRow {
 }
 
 export function AdminPropertiesPage() {
-  const { properties, loading, error } = useProperties(100);
+  const [properties, setProperties] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    loadProperties();
+  }, []);
+
+  const loadProperties = async () => {
+    setLoading(true);
+    try {
+      const allProperties = await GuriGatePropertyService.getAllProperties();
+      setProperties(allProperties);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const propertyRows = useMemo(
     () => properties.map((property): PropertyRow => ({
       id: property.id,
       title: property.title,
-      owner: property.ownerName,
-      type: property.type,
-      price: `${property.pricing.currency} ${property.pricing.basePrice.toLocaleString()} ${property.priceUnitLabel}`,
-      status: property.isApproved ? 'approved' : 'pending',
-      createdAt: property.createdAt.toLocaleDateString(),
+      owner: property.profiles?.full_name || 'Unknown',
+      type: property.type || 'N/A',
+      price: `$${property.base_price || 0}`,
+      status: property.approval_status || 'pending',
+      createdAt: property.created_at ? new Date(property.created_at).toLocaleDateString() : 'N/A',
     })),
     [properties]
   );

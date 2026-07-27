@@ -60,7 +60,7 @@ export type UpdateProfileInput = {
 }
 
 const supabaseConfigurationError =
-  'Supabase is not configured. Replace VITE_SUPABASE_ANON_KEY in frontend/.env with your real anon key.'
+  'Supabase is not configured. Replace VITE_SUPABASE_ANON_KEY in .env with your real anon key.'
 
 function getValue(value: unknown) {
   return typeof value === 'string' ? value.trim() : ''

@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { useProperties } from '../../../../frontend/src/hooks/useProperties';
+import React, { useMemo, useState, useEffect } from 'react';
+import { GuriGatePropertyService } from '@/services/guriGateProperties';
 
 interface CreateContractDrawerProps {
   customerId: string;
@@ -21,11 +21,31 @@ export function CreateContractDrawer({ customerId, customerName, isOpen, onClose
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState(false);
-  const { properties, loading, error: propertyError } = useProperties(100);
+  const [properties, setProperties] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadProperties();
+    }
+  }, [isOpen]);
+
+  const loadProperties = async () => {
+    setLoading(true);
+    try {
+      const allProperties = await GuriGatePropertyService.getAllProperties();
+      setProperties(allProperties);
+    } catch (err) {
+      console.error('Error loading properties:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const propertyOptions = useMemo(
     () => properties.map((property) => ({
       id: property.id,
-      label: `${property.title} - ${property.address.city}`,
+      label: `${property.title} - ${property.city}`,
     })),
     [properties]
   );
@@ -76,11 +96,6 @@ export function CreateContractDrawer({ customerId, customerName, isOpen, onClose
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm">
                   {error}
-                </div>
-              )}
-              {propertyError && (
-                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm">
-                  {propertyError.message}
                 </div>
               )}
 

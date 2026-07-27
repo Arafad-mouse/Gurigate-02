@@ -27,5 +27,5 @@
     }
   },
   "include": ["src"],
-  "exclude": ["frontend", "backend", "node_modules", "dist"]
+  "exclude": ["frontend", "backend", "node_modules", "dist", "frontend/**", "backend/**", "**/frontend/**", "**/backend/**", "frontend/src/**", "backend/src/**"]
 }

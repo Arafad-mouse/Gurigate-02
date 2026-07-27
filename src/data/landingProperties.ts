@@ -1,6 +1,6 @@
 // GuriGate Properties Data Layer
 // Now powered by Supabase with real-time data
-// Maintains the same LandingProperty interface for frontend compatibility
+// Maintains the same LandingProperty interface for compatibility
 
 import { GuriGatePropertyService } from '@/services/guriGateProperties';
 import type { CategoryDetails } from '@/types/propertyDetails';
