@@ -53,6 +53,13 @@ import ListingsPage from '@/pages/bookings/ListingsPage'
 import SettingsPage from '@/pages/bookings/SettingsPage'
 import BookingDetailPage from '@/pages/bookings/BookingDetailPage'
 import BookingListPage from '@/pages/bookings/BookingListPage'
+import ReportsPage from '@/pages/bookings/ReportsPage'
+
+// Homes Marketplace pages
+import ExplorePage from '@/pages/ExplorePage'
+import ListingDetailPage from '@/pages/ListingDetailPage'
+import BookingConfirmationPage from '@/pages/BookingConfirmationPage'
+import WishlistPage from '@/pages/marketplace/WishlistPage'
 
 function PropertyPageWrapper() {
   const { id } = useParams()
@@ -207,6 +214,7 @@ function App() {
               <Route path="settings" element={<SettingsPage />} />
               <Route path=":id" element={<BookingDetailPage />} />
               <Route path="list" element={<BookingListPage />} />
+              <Route path="reports" element={<ReportsPage />} />
             </Route>
 
             {/* 2. Added Route path to display your onboarding workflow page 👇 */}
@@ -215,6 +223,16 @@ function App() {
                 <BecomeHost />
               </AuthGuard>
             } />
+
+            {/* Homes Marketplace Routes */}
+            <Route path="/explore" element={<ExplorePage />} />
+            <Route path="/homes/:id" element={<ListingDetailPage />} />
+            <Route path="/booking-confirmation" element={
+              <AuthGuard>
+                <BookingConfirmationPage />
+              </AuthGuard>
+            } />
+            <Route path="/wishlist" element={<WishlistPage />} />
 
             {/* Catch-all redirect MUST stay at the very bottom of the Routes list */}
             <Route path="*" element={<Navigate to="/" replace />} />

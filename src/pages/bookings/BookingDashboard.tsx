@@ -1,33 +1,33 @@
-import { useEffect, useState } from 'react';
-import { Calendar, Users, DollarSign, TrendingUp, CheckCircle, Clock, XCircle } from 'lucide-react';
-
-interface DashboardMetrics {
-  totalBookings: number;
-  confirmedBookings: number;
-  pendingBookings: number;
-  cancelledBookings: number;
-  totalRevenue: number;
-  averageBookingValue: number;
-  occupancyRate: number;
-}
+import { useEffect, useState, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { LogIn, LogOut, Users, Clock, CreditCard, Calendar, TrendingUp, DollarSign, Bell, ArrowRight } from 'lucide-react';
+import { BookingOperationsService, type BookingDashboardKPIs } from '@/services/bookingOperationsService';
+import { AuthContext } from '@/lib/auth-context';
 
 export default function BookingDashboard() {
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const navigate = useNavigate();
+  const authContext = useContext(AuthContext);
+  const [kpis, setKpis] = useState<BookingDashboardKPIs | null>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Fetch dashboard metrics from API
-    setMetrics({
-      totalBookings: 156,
-      confirmedBookings: 120,
-      pendingBookings: 24,
-      cancelledBookings: 12,
-      totalRevenue: 45600,
-      averageBookingValue: 292,
-      occupancyRate: 78
-    });
-    setLoading(false);
-  }, []);
+    const loadData = async () => {
+      try {
+        const [kpiData, notifData] = await Promise.all([
+          BookingOperationsService.getDashboardKPIs(),
+          BookingOperationsService.getNotifications(authContext?.session?.user.id),
+        ]);
+        setKpis(kpiData);
+        setNotifications(notifData);
+      } catch (error) {
+        console.error('Error loading dashboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [authContext?.session?.user.id]);
 
   if (loading) {
     return (
@@ -38,113 +38,99 @@ export default function BookingDashboard() {
   }
 
   const statCards = [
-    {
-      title: 'Total Bookings',
-      value: metrics?.totalBookings || 0,
-      icon: Calendar,
-      color: 'bg-blue-500',
-      change: '+12%'
-    },
-    {
-      title: 'Confirmed',
-      value: metrics?.confirmedBookings || 0,
-      icon: CheckCircle,
-      color: 'bg-green-500',
-      change: '+8%'
-    },
-    {
-      title: 'Pending',
-      value: metrics?.pendingBookings || 0,
-      icon: Clock,
-      color: 'bg-yellow-500',
-      change: '-3%'
-    },
-    {
-      title: 'Revenue',
-      value: `$${metrics?.totalRevenue || 0}`,
-      icon: DollarSign,
-      color: 'bg-purple-500',
-      change: '+15%'
-    }
+    { title: "Today's Check-ins", value: kpis?.todayCheckIns || 0, icon: LogIn, color: 'bg-blue-500', route: '/booking/check-ins' },
+    { title: "Today's Check-outs", value: kpis?.todayCheckOuts || 0, icon: LogOut, color: 'bg-orange-500', route: '/booking/check-outs' },
+    { title: 'Guests Staying', value: kpis?.guestsStaying || 0, icon: Users, color: 'bg-green-500', route: '/booking/guests' },
+    { title: 'Pending Bookings', value: kpis?.pendingBookings || 0, icon: Clock, color: 'bg-yellow-500', route: '/booking/reservations' },
+    { title: 'Pending Payments', value: kpis?.pendingPayments || 0, icon: CreditCard, color: 'bg-red-500', route: '/booking/payments' },
+    { title: 'Upcoming Arrivals', value: kpis?.upcomingArrivals || 0, icon: Calendar, color: 'bg-indigo-500', route: '/booking/reservations' },
+    { title: 'Occupancy Rate', value: `${kpis?.occupancyRate || 0}%`, icon: TrendingUp, color: 'bg-purple-500', route: '/booking/calendar' },
+    { title: 'Revenue Today', value: `$${(kpis?.revenueToday || 0).toLocaleString()}`, icon: DollarSign, color: 'bg-emerald-500', route: '/booking/payments' },
   ];
 
   return (
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">Overview of your booking operations</p>
+        <p className="text-gray-600 mt-1">What's happening today</p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statCards.map((stat, index) => (
-          <div key={index} className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">{stat.title}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                <p className="text-sm text-green-600 mt-1">{stat.change}</p>
-              </div>
-              <div className={`${stat.color} p-3 rounded-lg`}>
-                <stat.icon className="h-6 w-6 text-white" />
+          <button
+            key={index}
+            onClick={() => navigate(stat.route)}
+            className="bg-white rounded-xl border border-gray-200 p-5 text-left hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{stat.title}</div>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${stat.color}`}>
+                <stat.icon className="w-4 h-4 text-white" />
               </div>
             </div>
-          </div>
+            <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
+          </button>
         ))}
       </div>
 
-      {/* Additional Metrics */}
+      {/* Occupancy Bar + Notifications */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Occupancy Rate</span>
-              <span className="font-semibold text-gray-900">{metrics?.occupancyRate}%</span>
+        {/* Occupancy */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Occupancy Rate</h2>
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-gray-600">Current occupancy</span>
+            <span className="font-semibold text-gray-900">{kpis?.occupancyRate || 0}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div
+              className="bg-[#BA0036] h-3 rounded-full transition-all"
+              style={{ width: `${kpis?.occupancyRate || 0}%` }}
+            />
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-gray-500">Guests on property:</span>
+              <span className="ml-2 font-medium text-gray-900">{kpis?.guestsStaying || 0}</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-[#BA0036] h-2 rounded-full" 
-                style={{ width: `${metrics?.occupancyRate}%` }}
-              />
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Average Booking Value</span>
-              <span className="font-semibold text-gray-900">${metrics?.averageBookingValue}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Cancellation Rate</span>
-              <span className="font-semibold text-gray-900">
-                {((metrics?.cancelledBookings || 0) / (metrics?.totalBookings || 1) * 100).toFixed(1)}%
-              </span>
+            <div>
+              <span className="text-gray-500">Revenue today:</span>
+              <span className="ml-2 font-medium text-gray-900">${(kpis?.revenueToday || 0).toLocaleString()}</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">New booking confirmed</p>
-                <p className="text-xs text-gray-500">2 minutes ago</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Clock className="h-5 w-5 text-yellow-500" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Pending booking request</p>
-                <p className="text-xs text-gray-500">15 minutes ago</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <XCircle className="h-5 w-5 text-red-500" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Booking cancelled</p>
-                <p className="text-xs text-gray-500">1 hour ago</p>
-              </div>
-            </div>
+        {/* Notifications */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Notifications</h2>
+            <Bell className="h-5 w-5 text-gray-400" />
+          </div>
+          <div className="space-y-3 max-h-64 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-8">No notifications</p>
+            ) : (
+              notifications.slice(0, 8).map((notif) => (
+                <button
+                  key={notif.id}
+                  onClick={() => notif.booking_id && navigate(`/booking/${notif.booking_id}`)}
+                  className="w-full flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                >
+                  <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                    notif.type === 'check_in_today' ? 'bg-blue-500' :
+                    notif.type === 'check_out_today' ? 'bg-orange-500' :
+                    notif.type === 'payment_pending' ? 'bg-red-500' :
+                    notif.type === 'new_booking' ? 'bg-green-500' : 'bg-gray-400'
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{notif.title}</p>
+                    <p className="text-xs text-gray-500 truncate">{notif.description}</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                </button>
+              ))
+            )}
           </div>
         </div>
       </div>

@@ -5,7 +5,7 @@
  * This is a child entity of the Property aggregate.
  */
 
-import { PropertyAddress as PropertyAddressType } from './PropertyTypes';
+import type { PropertyAddress as PropertyAddressType } from './PropertyTypes';
 
 /**
  * Property Address Entity

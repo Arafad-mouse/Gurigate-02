@@ -5,7 +5,8 @@
  * This is a child entity of the Property aggregate.
  */
 
-import { PropertyAvailability as PropertyAvailabilityType, AvailabilityBlockType } from './PropertyTypes';
+import type { PropertyAvailability as PropertyAvailabilityType } from './PropertyTypes';
+import { AvailabilityBlockType } from './PropertyTypes';
 
 /**
  * Property Availability Entity

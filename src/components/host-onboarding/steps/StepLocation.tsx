@@ -1,20 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react"
 import { MapPin } from "lucide-react"
 import type { HostFormData } from "../types"
-import L from "leaflet"
-import "leaflet/dist/leaflet.css"
-
-// Fix for default marker icon in Leaflet
-// @ts-expect-error - Leaflet type definition issue
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-})
-
-// Default location: Hargeisa, Somaliland
-const DEFAULT_LOCATION = { lat: 9.56, lng: 44.06 }
 
 interface StepLocationProps {
   data: HostFormData;
@@ -22,90 +7,8 @@ interface StepLocationProps {
 }
 
 export function StepLocation({ data, onChange }: StepLocationProps) {
-  const mapRef = useRef<HTMLDivElement>(null)
-  const mapInstanceRef = useRef<L.Map | null>(null)
-  const markerRef = useRef<L.Marker | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const debounceTimerRef = useRef<number | null>(null)
-
-  useEffect(() => {
-    if (!mapRef.current || mapInstanceRef.current) return
-
-    // Initialize map centered on Somaliland
-    const map = L.map(mapRef.current).setView([DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng], 13)
-
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 19
-    }).addTo(map)
-
-    // Add marker
-    const marker = L.marker([DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng]).addTo(map)
-    markerRef.current = marker
-
-    mapInstanceRef.current = map
-
-    return () => {
-      map.remove()
-      mapInstanceRef.current = null
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
-      }
-    }
-  }, [])
-
-  // Geocode address and update map (debounced)
-  const geocodeAddress = useCallback(async (address: string) => {
-    if (!address.trim() || !mapInstanceRef.current) return
-
-    setIsLoading(true)
-    try {
-      // Use Nominatim (OpenStreetMap) geocoding API
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ', Somalia')}&limit=1`
-      )
-      const results = await response.json()
-
-      if (results && results.length > 0) {
-        const { lat, lon, display_name } = results[0]
-        const newLocation = { lat: parseFloat(lat), lng: parseFloat(lon) }
-
-        // Update map view
-        mapInstanceRef.current.setView([newLocation.lat, newLocation.lng], 15)
-
-        // Update marker position
-        if (markerRef.current) {
-          markerRef.current.setLatLng([newLocation.lat, newLocation.lng])
-        }
-
-        // Auto-fill city if available
-        const parts = display_name.split(', ')
-        if (parts.length > 1) {
-          const city = parts[parts.length - 3] || parts[0]
-          onChange({ city })
-        }
-      }
-    } catch (error) {
-      console.error('Geocoding error:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [onChange])
-
-  // Handle address input with debouncing
   const handleAddressChange = (address: string) => {
-    // Immediate form update
     onChange({ streetAddress: address, address: address })
-
-    // Debounce geocoding
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current)
-    }
-
-    debounceTimerRef.current = setTimeout(() => {
-      geocodeAddress(address)
-    }, 500) // 500ms debounce delay
   }
 
   return (
@@ -120,28 +23,21 @@ export function StepLocation({ data, onChange }: StepLocationProps) {
         </p>
       </div>
 
-      {/* Map Container */}
-      <div className="relative w-full aspect-[4/5] md:aspect-square rounded-2xl overflow-hidden border border-border shadow-sm">
-        
-        {/* Floating Search Input */}
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 w-[90%] z-[1000]">
+      {/* Address Input */}
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
           <div className="relative flex items-center">
-            <MapPin className="absolute left-5 w-5 h-5 text-foreground" />
+            <MapPin className="absolute left-4 w-5 h-5 text-gray-400" />
             <input
               type="text"
               placeholder="Enter your address (e.g., Jigjiga Yar, Hargeisa)"
               value={data.streetAddress || data.address || ""}
               onChange={(e) => handleAddressChange(e.target.value)}
-              className="w-full py-4 pl-14 pr-6 rounded-full bg-white text-foreground shadow-xl border-none focus:ring-2 focus:ring-black transition-all outline-none text-base"
+              className="w-full py-3 pl-12 pr-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-black focus:border-transparent outline-none transition"
             />
-            {isLoading && (
-              <div className="absolute right-4 w-4 h-4 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
-            )}
           </div>
         </div>
-
-        {/* Real Map */}
-        <div ref={mapRef} className="w-full h-full" />
       </div>
 
       {/* Location Details Form */}

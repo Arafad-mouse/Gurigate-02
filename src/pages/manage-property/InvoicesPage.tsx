@@ -24,11 +24,11 @@ import { DeleteConfirmationDialog } from '@/components/admin/invoice/DeleteConfi
 import { RecordPaymentModal } from '@/components/admin/invoice/RecordPaymentModal';
 import { Toast } from '@/components/admin/invoice/Toast';
 import { listInvoices, getInvoiceDashboardMetrics, updateInvoiceStatus, exportInvoices } from '@/services/invoiceService';
-import type { Invoice, InvoiceListParams, InvoiceStatus } from '@/types/invoice';
+import type { Invoice, InvoiceStatus } from '@/types/invoice';
 
-function Money({ cents }: { cents?: number }) {
-  const n = Math.max(0, cents || 0) / 100;
-  return <>{n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })}</>;
+function Money({ amount }: { amount?: number }) {
+  const n = Math.max(0, amount || 0);
+  return <>{n.toLocaleString(undefined, { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</>;
 }
 
 function KPISkeleton() {
@@ -73,6 +73,17 @@ export default function InvoicesPage() {
   const [items, setItems] = useState<Invoice[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showDetailDrawer, setShowDetailDrawer] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editForm, setEditForm] = useState({
+    issueDate: '',
+    dueDate: '',
+    subtotal: 0,
+    additionalCharges: 0,
+    discount: 0,
+    tax: 0,
+    paidAmount: 0,
+    notes: '',
+  });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -81,54 +92,122 @@ export default function InvoicesPage() {
 
   const hasActiveFilters = query || statusFilter !== 'all' || propertyFilter;
 
-  // Load KPIs
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      try {
-        const res = await getInvoiceDashboardMetrics();
-        if (mounted) setKpi(res);
-      } catch {
-        // ignore
-      } finally {
-        if (mounted) setKpiLoading(false);
-      }
-    };
-    load();
-    return () => {
-      mounted = false;
-    };
+  // Calculate edit form totals with correct formula
+  const subtotalWithCharges = editForm.subtotal + editForm.additionalCharges;
+  const subtotalAfterDiscount = subtotalWithCharges - editForm.discount;
+  const taxAmount = (subtotalAfterDiscount * editForm.tax) / 100;
+  const totalAmount = subtotalAfterDiscount + taxAmount;
+  const balanceDue = Math.max(0, totalAmount - editForm.paidAmount);
+
+  // Auto-determine status based on balance and due date
+  const autoStatus = () => {
+    if (!selectedInvoice || selectedInvoice.status === 'draft' || selectedInvoice.status === 'cancelled') {
+      return selectedInvoice?.status || 'pending';
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDate = new Date(editForm.dueDate);
+    dueDate.setHours(0, 0, 0, 0);
+    
+    if (balanceDue === 0) {
+      return 'paid';
+    } else if (editForm.paidAmount > 0 && balanceDue > 0) {
+      return 'partially_paid';
+    } else if (dueDate < today && balanceDue > 0) {
+      return 'overdue';
+    } else {
+      return 'pending';
+    }
+  };
+
+  // Enter edit mode
+  const handleEnterEditMode = () => {
+    if (!selectedInvoice) return;
+    setEditForm({
+      issueDate: selectedInvoice.issueDate,
+      dueDate: selectedInvoice.dueDate,
+      subtotal: selectedInvoice.subtotal,
+      additionalCharges: selectedInvoice.additionalCharges,
+      discount: selectedInvoice.discount,
+      tax: selectedInvoice.tax,
+      paidAmount: selectedInvoice.paidAmount,
+      notes: selectedInvoice.notes || '',
+    });
+    setIsEditMode(true);
+  };
+
+  // Save changes
+  const handleSaveChanges = async () => {
+    if (!selectedInvoice) return;
+
+    // Validation
+    if (new Date(editForm.dueDate) < new Date(editForm.issueDate)) {
+      setToast({ type: 'error', message: 'Due date cannot be before issue date.' });
+      return;
+    }
+    if (editForm.tax < 0) {
+      setToast({ type: 'error', message: 'Tax cannot be negative.' });
+      return;
+    }
+    if (editForm.discount > editForm.subtotal + editForm.additionalCharges) {
+      setToast({ type: 'error', message: 'Discount cannot exceed subtotal.' });
+      return;
+    }
+    if (editForm.paidAmount > totalAmount) {
+      setToast({ type: 'error', message: 'Paid amount cannot exceed total amount.' });
+      return;
+    }
+
+    try {
+      const { updateInvoice } = await import('@/services/invoiceService');
+      await updateInvoice(selectedInvoice.id, {
+        issueDate: editForm.issueDate,
+        dueDate: editForm.dueDate,
+        subtotal: editForm.subtotal,
+        additionalCharges: editForm.additionalCharges,
+        discount: editForm.discount,
+        tax: editForm.tax,
+        totalAmount: totalAmount,
+        paidAmount: editForm.paidAmount,
+        balanceDue: balanceDue,
+        status: autoStatus(),
+        notes: editForm.notes,
+      });
+
+      setToast({ type: 'success', message: 'Invoice updated successfully.' });
+      setIsEditMode(false);
+      await Promise.all([refreshList(), refreshKpis()]);
+      
+      // Refresh the selected invoice from the updated list
+      const updated = items.find(i => i.id === selectedInvoice.id);
+      if (updated) setSelectedInvoice(updated);
+    } catch (error) {
+      setToast({ type: 'error', message: 'Failed to update invoice.' });
+    }
+  };
+
+  // Cancel edit mode
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+  };
+
+  // Refresh KPIs
+  const refreshKpis = useCallback(async () => {
+    try {
+      const res = await getInvoiceDashboardMetrics();
+      setKpi(res);
+    } catch {
+      // ignore
+    } finally {
+      setKpiLoading(false);
+    }
   }, []);
 
-  // Load list
+  // Load KPIs on mount and when list changes
   useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      setListLoading(true);
-      try {
-        const res = await listInvoices({
-          query,
-          status: statusFilter,
-          propertyId: propertyFilter,
-          sort: sortBy,
-          page: currentPage,
-          pageSize,
-        });
-        if (mounted) {
-          setItems(res.items);
-          setTotalItems(res.total);
-        }
-      } catch {
-        // ignore
-      } finally {
-        if (mounted) setListLoading(false);
-      }
-    };
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [query, statusFilter, propertyFilter, sortBy, currentPage, pageSize]);
+    refreshKpis();
+  }, [refreshKpis]);
 
   const handleFilterClear = () => {
     setQuery('');
@@ -139,51 +218,74 @@ export default function InvoicesPage() {
   };
 
   const handleExport = async () => {
+    if (selectedInvoice) {
+      // Generate PDF for single invoice
+      const { generateInvoicePDF } = await import('@/utils/generateInvoicePDF');
+      generateInvoicePDF(selectedInvoice);
+    } else {
+      // Export all invoices to CSV
+      try {
+        const csvContent = await exportInvoices({
+          query,
+          status: statusFilter,
+          propertyId: propertyFilter,
+          sort: sortBy,
+        });
+        
+        // Create download link
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `invoices-export-${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        setToast({ type: 'success', message: 'Invoices exported successfully.' });
+      } catch (error) {
+        console.error('Export failed:', error);
+        setToast({ type: 'error', message: 'Failed to export invoices.' });
+      }
+    }
+  };
+
+  const refreshList = useCallback(async () => {
+    setListLoading(true);
     try {
-      const csvContent = await exportInvoices({
+      const res = await listInvoices({
         query,
         status: statusFilter,
         propertyId: propertyFilter,
         sort: sortBy,
+        page: currentPage,
+        pageSize,
       });
-      
-      // Create download link
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `invoices-export-${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      setToast({ type: 'success', message: 'Invoices exported successfully.' });
-    } catch (error) {
-      console.error('Export failed:', error);
-      setToast({ type: 'error', message: 'Failed to export invoices.' });
+      setItems(res.items);
+      setTotalItems(res.total);
+    } catch {
+      // ignore
+    } finally {
+      setListLoading(false);
     }
-  };
+  }, [query, statusFilter, propertyFilter, sortBy, currentPage, pageSize]);
+
+  // Load list when filters/pagination change
+  useEffect(() => {
+    refreshList();
+  }, [refreshList]);
 
   const handleStatusChange = useCallback(
     async (invoiceId: string, newStatus: InvoiceStatus) => {
       try {
         await updateInvoiceStatus(invoiceId, newStatus);
-        // Refresh list
-        const res = await listInvoices({
-          query,
-          status: statusFilter,
-          propertyId: propertyFilter,
-          sort: sortBy,
-          page: currentPage,
-          pageSize,
-        });
-        setItems(res.items);
+        await Promise.all([refreshList(), refreshKpis()]);
       } catch (error) {
         console.error('Failed to update status:', error);
       }
     },
-    [query, statusFilter, propertyFilter, sortBy, currentPage, pageSize]
+    [refreshList, refreshKpis]
   );
 
   const getStatusStyle = (status: InvoiceStatus) => {
@@ -192,6 +294,8 @@ export default function InvoicesPage() {
         return 'bg-gray-100 text-gray-700';
       case 'sent':
         return 'bg-blue-100 text-blue-700';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-700';
       case 'partially_paid':
         return 'bg-orange-100 text-orange-700';
       case 'paid':
@@ -213,14 +317,18 @@ export default function InvoicesPage() {
         render: (value: string) => <span className="text-sm font-medium text-gray-900">{value}</span>,
       },
       {
-        key: 'tenantId' as const,
+        key: 'tenantName' as const,
         header: 'Tenant',
-        render: (value: string) => <span className="text-sm text-gray-600">{value}</span>,
+        render: (_value: string, row: Invoice) => (
+          <span className="text-sm text-gray-600">{row.tenantName || row.tenantId || '—'}</span>
+        ),
       },
       {
-        key: 'propertyId' as const,
+        key: 'propertyName' as const,
         header: 'Property',
-        render: (value: string) => <span className="text-sm text-gray-600">{value}</span>,
+        render: (_value: string, row: Invoice) => (
+          <span className="text-sm text-gray-600">{row.propertyName || row.propertyId || '—'}</span>
+        ),
       },
       {
         key: 'issueDate' as const,
@@ -235,19 +343,19 @@ export default function InvoicesPage() {
       {
         key: 'totalAmount' as const,
         header: 'Amount',
-        render: (value: number) => <span className="text-sm font-medium text-gray-900"><Money cents={value} /></span>,
+        render: (value: number) => <span className="text-sm font-medium text-gray-900"><Money amount={value} /></span>,
       },
       {
         key: 'paidAmount' as const,
         header: 'Paid',
-        render: (value: number) => <span className="text-sm text-gray-600"><Money cents={value} /></span>,
+        render: (value: number) => <span className="text-sm text-gray-600"><Money amount={value} /></span>,
       },
       {
         key: 'balanceDue' as const,
         header: 'Balance',
         render: (value: number) => (
           <span className={`text-sm font-medium ${value > 0 ? 'text-red-600' : 'text-gray-900'}`}>
-            <Money cents={value} />
+            <Money amount={value} />
           </span>
         ),
       },
@@ -263,6 +371,7 @@ export default function InvoicesPage() {
             >
               <option value="draft">Draft</option>
               <option value="sent">Sent</option>
+              <option value="pending">Pending</option>
               <option value="partially_paid">Partially Paid</option>
               <option value="paid">Paid</option>
               <option value="overdue">Overdue</option>
@@ -338,13 +447,13 @@ export default function InvoicesPage() {
           <div className="rounded-xl border border-gray-200 p-5 bg-white">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Outstanding Amount</p>
             <p className="text-2xl font-bold text-gray-900 mt-2">
-              <Money cents={kpi.outstandingAmount} />
+              <Money amount={kpi.outstandingAmount} />
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 p-5 bg-white">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Paid This Month</p>
             <p className="text-2xl font-bold text-gray-900 mt-2">
-              <Money cents={kpi.paidThisMonth} />
+              <Money amount={kpi.paidThisMonth} />
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 p-5 bg-white">
@@ -405,6 +514,7 @@ export default function InvoicesPage() {
                   <option value="all">All Status</option>
                   <option value="draft">Draft</option>
                   <option value="sent">Sent</option>
+                  <option value="pending">Pending</option>
                   <option value="partially_paid">Partially Paid</option>
                   <option value="paid">Paid</option>
                   <option value="overdue">Overdue</option>
@@ -442,7 +552,7 @@ export default function InvoicesPage() {
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No Invoices Yet</h3>
           <p className="text-sm text-gray-500 mb-6">Invoices generated from active leases will appear here.</p>
           <button
-            onClick={() => {}}
+            onClick={() => setShowCreateModal(true)}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors hover:bg-red-600"
             style={{ background: '#E8344E' }}
           >
@@ -489,7 +599,10 @@ export default function InvoicesPage() {
                 <p className="text-sm text-gray-500 mt-1">Invoice Details</p>
               </div>
               <button
-                onClick={() => setShowDetailDrawer(false)}
+                onClick={() => {
+                  setShowDetailDrawer(false);
+                  setIsEditMode(false);
+                }}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5 text-gray-600" />
@@ -503,33 +616,89 @@ export default function InvoicesPage() {
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-4">Invoice Summary</h3>
               <div className="space-y-3 bg-gray-50 rounded-lg p-4">
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Issue Date</span>
-                  <span className="text-sm font-medium text-gray-900">{new Date(selectedInvoice.issueDate).toLocaleDateString()}</span>
+                  {isEditMode ? (
+                    <input
+                      type="date"
+                      value={editForm.issueDate}
+                      onChange={(e) => setEditForm({ ...editForm, issueDate: e.target.value })}
+                      className="text-sm font-medium text-gray-900 px-2 py-1 rounded border border-gray-200"
+                    />
+                  ) : (
+                    <span className="text-sm font-medium text-gray-900">{new Date(selectedInvoice.issueDate).toLocaleDateString()}</span>
+                  )}
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Due Date</span>
-                  <span className="text-sm font-medium text-gray-900">{new Date(selectedInvoice.dueDate).toLocaleDateString()}</span>
+                  {isEditMode ? (
+                    <input
+                      type="date"
+                      value={editForm.dueDate}
+                      onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
+                      className="text-sm font-medium text-gray-900 px-2 py-1 rounded border border-gray-200"
+                    />
+                  ) : (
+                    <span className="text-sm font-medium text-gray-900">{new Date(selectedInvoice.dueDate).toLocaleDateString()}</span>
+                  )}
                 </div>
-                <div className="flex justify-between border-t border-gray-200 pt-3">
+                <div className="flex justify-between items-center border-t border-gray-200 pt-3">
                   <span className="text-sm text-gray-600">Subtotal</span>
-                  <span className="text-sm font-medium text-gray-900"><Money cents={selectedInvoice.subtotal} /></span>
+                  {isEditMode ? (
+                    <input
+                      type="number"
+                      value={editForm.subtotal}
+                      onChange={(e) => setEditForm({ ...editForm, subtotal: Math.max(0, Number(e.target.value) || 0) })}
+                      className="text-sm font-medium text-gray-900 px-2 py-1 rounded border border-gray-200 w-24"
+                    />
+                  ) : (
+                    <span className="text-sm font-medium text-gray-900"><Money amount={selectedInvoice.subtotal} /></span>
+                  )}
                 </div>
-                {selectedInvoice.additionalCharges > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Additional Charges</span>
-                    <span className="text-sm font-medium text-gray-900"><Money cents={selectedInvoice.additionalCharges} /></span>
-                  </div>
-                )}
-                {selectedInvoice.discount > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Discount</span>
-                    <span className="text-sm font-medium text-red-600">-<Money cents={selectedInvoice.discount} /></span>
-                  </div>
-                )}
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Additional Charges</span>
+                  {isEditMode ? (
+                    <input
+                      type="number"
+                      value={editForm.additionalCharges}
+                      onChange={(e) => setEditForm({ ...editForm, additionalCharges: Math.max(0, Number(e.target.value) || 0) })}
+                      className="text-sm font-medium text-gray-900 px-2 py-1 rounded border border-gray-200 w-24"
+                    />
+                  ) : (
+                    <span className="text-sm font-medium text-gray-900"><Money amount={selectedInvoice.additionalCharges} /></span>
+                  )}
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Discount</span>
+                  {isEditMode ? (
+                    <input
+                      type="number"
+                      value={editForm.discount}
+                      onChange={(e) => setEditForm({ ...editForm, discount: Math.max(0, Number(e.target.value) || 0) })}
+                      className="text-sm font-medium text-red-600 px-2 py-1 rounded border border-gray-200 w-24"
+                    />
+                  ) : (
+                    <span className="text-sm font-medium text-red-600">-<Money amount={selectedInvoice.discount} /></span>
+                  )}
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Tax (%)</span>
+                  {isEditMode ? (
+                    <input
+                      type="number"
+                      value={editForm.tax}
+                      onChange={(e) => setEditForm({ ...editForm, tax: Math.max(0, Number(e.target.value) || 0) })}
+                      className="text-sm font-medium text-gray-900 px-2 py-1 rounded border border-gray-200 w-24"
+                    />
+                  ) : (
+                    <span className="text-sm font-medium text-gray-900">{selectedInvoice.tax}%</span>
+                  )}
+                </div>
                 <div className="flex justify-between border-t border-gray-200 pt-3">
                   <span className="text-sm font-semibold text-gray-900">Total Amount</span>
-                  <span className="text-sm font-semibold text-gray-900"><Money cents={selectedInvoice.totalAmount} /></span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    <Money amount={isEditMode ? totalAmount : selectedInvoice.totalAmount} />
+                  </span>
                 </div>
               </div>
             </div>
@@ -538,14 +707,23 @@ export default function InvoicesPage() {
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-4">Payment Information</h3>
               <div className="space-y-3 bg-gray-50 rounded-lg p-4">
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Paid Amount</span>
-                  <span className="text-sm font-medium text-green-600"><Money cents={selectedInvoice.paidAmount} /></span>
+                  {isEditMode ? (
+                    <input
+                      type="number"
+                      value={editForm.paidAmount}
+                      onChange={(e) => setEditForm({ ...editForm, paidAmount: Math.max(0, Number(e.target.value) || 0) })}
+                      className="text-sm font-medium text-green-600 px-2 py-1 rounded border border-gray-200 w-24"
+                    />
+                  ) : (
+                    <span className="text-sm font-medium text-green-600"><Money amount={selectedInvoice.paidAmount} /></span>
+                  )}
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Balance Due</span>
-                  <span className={`text-sm font-medium ${selectedInvoice.balanceDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                    <Money cents={selectedInvoice.balanceDue} />
+                  <span className={`text-sm font-medium ${isEditMode ? (balanceDue > 0 ? 'text-red-600' : 'text-green-600') : (selectedInvoice.balanceDue > 0 ? 'text-red-600' : 'text-green-600')}`}>
+                    <Money amount={isEditMode ? balanceDue : selectedInvoice.balanceDue} />
                   </span>
                 </div>
               </div>
@@ -556,15 +734,17 @@ export default function InvoicesPage() {
               <h3 className="text-sm font-semibold text-gray-900 mb-4">Status</h3>
               <div className="relative">
                 <select
-                  value={selectedInvoice.status}
+                  value={isEditMode ? autoStatus() : selectedInvoice.status}
                   onChange={(e) => {
                     handleStatusChange(selectedInvoice.id, e.target.value as InvoiceStatus);
                     setSelectedInvoice({ ...selectedInvoice, status: e.target.value as InvoiceStatus });
                   }}
-                  className={`w-full text-sm font-medium px-3 py-2 rounded-lg border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500 ${getStatusStyle(selectedInvoice.status)}`}
+                  disabled={!isEditMode}
+                  className={`w-full text-sm font-medium px-3 py-2 rounded-lg border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500 ${getStatusStyle(isEditMode ? autoStatus() : selectedInvoice.status)} ${!isEditMode ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   <option value="draft">Draft</option>
                   <option value="sent">Sent</option>
+                  <option value="pending">Pending</option>
                   <option value="partially_paid">Partially Paid</option>
                   <option value="paid">Paid</option>
                   <option value="overdue">Overdue</option>
@@ -574,22 +754,69 @@ export default function InvoicesPage() {
             </div>
 
             {/* Notes */}
-            {selectedInvoice.notes && (
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-4">Notes</h3>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-4">Notes</h3>
+              {isEditMode ? (
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                  placeholder="Add notes..."
+                />
+              ) : selectedInvoice.notes ? (
                 <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-4">{selectedInvoice.notes}</p>
-              </div>
-            )}
+              ) : (
+                <p className="text-sm text-gray-400 bg-gray-50 rounded-lg p-4">No notes</p>
+              )}
+            </div>
           </div>
 
           {/* Footer */}
           <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 space-y-3">
-            <button
-              onClick={() => setShowDetailDrawer(false)}
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Close
-            </button>
+            {isEditMode ? (
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={handleCancelEdit}
+                  className="px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveChanges}
+                  className="px-4 py-2.5 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors"
+                >
+                  Save Changes
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-3">
+                <button
+                  onClick={handleEnterEditMode}
+                  className="px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={handleExport}
+                  className="px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleExport}
+                  className="px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Download
+                </button>
+                <button
+                  onClick={() => setShowDetailDrawer(false)}
+                  className="px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -601,20 +828,8 @@ export default function InvoicesPage() {
           onSuccess={() => {
             setShowCreateModal(false);
             setToast({ type: 'success', message: 'Invoice created successfully.' });
-            // Refresh the list
-            const load = async () => {
-              const res = await listInvoices({
-                query,
-                status: statusFilter,
-                propertyId: propertyFilter,
-                sort: sortBy,
-                page: currentPage,
-                pageSize,
-              });
-              setItems(res.items);
-              setTotalItems(res.total);
-            };
-            load();
+            refreshList();
+            refreshKpis();
           }}
         />
       )}
@@ -631,20 +846,8 @@ export default function InvoicesPage() {
             setShowEditModal(false);
             setSelectedInvoice(null);
             setToast({ type: 'success', message: 'Invoice updated successfully.' });
-            // Refresh the list
-            const load = async () => {
-              const res = await listInvoices({
-                query,
-                status: statusFilter,
-                propertyId: propertyFilter,
-                sort: sortBy,
-                page: currentPage,
-                pageSize,
-              });
-              setItems(res.items);
-              setTotalItems(res.total);
-            };
-            load();
+            refreshList();
+            refreshKpis();
           }}
         />
       )}
@@ -661,20 +864,8 @@ export default function InvoicesPage() {
             setShowDeleteDialog(false);
             setSelectedInvoice(null);
             setToast({ type: 'success', message: 'Invoice deleted successfully.' });
-            // Refresh the list
-            const load = async () => {
-              const res = await listInvoices({
-                query,
-                status: statusFilter,
-                propertyId: propertyFilter,
-                sort: sortBy,
-                page: currentPage,
-                pageSize,
-              });
-              setItems(res.items);
-              setTotalItems(res.total);
-            };
-            load();
+            refreshList();
+            refreshKpis();
           }}
         />
       )}
@@ -691,24 +882,8 @@ export default function InvoicesPage() {
             setShowRecordPaymentModal(false);
             setSelectedInvoice(null);
             setToast({ type: 'success', message: 'Payment recorded successfully.' });
-            // Refresh the list and KPIs
-            const load = async () => {
-              const [listRes, kpiRes] = await Promise.all([
-                listInvoices({
-                  query,
-                  status: statusFilter,
-                  propertyId: propertyFilter,
-                  sort: sortBy,
-                  page: currentPage,
-                  pageSize,
-                }),
-                getInvoiceDashboardMetrics(),
-              ]);
-              setItems(listRes.items);
-              setTotalItems(listRes.total);
-              setKpi(kpiRes);
-            };
-            load();
+            refreshList();
+            refreshKpis();
           }}
         />
       )}

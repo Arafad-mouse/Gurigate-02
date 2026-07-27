@@ -65,11 +65,11 @@ function ImageGrid({ images, title, onShowAll }: { images: string[]; title: stri
     <div className="relative">
       <div className="grid h-[280px] grid-cols-1 gap-2 overflow-hidden rounded-3xl sm:h-[480px] sm:grid-cols-4 sm:grid-rows-2">
         <div className="cursor-pointer group sm:col-span-2 sm:row-span-2" onClick={onShowAll}>
-          <img src={main} alt={title} onError={(event) => applyImageFallback(event.currentTarget, title)} className="w-full h-full object-cover group-hover:brightness-95 transition-all duration-300" />
+          <img src={main} alt={title} onError={(event) => applyImageFallback(event, '/E-dahab.png')} className="w-full h-full object-cover group-hover:brightness-95 transition-all duration-300" />
         </div>
         {rest.slice(0, 4).map((img, i) => (
           <div key={i} className="hidden cursor-pointer group sm:block" onClick={onShowAll}>
-            <img src={img} alt={`${title} ${i + 2}`} onError={(event) => applyImageFallback(event.currentTarget, title)} className="w-full h-full object-cover group-hover:brightness-95 transition-all duration-300" />
+            <img src={img} alt={`${title} ${i + 2}`} onError={(event) => applyImageFallback(event, '/E-dahab.png')} className="w-full h-full object-cover group-hover:brightness-95 transition-all duration-300" />
           </div>
         ))}
       </div>
@@ -98,7 +98,7 @@ function FullGallery({ images, title, onClose }: { images: string[]; title: stri
         <div />
       </div>
       <div className="relative flex flex-1 items-center justify-center bg-gray-50 px-4 sm:px-16">
-        <img src={images[current]} alt={title} onError={(event) => applyImageFallback(event.currentTarget, title)} className="max-h-full max-w-full object-contain rounded-2xl shadow-xl" />
+        <img src={images[current]} alt={title} onError={(event) => applyImageFallback(event, '/E-dahab.png')} className="max-h-full max-w-full object-contain rounded-2xl shadow-xl" />
         {current > 0 && (
           <button onClick={() => setCurrent(c => c - 1)} className="absolute left-3 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-md transition-colors hover:bg-gray-50 sm:left-4 sm:h-10 sm:w-10">
             <ChevronLeft size={18} />
@@ -114,7 +114,7 @@ function FullGallery({ images, title, onClose }: { images: string[]; title: stri
         {images.map((img, i) => (
           <button key={i} onClick={() => setCurrent(i)}
             className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all ${current === i ? "border-gray-900" : "border-transparent"}`}>
-            <img src={img} alt="" onError={(event) => applyImageFallback(event.currentTarget, title)} className="w-full h-full object-cover" />
+            <img src={img} alt="" onError={(event) => applyImageFallback(event, '/E-dahab.png')} className="w-full h-full object-cover" />
           </button>
         ))}
       </div>
@@ -473,18 +473,33 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
               <h3 className="text-lg font-bold text-gray-900 mb-4">Meet your host</h3>
               <div className="flex flex-col gap-6 sm:flex-row">
                 <div className="text-center flex-shrink-0">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#E8344E] to-[#ff6b6b] flex items-center justify-center text-white font-bold text-2xl mb-2 mx-auto shadow-md">C</div>
-                  <p className="text-sm font-bold text-gray-900">Cynthia</p>
+                  {property.host?.avatar_url ? (
+                    <img 
+                      src={property.host.avatar_url} 
+                      alt={property.host.full_name}
+                      onError={(event) => applyImageFallback(event, '/E-dahab.png')}
+                      className="w-16 h-16 rounded-full object-cover mb-2 mx-auto shadow-md"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#E8344E] to-[#ff6b6b] flex items-center justify-center text-white font-bold text-2xl mb-2 mx-auto shadow-md">
+                      {property.host?.full_name?.charAt(0) || 'H'}
+                    </div>
+                  )}
+                  <p className="text-sm font-bold text-gray-900">{property.host?.full_name || 'Host'}</p>
                   <p className="text-xs text-gray-500">Superhost</p>
                 </div>
                 <div>
                   <div className="mb-3 flex flex-wrap gap-4">
-                    {[{ v: "96", l: "Reviews" }, { v: "5.0", l: "Rating" }, { v: "5yr", l: "Hosting" }].map(({ v, l }) => (
+                    {[
+                      { v: "96", l: "Reviews" }, 
+                      { v: "5.0", l: "Rating" }, 
+                      { v: "5yr", l: "Hosting" }
+                    ].map(({ v, l }) => (
                       <div key={l}><p className="text-xl font-bold text-gray-900">{v}</p><p className="text-xs text-gray-500">{l}</p></div>
                     ))}
                   </div>
                   <p className="text-sm text-gray-600 leading-relaxed mb-3">
-                    Hi! I'm Cynthia, a Nairobi local passionate about making your stay unforgettable.
+                    Hi! I'm {property.host?.full_name || 'your host'}, passionate about making your stay unforgettable.
                   </p>
                   <button className="border border-gray-900 text-gray-900 text-sm font-semibold px-5 py-2 rounded-xl hover:bg-gray-50 transition-colors">Message Host</button>
                 </div>
@@ -511,7 +526,7 @@ export default function PropertyPage({ property, onBack }: PropertyPageProps) {
             {NEARBY.map(({ title, type, price, rating: r, image }) => (
               <div key={title} className="group cursor-pointer">
                 <div className="rounded-2xl overflow-hidden aspect-[4/3] mb-2.5">
-                  <img src={image} alt={title} onError={(event) => applyImageFallback(event.currentTarget, title)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <img src={image} alt={title} onError={(event) => applyImageFallback(event, '/E-dahab.png')} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 </div>
                 <p className="text-sm font-semibold text-gray-900 truncate">{title}</p>
                 <p className="text-xs text-gray-500">{type}</p>

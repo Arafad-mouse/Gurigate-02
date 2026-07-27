@@ -5,7 +5,7 @@
  * This is a child entity of the Property aggregate.
  */
 
-import { PropertyReview as PropertyReviewType } from './PropertyTypes';
+import type { PropertyReview as PropertyReviewType } from './PropertyTypes';
 
 /**
  * Property Review Entity

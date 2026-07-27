@@ -138,7 +138,10 @@ export interface BookingPayment {
   booking_id: string
   property_id: string
   guest_id: string
+  guest_name?: string
   host_id: string
+  property_title?: string
+  check_in?: string
   amount: number
   currency: string
   platform_commission: number
@@ -146,6 +149,7 @@ export interface BookingPayment {
   payment_method: 'card' | 'zaad' | 'edahab' | 'premier_wallet' | 'wadaag_pay' | 'bank_transfer'
   payment_reference?: string
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'disputed'
+  payout_status?: 'pending' | 'sent' | 'n/a'
   processed_by?: string
   processed_at?: string
   created_at: string
@@ -1079,7 +1083,21 @@ export class BookingOperationsService {
   ): Promise<BookingPayment[]> {
     let query = supabase
       .from('transactions')
-      .select('*')
+      .select(`
+        *,
+        booking:bookings!booking_id (
+          check_in,
+          guest_id,
+          property_id,
+          property:properties!property_id (
+            title
+          ),
+          guest:profiles!guest_id (
+            first_name,
+            last_name
+          )
+        )
+      `)
       .order('created_at', { ascending: false })
 
     if (status && status !== 'all') {
@@ -1094,23 +1112,41 @@ export class BookingOperationsService {
 
     if (error) throw error
 
-    return (data || []).map((payment: any) => ({
-      id: payment.id,
-      booking_id: payment.booking_id,
-      property_id: payment.property_id,
-      guest_id: payment.guest_id,
-      host_id: payment.host_id,
-      amount: payment.amount,
-      currency: payment.currency,
-      platform_commission: payment.platform_commission,
-      host_payout: payment.host_payout,
-      payment_method: payment.payment_method,
-      payment_reference: payment.payment_reference,
-      status: payment.status,
-      processed_by: payment.processed_by,
-      processed_at: payment.processed_at,
-      created_at: payment.created_at
-    }))
+    return (data || []).map((payment: any) => {
+      const booking = payment.booking
+      const guest = booking?.guest
+      const property = booking?.property
+      const guestName = guest
+        ? `${guest.first_name || ''} ${guest.last_name || ''}`.trim()
+        : undefined
+
+      let payoutStatus: 'pending' | 'sent' | 'n/a' = 'n/a'
+      if (payment.status === 'completed' && payment.host_payout > 0) {
+        payoutStatus = payment.processed_at ? 'sent' : 'pending'
+      }
+
+      return {
+        id: payment.id,
+        booking_id: payment.booking_id,
+        property_id: payment.property_id,
+        guest_id: payment.guest_id,
+        guest_name: guestName,
+        host_id: payment.host_id,
+        property_title: property?.title,
+        check_in: booking?.check_in,
+        amount: payment.amount,
+        currency: payment.currency,
+        platform_commission: payment.platform_commission,
+        host_payout: payment.host_payout,
+        payment_method: payment.payment_method,
+        payment_reference: payment.payment_reference,
+        status: payment.status,
+        payout_status: payoutStatus,
+        processed_by: payment.processed_by,
+        processed_at: payment.processed_at,
+        created_at: payment.created_at
+      }
+    })
   }
 
   // ============================================
@@ -1208,6 +1244,485 @@ export class BookingOperationsService {
       .from('property_reviews')
       .update({ host_reply: reply })
       .eq('id', reviewId)
+
+    if (error) throw error
+    return true
+  }
+
+  // ============================================
+  // PAYMENT KPIs
+  // ============================================
+
+  static async getPaymentKPIs(): Promise<{
+    totalRevenue: number
+    pendingPayments: number
+    completedPayments: number
+    refundedAmount: number
+    failedPayments: number
+    platformCommission: number
+    hostPayouts: number
+  }> {
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('amount, platform_commission, host_payout, status')
+
+      if (error) throw error
+
+      const transactions = data || []
+      return {
+        totalRevenue: transactions.filter(t => t.status === 'completed').reduce((s, t) => s + (t.amount || 0), 0),
+        pendingPayments: transactions.filter(t => t.status === 'pending').length,
+        completedPayments: transactions.filter(t => t.status === 'completed').length,
+        refundedAmount: transactions.filter(t => t.status === 'refunded').reduce((s, t) => s + (t.amount || 0), 0),
+        failedPayments: transactions.filter(t => t.status === 'failed').length,
+        platformCommission: transactions.filter(t => t.status === 'completed').reduce((s, t) => s + (t.platform_commission || 0), 0),
+        hostPayouts: transactions.filter(t => t.status === 'completed').reduce((s, t) => s + (t.host_payout || 0), 0),
+      }
+    } catch (error) {
+      console.error('Error fetching payment KPIs:', error)
+      return {
+        totalRevenue: 0,
+        pendingPayments: 0,
+        completedPayments: 0,
+        refundedAmount: 0,
+        failedPayments: 0,
+        platformCommission: 0,
+        hostPayouts: 0,
+      }
+    }
+  }
+
+  // ============================================
+  // CONVERSATIONS (MESSAGE INBOX)
+  // ============================================
+
+  static async getConversations(userId?: string): Promise<{
+    id: string
+    booking_id: string
+    participant_name: string
+    participant_id: string
+    last_message: string
+    last_message_at: string
+    unread_count: number
+    property_title?: string
+  }[]> {
+    try {
+      let query = supabase
+        .from('messages')
+        .select(`
+          id,
+          booking_id,
+          sender_id,
+          recipient_id,
+          content,
+          is_read,
+          created_at,
+          sender:profiles!sender_id (first_name, last_name),
+          recipient:profiles!recipient_id (first_name, last_name)
+        `)
+        .order('created_at', { ascending: false })
+
+      if (userId) {
+        query = query.or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+
+      // Group by booking_id, get latest message per conversation
+      const conversationsMap = new Map<string, any>()
+      for (const msg of data || []) {
+        const existing = conversationsMap.get(msg.booking_id)
+        if (!existing || new Date(msg.created_at) > new Date(existing.created_at)) {
+          const otherParty = userId === msg.sender_id ? msg.recipient : msg.sender
+          const otherArr = Array.isArray(otherParty) ? otherParty[0] : otherParty
+          conversationsMap.set(msg.booking_id, {
+            id: msg.id,
+            booking_id: msg.booking_id,
+            participant_name: otherArr ? `${otherArr.first_name} ${otherArr.last_name}` : 'Unknown',
+            participant_id: userId === msg.sender_id ? msg.recipient_id : msg.sender_id,
+            last_message: msg.content,
+            last_message_at: msg.created_at,
+            unread_count: 0,
+          })
+        }
+        if (msg.is_read === false && msg.recipient_id === userId) {
+          const conv = conversationsMap.get(msg.booking_id)
+          if (conv) conv.unread_count++
+        }
+      }
+
+      // Fetch property titles for conversations
+      const conversations = Array.from(conversationsMap.values())
+      if (conversations.length > 0) {
+        const bookingIds = conversations.map(c => c.booking_id)
+        const { data: bookings } = await supabase
+          .from('property_bookings')
+          .select(`id, properties (title)`)
+          .in('id', bookingIds)
+
+        const bookingMap = new Map<string, string>()
+        for (const b of bookings || []) {
+          bookingMap.set(b.id, (b.properties as any)?.title)
+        }
+        for (const conv of conversations) {
+          conv.property_title = bookingMap.get(conv.booking_id)
+        }
+      }
+
+      return conversations
+    } catch (error) {
+      console.error('Error fetching conversations:', error)
+      return []
+    }
+  }
+
+  static async sendMessage(
+    bookingId: string,
+    senderId: string,
+    recipientId: string,
+    content: string
+  ): Promise<boolean> {
+    const { error } = await supabase
+      .from('messages')
+      .insert({
+        booking_id: bookingId,
+        sender_id: senderId,
+        recipient_id: recipientId,
+        content,
+        is_read: false,
+      })
+
+    if (error) throw error
+    return true
+  }
+
+  static async markMessagesAsRead(bookingId: string, userId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('messages')
+      .update({ is_read: true })
+      .eq('booking_id', bookingId)
+      .eq('recipient_id', userId)
+      .eq('is_read', false)
+
+    if (error) throw error
+    return true
+  }
+
+  // ============================================
+  // BOOKING TIMELINE
+  // ============================================
+
+  static async getBookingTimeline(bookingId: string): Promise<{
+    id: string
+    status: string
+    changed_by: string
+    changed_by_name: string
+    reason?: string
+    created_at: string
+  }[]> {
+    try {
+      const { data, error } = await supabase
+        .from('booking_status_history')
+        .select(`
+          id,
+          previous_status,
+          new_status,
+          changed_by,
+          change_reason,
+          created_at,
+          profiles!changed_by (first_name, last_name)
+        `)
+        .eq('booking_id', bookingId)
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+
+      return (data || []).map((entry: any) => ({
+        id: entry.id,
+        status: entry.new_status,
+        changed_by: entry.changed_by,
+        changed_by_name: entry.profiles ? `${entry.profiles.first_name} ${entry.profiles.last_name}` : 'System',
+        reason: entry.change_reason,
+        created_at: entry.created_at,
+      }))
+    } catch (error) {
+      console.error('Error fetching booking timeline:', error)
+      return []
+    }
+  }
+
+  // ============================================
+  // REPORTS & ANALYTICS
+  // ============================================
+
+  static async getReportsData(dateRange?: { start: string; end: string }): Promise<{
+    dailyRevenue: { date: string; revenue: number }[]
+    monthlyRevenue: { month: string; revenue: number }[]
+    occupancyByMonth: { month: string; rate: number }[]
+    averageStay: number
+    cancellationRate: number
+    topProperties: { id: string; title: string; bookings: number; revenue: number }[]
+    revenueByCity: { city: string; revenue: number }[]
+    paymentMethodBreakdown: { method: string; count: number; amount: number }[]
+    totalBookings: number
+    totalRevenue: number
+    confirmedBookings: number
+    cancelledBookings: number
+  }> {
+    try {
+      const today = new Date()
+      const thirtyDaysAgo = new Date(today)
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const start = dateRange?.start || thirtyDaysAgo.toISOString().split('T')[0]
+      const end = dateRange?.end || today.toISOString().split('T')[0]
+
+      // Fetch bookings in range
+      const { data: bookings, error: bookingsError } = await supabase
+        .from('property_bookings')
+        .select(`
+          id,
+          check_in,
+          check_out,
+          total_price,
+          status,
+          currency,
+          created_at,
+          properties (id, title, city)
+        `)
+        .gte('created_at', start)
+        .lte('created_at', end + 'T23:59:59')
+
+      if (bookingsError) throw bookingsError
+
+      const allBookings = bookings || []
+      const confirmed = allBookings.filter(b => b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'checked_out' || b.status === 'completed')
+      const cancelled = allBookings.filter(b => b.status === 'cancelled')
+      const totalRevenue = confirmed.reduce((s, b) => s + (b.total_price || 0), 0)
+
+      // Daily revenue
+      const dailyMap = new Map<string, number>()
+      for (const b of confirmed) {
+        const date = (b.created_at || '').split('T')[0]
+        dailyMap.set(date, (dailyMap.get(date) || 0) + (b.total_price || 0))
+      }
+      const dailyRevenue = Array.from(dailyMap.entries())
+        .map(([date, revenue]) => ({ date, revenue }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+
+      // Monthly revenue
+      const monthlyMap = new Map<string, number>()
+      for (const b of confirmed) {
+        const month = (b.created_at || '').substring(0, 7)
+        monthlyMap.set(month, (monthlyMap.get(month) || 0) + (b.total_price || 0))
+      }
+      const monthlyRevenue = Array.from(monthlyMap.entries())
+        .map(([month, revenue]) => ({ month, revenue }))
+        .sort((a, b) => a.month.localeCompare(b.month))
+
+      // Average stay
+      const stays = confirmed.map(b => {
+        const ci = new Date(b.check_in)
+        const co = new Date(b.check_out)
+        return Math.ceil((co.getTime() - ci.getTime()) / (1000 * 60 * 60 * 24))
+      })
+      const averageStay = stays.length > 0 ? stays.reduce((s, n) => s + n, 0) / stays.length : 0
+
+      // Cancellation rate
+      const cancellationRate = allBookings.length > 0 ? (cancelled.length / allBookings.length) * 100 : 0
+
+      // Top properties
+      const propMap = new Map<string, { title: string; bookings: number; revenue: number }>()
+      for (const b of confirmed) {
+        const prop = b.properties as any
+        if (!prop) continue
+        const existing = propMap.get(prop.id) || { title: prop.title, bookings: 0, revenue: 0 }
+        existing.bookings++
+        existing.revenue += b.total_price || 0
+        propMap.set(prop.id, existing)
+      }
+      const topProperties = Array.from(propMap.entries())
+        .map(([id, v]) => ({ id, ...v }))
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 10)
+
+      // Revenue by city
+      const cityMap = new Map<string, number>()
+      for (const b of confirmed) {
+        const prop = b.properties as any
+        if (!prop?.city) continue
+        cityMap.set(prop.city, (cityMap.get(prop.city) || 0) + (b.total_price || 0))
+      }
+      const revenueByCity = Array.from(cityMap.entries())
+        .map(([city, revenue]) => ({ city, revenue }))
+        .sort((a, b) => b.revenue - a.revenue)
+
+      // Payment method breakdown
+      const { data: transactions } = await supabase
+        .from('transactions')
+        .select('payment_method, amount, status')
+        .eq('status', 'completed')
+
+      const methodMap = new Map<string, { count: number; amount: number }>()
+      for (const t of transactions || []) {
+        const method = t.payment_method || 'unknown'
+        const existing = methodMap.get(method) || { count: 0, amount: 0 }
+        existing.count++
+        existing.amount += t.amount || 0
+        methodMap.set(method, existing)
+      }
+      const paymentMethodBreakdown = Array.from(methodMap.entries())
+        .map(([method, v]) => ({ method, ...v }))
+        .sort((a, b) => b.amount - a.amount)
+
+      return {
+        dailyRevenue,
+        monthlyRevenue,
+        occupancyByMonth: [],
+        averageStay: Math.round(averageStay * 10) / 10,
+        cancellationRate: Math.round(cancellationRate * 10) / 10,
+        topProperties,
+        revenueByCity,
+        paymentMethodBreakdown,
+        totalBookings: allBookings.length,
+        totalRevenue,
+        confirmedBookings: confirmed.length,
+        cancelledBookings: cancelled.length,
+      }
+    } catch (error) {
+      console.error('Error fetching reports data:', error)
+      return {
+        dailyRevenue: [],
+        monthlyRevenue: [],
+        occupancyByMonth: [],
+        averageStay: 0,
+        cancellationRate: 0,
+        topProperties: [],
+        revenueByCity: [],
+        paymentMethodBreakdown: [],
+        totalBookings: 0,
+        totalRevenue: 0,
+        confirmedBookings: 0,
+        cancelledBookings: 0,
+      }
+    }
+  }
+
+  // ============================================
+  // NOTIFICATIONS
+  // ============================================
+
+  static async getNotifications(userId?: string): Promise<{
+    id: string
+    type: 'new_booking' | 'check_in_today' | 'check_out_today' | 'payment_pending' | 'booking_cancelled' | 'refund_requested' | 'low_availability' | 'unread_message'
+    title: string
+    description: string
+    booking_id?: string
+    is_read: boolean
+    created_at: string
+  }[]> {
+    try {
+      const today = new Date().toISOString().split('T')[0]
+
+      // Build notifications from operational data
+      const notifications: any[] = []
+
+      // Today's check-ins
+      const { data: checkIns } = await supabase
+        .from('property_bookings')
+        .select(`id, profiles!guest_id (first_name, last_name), properties (title)`)
+        .eq('check_in', today)
+        .eq('status', 'confirmed')
+
+      for (const ci of checkIns || []) {
+        notifications.push({
+          id: `checkin-${ci.id}`,
+          type: 'check_in_today',
+          title: 'Arriving Today',
+          description: `${(ci.profiles as any)?.first_name} ${(ci.profiles as any)?.last_name} - ${(ci.properties as any)?.title}`,
+          booking_id: ci.id,
+          is_read: false,
+          created_at: today,
+        })
+      }
+
+      // Today's check-outs
+      const { data: checkOuts } = await supabase
+        .from('property_bookings')
+        .select(`id, profiles!guest_id (first_name, last_name), properties (title)`)
+        .eq('check_out', today)
+        .eq('status', 'checked_in')
+
+      for (const co of checkOuts || []) {
+        notifications.push({
+          id: `checkout-${co.id}`,
+          type: 'check_out_today',
+          title: 'Checking Out Today',
+          description: `${(co.profiles as any)?.first_name} ${(co.profiles as any)?.last_name} - ${(co.properties as any)?.title}`,
+          booking_id: co.id,
+          is_read: false,
+          created_at: today,
+        })
+      }
+
+      // Pending payments
+      const { data: pendingPayments } = await supabase
+        .from('property_bookings')
+        .select(`id, total_price, profiles!guest_id (first_name, last_name), properties (title)`)
+        .eq('payment_status', 'pending')
+        .in('status', ['confirmed', 'checked_in'])
+
+      for (const pp of pendingPayments || []) {
+        notifications.push({
+          id: `payment-${pp.id}`,
+          type: 'payment_pending',
+          title: 'Payment Pending',
+          description: `${(pp.profiles as any)?.first_name} - $${pp.total_price} - ${(pp.properties as any)?.title}`,
+          booking_id: pp.id,
+          is_read: false,
+          created_at: today,
+        })
+      }
+
+      // New bookings (pending)
+      const { data: newBookings } = await supabase
+        .from('property_bookings')
+        .select(`id, profiles!guest_id (first_name, last_name), properties (title), created_at`)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      for (const nb of newBookings || []) {
+        notifications.push({
+          id: `booking-${nb.id}`,
+          type: 'new_booking',
+          title: 'New Booking Request',
+          description: `${(nb.profiles as any)?.first_name} ${(nb.profiles as any)?.last_name} - ${(nb.properties as any)?.title}`,
+          booking_id: nb.id,
+          is_read: false,
+          created_at: nb.created_at,
+        })
+      }
+
+      return notifications.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    } catch (error) {
+      console.error('Error fetching notifications:', error)
+      return []
+    }
+  }
+
+  // ============================================
+  // CANCEL BOOKING
+  // ============================================
+
+  static async cancelBooking(bookingId: string, reason: string, cancelledBy: string): Promise<boolean> {
+    const { error } = await supabase.rpc('update_booking_status', {
+      p_booking_id: bookingId,
+      p_new_status: 'cancelled',
+      p_changed_by: cancelledBy,
+      p_change_reason: reason,
+    })
 
     if (error) throw error
     return true

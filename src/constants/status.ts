@@ -139,6 +139,24 @@ export const MESSAGE_CONTENT_TYPE = {
 export type MessageContentType = typeof MESSAGE_CONTENT_TYPE[keyof typeof MESSAGE_CONTENT_TYPE]
 
 // Status badge colors for UI
+export const CUSTOMER_LIFECYCLE_STATUS = {
+  LEAD: 'lead',
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+  SUSPENDED: 'suspended',
+} as const
+
+export type CustomerLifecycleStatus = typeof CUSTOMER_LIFECYCLE_STATUS[keyof typeof CUSTOMER_LIFECYCLE_STATUS]
+
+export const CUSTOMER_TYPE = {
+  TENANT: 'tenant',
+  RENTER: 'renter',
+  BUYER: 'buyer',
+  GUEST: 'guest',
+} as const
+
+export type CustomerType = typeof CUSTOMER_TYPE[keyof typeof CUSTOMER_TYPE]
+
 export const STATUS_BADGE_COLORS = {
   PROPERTY: {
     [PROPERTY_APPROVAL_STATUS.DRAFT]: 'bg-gray-100 text-gray-800',
@@ -168,6 +186,18 @@ export const STATUS_BADGE_COLORS = {
     [VERIFICATION_STATUS.VERIFIED]: 'bg-green-100 text-green-800',
     [VERIFICATION_STATUS.REJECTED]: 'bg-red-100 text-red-800',
     [VERIFICATION_STATUS.SUSPENDED]: 'bg-orange-100 text-orange-800',
+  },
+  CUSTOMER_LIFECYCLE: {
+    [CUSTOMER_LIFECYCLE_STATUS.LEAD]: 'bg-blue-100 text-blue-800',
+    [CUSTOMER_LIFECYCLE_STATUS.ACTIVE]: 'bg-green-100 text-green-800',
+    [CUSTOMER_LIFECYCLE_STATUS.INACTIVE]: 'bg-gray-100 text-gray-800',
+    [CUSTOMER_LIFECYCLE_STATUS.SUSPENDED]: 'bg-red-100 text-red-800',
+  },
+  CUSTOMER_TYPE: {
+    [CUSTOMER_TYPE.TENANT]: 'bg-purple-100 text-purple-800',
+    [CUSTOMER_TYPE.RENTER]: 'bg-indigo-100 text-indigo-800',
+    [CUSTOMER_TYPE.BUYER]: 'bg-teal-100 text-teal-800',
+    [CUSTOMER_TYPE.GUEST]: 'bg-orange-100 text-orange-800',
   },
 } as const
 
@@ -219,5 +249,17 @@ export const STATUS_LABELS = {
     [CONVERSATION_PRIORITY.NORMAL]: 'Normal',
     [CONVERSATION_PRIORITY.HIGH]: 'High',
     [CONVERSATION_PRIORITY.URGENT]: 'Urgent',
+  },
+  CUSTOMER_LIFECYCLE: {
+    [CUSTOMER_LIFECYCLE_STATUS.LEAD]: 'Lead',
+    [CUSTOMER_LIFECYCLE_STATUS.ACTIVE]: 'Active',
+    [CUSTOMER_LIFECYCLE_STATUS.INACTIVE]: 'Inactive',
+    [CUSTOMER_LIFECYCLE_STATUS.SUSPENDED]: 'Suspended',
+  },
+  CUSTOMER_TYPE: {
+    [CUSTOMER_TYPE.TENANT]: 'Tenant',
+    [CUSTOMER_TYPE.RENTER]: 'Renter',
+    [CUSTOMER_TYPE.BUYER]: 'Buyer',
+    [CUSTOMER_TYPE.GUEST]: 'Guest',
   },
 } as const

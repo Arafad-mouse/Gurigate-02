@@ -5,7 +5,8 @@
  * This is a child entity of the Property aggregate.
  */
 
-import { PropertyPricing as PropertyPricingType, PricingType, CurrencyType } from './PropertyTypes';
+import type { PropertyPricing as PropertyPricingType } from './PropertyTypes';
+import { PricingType, CurrencyType } from './PropertyTypes';
 
 /**
  * Property Pricing Entity

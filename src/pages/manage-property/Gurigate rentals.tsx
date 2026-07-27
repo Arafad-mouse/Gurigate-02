@@ -1,8 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { TenantService } from "@/services/tenantService";
+import { listBuildings } from "@/services/buildingService";
+import { listFloors } from "@/services/floorService";
+import { getRooms, updateRoomStatus } from "@/services/unitService";
+import { listCustomers } from "@/services/customerService";
+import { createClient } from "@/lib/supabase/client";
 import type { Tenant, PaymentStatus } from "@/types/tenant";
+import type { Customer, CustomerType } from "@/types/customer";
+
+const supabase = createClient();
+
+// Add skeleton animation styles
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+`;
+if (!document.head.querySelector('style[data-skeleton]')) {
+  style.setAttribute('data-skeleton', 'true');
+  document.head.appendChild(style);
+}
 
 const Icon = {
   Home: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
@@ -25,8 +46,6 @@ const Icon = {
   ChevronDown: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>,
 };
 
-const BUILDINGS = ["All", "Burjiomar A", "Burjiomar B", "Kulmiye Tower", "Sha'ab Complex"];
-
 const STATUS_STYLE = {
   Paid:    { bg:"#dcfce7", color:"#15803d", dot:"#22c55e" },
   Pending: { bg:"#FFF7ED", color:"#c2410c", dot:"#f97316" },
@@ -35,7 +54,9 @@ const STATUS_STYLE = {
 
 interface TenantUI extends Tenant {
   name: string;
-  rooms?: number;
+  phone: string;
+  floor?: string;
+  roomsCount?: number;
   building?: string;
   unit?: string;
   rentDate?: string;
@@ -79,84 +100,365 @@ function Avatar({ size = 30, style = {} }: { size?: number; style?: React.CSSPro
 }
 
 function AddTenantModal({ onClose, onAdd, loading = false }: AddTenantModalProps) {
-  const [form, setForm] = useState({ name:"", phone:"", rooms:"1", building:BUILDINGS[1], unit:"", amount:"", nextDue:"" });
+  const [form, setForm] = useState({
+    customerType: 'individual' as 'individual' | 'business',
+    customerId: '',
+    responsibleContactId: '',
+    buildingId: '',
+    floorId: '',
+    unitId: '',
+    amount: '',
+    nextDue: '',
+  });
   const [error, setError] = useState("");
-  
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [buildings, setBuildings] = useState<any[]>([]);
+  const [floors, setFloors] = useState<any[]>([]);
+  const [units, setUnits] = useState<any[]>([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [loadingBuildings, setLoadingBuildings] = useState(false);
+  const [loadingFloors, setLoadingFloors] = useState(false);
+  const [loadingUnits, setLoadingUnits] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+
   const set = (k: string, v: string) => setForm(p=>({...p,[k]:v}));
-  
+
+  // Load customers based on type
+  useEffect(() => {
+    const loadCustomers = async () => {
+      setLoadingCustomers(true);
+      try {
+        const result = await listCustomers({
+          query: customerSearch,
+          type: form.customerType === 'individual' ? 'tenant' : 'tenant',
+          pageSize: 50,
+        });
+        setCustomers(result.items);
+      } catch (err) {
+        console.error('Failed to load customers:', err);
+      } finally {
+        setLoadingCustomers(false);
+      }
+    };
+    loadCustomers();
+  }, [form.customerType, customerSearch]);
+
+  // Load buildings
+  useEffect(() => {
+    const loadBuildings = async () => {
+      setLoadingBuildings(true);
+      try {
+        const result = await listBuildings();
+        setBuildings(result.items);
+      } catch (err) {
+        console.error('Failed to load buildings:', err);
+      } finally {
+        setLoadingBuildings(false);
+      }
+    };
+    loadBuildings();
+  }, []);
+
+  // Load floors when building changes
+  useEffect(() => {
+    if (form.buildingId) {
+      const loadFloors = async () => {
+        setLoadingFloors(true);
+        try {
+          const result = await listFloors({ buildingId: form.buildingId });
+          setFloors(result);
+        } catch (err) {
+          console.error('Failed to load floors:', err);
+        } finally {
+          setLoadingFloors(false);
+        }
+      };
+      loadFloors();
+    } else {
+      setFloors([]);
+      setUnits([]);
+      setForm(p => ({ ...p, floorId: '', unitId: '' }));
+    }
+  }, [form.buildingId]);
+
+  // Load vacant units when floor changes
+  useEffect(() => {
+    if (form.floorId) {
+      const loadUnits = async () => {
+        setLoadingUnits(true);
+        try {
+          const result = await getRooms({ building_id: form.buildingId, floor_id: form.floorId, status: 'available' });
+          setUnits(result.rooms);
+        } catch (err) {
+          console.error('Failed to load units:', err);
+        } finally {
+          setLoadingUnits(false);
+        }
+      };
+      loadUnits();
+    } else {
+      setUnits([]);
+      setForm(p => ({ ...p, unitId: '' }));
+    }
+  }, [form.floorId, form.buildingId]);
+
+  // Clear dependent fields when customer type changes
+  const handleCustomerTypeChange = (type: 'individual' | 'business') => {
+    setForm(p => ({ ...p, customerType: type, customerId: '', responsibleContactId: '' }));
+  };
+
+  // Clear dependent fields when building changes
+  const handleBuildingChange = (buildingId: string) => {
+    setForm(p => ({ ...p, buildingId, floorId: '', unitId: '' }));
+  };
+
+  // Clear dependent fields when floor changes
+  const handleFloorChange = (floorId: string) => {
+    setForm(p => ({ ...p, floorId, unitId: '' }));
+  };
+
   const handleAdd = async () => {
-    if (!form.name || !form.phone) {
-      setError("Name and phone are required");
+    // Validation
+    if (!form.customerId) {
+      setError("Please select a customer");
       return;
     }
-    
+    if (!form.buildingId) {
+      setError("Please select a building");
+      return;
+    }
+    if (!form.floorId) {
+      setError("Please select a floor");
+      return;
+    }
+    if (!form.unitId) {
+      setError("Please select a unit");
+      return;
+    }
+    if (form.customerType === 'business' && !form.responsibleContactId) {
+      setError("Please select a responsible contact for business customer");
+      return;
+    }
+
     try {
       setError("");
+      const selectedCustomer = customers.find(c => c.id === form.customerId);
+      const selectedUnit = units.find(u => u.id === form.unitId);
+      const selectedBuilding = buildings.find(b => b.id === form.buildingId);
+
       const newTenant = await TenantService.createTenant({
-        full_name: form.name,
-        phone: form.phone,
-        building: form.building,
-        unit: form.unit,
+        full_name: selectedCustomer?.fullName || 'Unknown',
+        phone: selectedCustomer?.phone || '',
+        building: selectedBuilding?.id || null,
+        unit: selectedUnit?.id || null,
+        floor_id: selectedUnit?.floor_id || null,
         monthly_rent: parseFloat(form.amount) || 0,
         next_due_date: form.nextDue || new Date().toISOString().split('T')[0],
-        rooms: parseInt(form.rooms),
+        rooms: 1,
       });
-      
+
+      // Update unit status to occupied
+      await updateRoomStatus(form.unitId, 'occupied');
+
       const tenantUI: TenantUI = {
         ...newTenant,
         name: newTenant.full_name,
-        rooms: parseInt(form.rooms),
-        building: form.building,
-        unit: form.unit,
+        roomsCount: 1,
+        building: selectedBuilding?.name || 'Unknown',
+        unit: selectedUnit?.room_number || 'Unknown',
         rentDate: newTenant.move_in_date,
         status: newTenant.payment_status,
         avatar: null,
       };
-      
+
       onAdd(tenantUI);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add lease");
     }
   };
-  
+
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.35)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }}>
-      <div style={{ background:"white", borderRadius:18, padding:28, width:440, boxShadow:"0 24px 60px rgba(0,0,0,.18)" }}>
+      <div style={{ background:"white", borderRadius:18, padding:28, width:500, maxHeight:"90vh", overflowY:"auto", boxShadow:"0 24px 60px rgba(0,0,0,.18)" }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
           <h2 style={{ fontSize:16, fontWeight:700 }}>Add New Lease</h2>
           <button onClick={onClose} disabled={loading} style={{ background:"#f1f5f9", border:"none", borderRadius:8, width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#64748b", opacity: loading ? 0.5 : 1 }}><Icon.X/></button>
         </div>
         {error && <div style={{ background:"#FEF2F2", color:"#E8344E", padding:"10px 12px", borderRadius:8, fontSize:12, marginBottom:16 }}>{error}</div>}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-          {[
-            { label:"Customer Name", key:"name", placeholder:"Axmed Cabdalle", full:true },
-            { label:"Phone", key:"phone", placeholder:"+252 63 xxxxxxx" },
-            { label:"Unit No.", key:"unit", placeholder:"A-101" },
-            { label:"Monthly Rent ($)", key:"amount", placeholder:"150" },
-            { label:"Next Due Date", key:"nextDue", placeholder:"", type:"date" },
-          ].map(f => (
-            <div key={f.key} style={{ gridColumn:f.full?"span 2":"span 1" }}>
-              <label style={{ fontSize:11, fontWeight:600, color:"#64748b", display:"block", marginBottom:4 }}>{f.label}</label>
-              <input type={f.type||"text"} placeholder={f.placeholder} value={form[f.key as keyof typeof form]} onChange={e=>set(f.key,e.target.value)} disabled={loading}
-                style={{ width:"100%", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"8px 12px", fontSize:12, outline:"none", fontFamily:"inherit", color:"#111827", transition:"border .15s", opacity: loading ? 0.6 : 1 }}
-                onFocus={e=>e.target.style.borderColor="#E8344E"}
-                onBlur={e=>e.target.style.borderColor="#e2e8f0"}/>
-            </div>
-          ))}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:12 }}>
+          {/* Customer Type Selection */}
           <div>
-            <label style={{ fontSize:11, fontWeight:600, color:"#64748b", display:"block", marginBottom:4 }}>Rooms</label>
-            <select value={form.rooms} onChange={e=>set("rooms",e.target.value)} disabled={loading} style={{ width:"100%", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"8px 12px", fontSize:12, outline:"none", fontFamily:"inherit", appearance:"none", cursor:"pointer", opacity: loading ? 0.6 : 1 }}>
-              <option value="1">1 Room</option>
-              <option value="2">2 Rooms</option>
-              <option value="3">3 Rooms</option>
+            <label style={{ fontSize:11, fontWeight:600, color:"#64748b", display:"block", marginBottom:4 }}>Customer Type</label>
+            <div style={{ display:"flex", gap:8 }}>
+              <button
+                onClick={() => handleCustomerTypeChange('individual')}
+                disabled={loading}
+                style={{
+                  flex:1,
+                  padding:"8px 12px",
+                  borderRadius:8,
+                  border:form.customerType === 'individual' ? "2px solid #E8344E" : "1.5px solid #e2e8f0",
+                  background:form.customerType === 'individual' ? "#FEF2F2" : "white",
+                  fontSize:12,
+                  fontWeight:600,
+                  cursor:"pointer",
+                  color:form.customerType === 'individual' ? "#E8344E" : "#374151",
+                  opacity: loading ? 0.6 : 1
+                }}
+              >
+                Individual
+              </button>
+              <button
+                onClick={() => handleCustomerTypeChange('business')}
+                disabled={loading}
+                style={{
+                  flex:1,
+                  padding:"8px 12px",
+                  borderRadius:8,
+                  border:form.customerType === 'business' ? "2px solid #E8344E" : "1.5px solid #e2e8f0",
+                  background:form.customerType === 'business' ? "#FEF2F2" : "white",
+                  fontSize:12,
+                  fontWeight:600,
+                  cursor:"pointer",
+                  color:form.customerType === 'business' ? "#E8344E" : "#374151",
+                  opacity: loading ? 0.6 : 1
+                }}
+              >
+                Business
+              </button>
+            </div>
+          </div>
+
+          {/* Customer Search */}
+          <div>
+            <label style={{ fontSize:11, fontWeight:600, color:"#64748b", display:"block", marginBottom:4 }}>
+              {form.customerType === 'individual' ? 'Customer' : 'Business Customer'}
+            </label>
+            <input
+              type="text"
+              placeholder="Search by name, phone, or email..."
+              value={customerSearch}
+              onChange={e => setCustomerSearch(e.target.value)}
+              disabled={loading}
+              style={{ width:"100%", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"8px 12px", fontSize:12, outline:"none", fontFamily:"inherit", color:"#111827", transition:"border .15s", opacity: loading ? 0.6 : 1 }}
+              onFocus={e=>e.target.style.borderColor="#E8344E"}
+              onBlur={e=>e.target.style.borderColor="#e2e8f0"}
+            />
+          </div>
+
+          {/* Customer Dropdown */}
+          <div>
+            <label style={{ fontSize:11, fontWeight:600, color:"#64748b", display:"block", marginBottom:4 }}>
+              Select {form.customerType === 'individual' ? 'Customer' : 'Business'}
+            </label>
+            <select
+              value={form.customerId}
+              onChange={e => set('customerId', e.target.value)}
+              disabled={loading || loadingCustomers}
+              style={{ width:"100%", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"8px 12px", fontSize:12, outline:"none", fontFamily:"inherit", appearance:"none", cursor:"pointer", opacity: loading || loadingCustomers ? 0.6 : 1 }}
+            >
+              <option value="">Select {form.customerType === 'individual' ? 'a customer' : 'a business'}</option>
+              {customers.map(c => (
+                <option key={c.id} value={c.id}>{c.fullName} - {c.phone}</option>
+              ))}
             </select>
           </div>
+
+          {/* Responsible Contact (Business Only) */}
+          {form.customerType === 'business' && (
+            <div>
+              <label style={{ fontSize:11, fontWeight:600, color:"#64748b", display:"block", marginBottom:4 }}>Responsible Contact</label>
+              <select
+                value={form.responsibleContactId}
+                onChange={e => set('responsibleContactId', e.target.value)}
+                disabled={loading}
+                style={{ width:"100%", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"8px 12px", fontSize:12, outline:"none", fontFamily:"inherit", appearance:"none", cursor:"pointer", opacity: loading ? 0.6 : 1 }}
+              >
+                <option value="">Select responsible contact</option>
+                {customers.filter(c => c.customerType === 'tenant').map(c => (
+                  <option key={c.id} value={c.id}>{c.fullName} - {c.phone}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Building Selection */}
           <div>
             <label style={{ fontSize:11, fontWeight:600, color:"#64748b", display:"block", marginBottom:4 }}>Building</label>
-            <select value={form.building} onChange={e=>set("building",e.target.value)} disabled={loading} style={{ width:"100%", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"8px 12px", fontSize:12, outline:"none", fontFamily:"inherit", appearance:"none", cursor:"pointer", opacity: loading ? 0.6 : 1 }}>
-              {BUILDINGS.slice(1).map(b=><option key={b}>{b}</option>)}
+            <select
+              value={form.buildingId}
+              onChange={e => handleBuildingChange(e.target.value)}
+              disabled={loading || loadingBuildings}
+              style={{ width:"100%", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"8px 12px", fontSize:12, outline:"none", fontFamily:"inherit", appearance:"none", cursor:"pointer", opacity: loading || loadingBuildings ? 0.6 : 1 }}
+            >
+              <option value="">Select building</option>
+              {buildings.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
             </select>
+          </div>
+
+          {/* Floor Selection */}
+          <div>
+            <label style={{ fontSize:11, fontWeight:600, color:"#64748b", display:"block", marginBottom:4 }}>Floor</label>
+            <select
+              value={form.floorId}
+              onChange={e => handleFloorChange(e.target.value)}
+              disabled={loading || !form.buildingId || loadingFloors}
+              style={{ width:"100%", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"8px 12px", fontSize:12, outline:"none", fontFamily:"inherit", appearance:"none", cursor:"pointer", opacity: loading || !form.buildingId || loadingFloors ? 0.6 : 1 }}
+            >
+              <option value="">Select floor</option>
+              {floors.map(f => (
+                <option key={f.id} value={f.id}>Floor {f.floor_number}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Unit Selection (Vacant Only) */}
+          <div>
+            <label style={{ fontSize:11, fontWeight:600, color:"#64748b", display:"block", marginBottom:4 }}>Unit (Vacant Only)</label>
+            <select
+              value={form.unitId}
+              onChange={e => set('unitId', e.target.value)}
+              disabled={loading || !form.floorId || loadingUnits}
+              style={{ width:"100%", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"8px 12px", fontSize:12, outline:"none", fontFamily:"inherit", appearance:"none", cursor:"pointer", opacity: loading || !form.floorId || loadingUnits ? 0.6 : 1 }}
+            >
+              <option value="">Select unit</option>
+              {units.map(u => (
+                <option key={u.id} value={u.id}>{u.building_name || 'Unknown Building'} - {u.unit_number || u.room_number}</option>
+              ))}
+            </select>
+            {units.length === 0 && form.floorId && !loadingUnits && (
+              <p style={{ fontSize:10, color:"#E8344E", marginTop:4 }}>No vacant units available on this floor</p>
+            )}
+          </div>
+
+          {/* Monthly Rent */}
+          <div>
+            <label style={{ fontSize:11, fontWeight:600, color:"#64748b", display:"block", marginBottom:4 }}>Monthly Rent ($)</label>
+            <input
+              type="number"
+              placeholder="150"
+              value={form.amount}
+              onChange={e => set('amount', e.target.value)}
+              disabled={loading}
+              style={{ width:"100%", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"8px 12px", fontSize:12, outline:"none", fontFamily:"inherit", color:"#111827", transition:"border .15s", opacity: loading ? 0.6 : 1 }}
+              onFocus={e=>e.target.style.borderColor="#E8344E"}
+              onBlur={e=>e.target.style.borderColor="#e2e8f0"}
+            />
+          </div>
+
+          {/* Next Due Date */}
+          <div>
+            <label style={{ fontSize:11, fontWeight:600, color:"#64748b", display:"block", marginBottom:4 }}>Next Due Date</label>
+            <input
+              type="date"
+              value={form.nextDue}
+              onChange={e => set('nextDue', e.target.value)}
+              disabled={loading}
+              style={{ width:"100%", border:"1.5px solid #e2e8f0", borderRadius:8, padding:"8px 12px", fontSize:12, outline:"none", fontFamily:"inherit", opacity: loading ? 0.6 : 1 }}
+            />
           </div>
         </div>
         <div style={{ display:"flex", gap:10, marginTop:20 }}>
@@ -230,7 +532,7 @@ function TenantDetailModal({ tenant, onClose, onUpdatePayment, onRenew, onTermin
             { label:"Phone", value:tenant.phone, icon:<Icon.Phone/> },
             { label:"Building", value:tenant.building, icon:<Icon.Building/> },
             { label:"Unit", value:tenant.unit, icon:<Icon.Door/> },
-            { label:"Rooms", value:`${tenant.rooms} room${tenant.rooms && tenant.rooms>1?"s":""}`, icon:<Icon.Grid/> },
+            { label:"Rooms", value:`${tenant.roomsCount || 1} room${(tenant.roomsCount || 1) > 1 ? "s" : ""}`, icon:<Icon.Grid/> },
             { label:"Monthly Rent", value:`$${tenant.monthly_rent}/mo`, icon:<Icon.CreditCard/> },
             { label:"Join Date", value:tenant.move_in_date, icon:<Icon.Calendar/> },
             { label:"Next Payment Due", value:tenant.next_due_date, icon:<Icon.Calendar/> },
@@ -281,7 +583,9 @@ export default function GuriGateRentals() {
   const [itemsPerPage] = useState(5);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ total_tenants: 0, active_leases: 0, pending_payments: 0, occupancy_rate: 0 });
+  const [statsLoaded, setStatsLoaded] = useState(false);
   const [totalTenants, setTotalTenants] = useState(0);
+  const [buildings, setBuildings] = useState<any[]>([]);
 
   const card = "white";
   const bdr = "#F1F5F9";
@@ -291,7 +595,17 @@ export default function GuriGateRentals() {
   useEffect(() => {
     loadTenants();
     loadStats();
+    loadBuildings();
   }, [buildingFilter, statusFilter, search, currentPage]);
+
+  const loadBuildings = async () => {
+    try {
+      const result = await listBuildings();
+      setBuildings(result.items);
+    } catch (error) {
+      console.error("Error loading buildings:", error);
+    }
+  };
 
   const loadTenants = async () => {
     try {
@@ -300,20 +614,62 @@ export default function GuriGateRentals() {
         page: currentPage,
         pageSize: itemsPerPage,
         building: buildingFilter !== "All" ? buildingFilter : undefined,
-        status: statusFilter !== "All" ? (statusFilter as PaymentStatus) : undefined,
+        status: statusFilter !== "All" ? statusFilter as PaymentStatus : undefined,
         search: search || undefined,
       });
 
-      const tenantsUI: TenantUI[] = result.items.map(t => ({
-        ...t,
-        name: t.full_name,
-        rooms: 1,
-        building: t.building_id || "Unknown",
-        unit: t.unit_id || "N/A",
-        rentDate: t.move_in_date,
-        status: t.payment_status,
-        avatar: null,
-      }));
+      // Fetch related data for building names, unit numbers, and floor numbers
+      const buildingIds = [...new Set(result.items.map(t => t.building_id).filter(Boolean))];
+      const unitIds = [...new Set(result.items.map(t => t.unit_id).filter(Boolean))];
+      
+      let buildingMap: Record<string, string> = {};
+      let unitMap: Record<string, { unit_number: string; floor_id: string }> = {};
+      let floorMap: Record<string, number> = {};
+      
+      if (buildingIds.length > 0) {
+        const { data: buildings } = await supabase
+          .from('buildings')
+          .select('id, name')
+          .in('id', buildingIds);
+        (buildings || []).forEach((b: any) => { buildingMap[b.id] = b.name; });
+      }
+      
+      if (unitIds.length > 0) {
+        const { data: units } = await supabase
+          .from('units')
+          .select('id, unit_number, floor_id')
+          .in('id', unitIds);
+        (units || []).forEach((u: any) => { unitMap[u.id] = { unit_number: u.unit_number, floor_id: u.floor_id }; });
+        
+        // Collect floor IDs from units
+        const floorIdsFromUnits = [...new Set((units || []).map((u: any) => u.floor_id).filter(Boolean))];
+        
+        if (floorIdsFromUnits.length > 0) {
+          const { data: floors } = await supabase
+            .from('floors')
+            .select('id, floor_number')
+            .in('id', floorIdsFromUnits);
+          (floors || []).forEach((f: any) => { floorMap[f.id] = f.floor_number; });
+        }
+      }
+
+      const tenantsUI: TenantUI[] = result.items.map(t => {
+        const unitData = unitMap[t.unit_id || ''];
+        const floorId = unitData?.floor_id || t.floor_id;
+        
+        return {
+          ...t,
+          name: t.full_name,
+          phone: t.phone,
+          building: t.building_id ? (buildingMap[t.building_id] || "Unknown") : "Unknown",
+          floor: floorId ? `Floor ${floorMap[floorId] || 'Unknown'}` : "Unknown",
+          unit: t.unit_id ? (unitData?.unit_number || "N/A") : "N/A",
+          roomsCount: 1,
+          rentDate: t.move_in_date,
+          status: t.payment_status,
+          avatar: null,
+        };
+      });
 
       setTenants(tenantsUI);
       setTotalTenants(result.total);
@@ -328,6 +684,7 @@ export default function GuriGateRentals() {
     try {
       const stats = await TenantService.getTenantStats();
       setStats(stats);
+      setStatsLoaded(true);
     } catch (error) {
       console.error("Error loading stats:", error);
     }
@@ -388,6 +745,14 @@ export default function GuriGateRentals() {
     if (window.confirm('Are you sure you want to terminate this lease?')) {
       try {
         setLoading(true);
+        
+        // Get the tenant's unit ID before deletion
+        const tenant = tenants.find(t => t.id === id);
+        if (tenant?.unit_id) {
+          // Mark unit as available
+          await updateRoomStatus(tenant.unit_id, 'available');
+        }
+        
         await TenantService.deleteTenant(id);
         setTenants(p => p.filter(t => t.id !== id));
         if (selectedTenant?.id === id) setSelectedTenant(null);
@@ -415,7 +780,7 @@ export default function GuriGateRentals() {
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:14, marginBottom:20 }}>
-        {[
+        {statsLoaded ? [
           { label:"Total Leases", value:stats.total_tenants.toString(), change:"+2", up:true, icon:<Icon.Users/> },
           { label:"Active Leases", value:stats.active_leases.toString(), change:"+1", up:true, icon:<Icon.Home/> },
           { label:"Pending Payments", value:stats.pending_payments.toString(), change:"-1", up:false, icon:<Icon.CreditCard/> },
@@ -438,14 +803,17 @@ export default function GuriGateRentals() {
               <span style={{ fontSize:11, color:muted }}>Last month</span>
             </div>
           </div>
-        ))}
+        )) : (
+          <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "20px", color: muted }}>Loading stats...</div>
+        )}
       </div>
 
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20, flexWrap:"wrap" }}>
         <div style={{ display:"flex", alignItems:"center", gap:6, background:card, border:`1px solid ${bdr}`, borderRadius:10, padding:"8px 12px" }}>
           <Icon.Filter />
           <select value={buildingFilter} onChange={e=>setBuildingFilter(e.target.value)} disabled={loading} style={{ border:"none", outline:"none", background:"transparent", color:text, fontSize:13, cursor:"pointer", opacity: loading ? 0.6 : 1 }}>
-            {BUILDINGS.map(b => <option key={b} value={b}>{b}</option>)}
+            <option value="All">All Buildings</option>
+            {buildings.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:6, background:card, border:`1px solid ${bdr}`, borderRadius:10, padding:"8px 12px" }}>
@@ -466,14 +834,24 @@ export default function GuriGateRentals() {
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
           <thead>
             <tr style={{ borderBottom:`1px solid ${bdr}` }}>
-              {["Customer","Contact","Building","Unit","Rent","Status","Start Date",""].map((h,i) => (
+              {["Customer","Contact","Building","Floor","Unit","Rent","Status","Start Date",""].map((h,i) => (
                 <th key={i} style={{ padding:"12px 14px", textAlign:"left", fontWeight:600, fontSize:11, color:muted, whiteSpace:"nowrap", letterSpacing:"0.02em" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {tenants.length===0 ? (
-              <tr><td colSpan={8} style={{ padding:"32px", textAlign:"center", color:muted, fontSize:13 }}>No leases found</td></tr>
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i} style={{ borderBottom:`1px solid ${bdr}` }}>
+                  {Array.from({ length: 9 }).map((_, j) => (
+                    <td key={j} style={{ padding:"12px 14px" }}>
+                      <div style={{ width:"100%", height:16, background:"#F1F5F9", borderRadius:4, animation:"pulse 1.5s ease-in-out infinite" }} />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : tenants.length===0 ? (
+              <tr><td colSpan={9} style={{ padding:"32px", textAlign:"center", color:muted, fontSize:13 }}>No leases found</td></tr>
             ) : tenants.map((t) => (
               <tr key={t.id} style={{ borderBottom:`1px solid ${bdr}`, transition:"background .12s", cursor:"pointer" }}
                   onClick={()=>{setSelectedTenant(t);setShowDetailModal(true);}}
@@ -484,11 +862,12 @@ export default function GuriGateRentals() {
                     <Avatar size={32}/>
                     <div>
                       <p style={{ fontWeight:600, color:text, fontSize:13 }}>{t.name}</p>
-                      <p style={{ fontSize:11, color:muted }}>{t.phone}</p>
                     </div>
                   </div>
                 </td>
+                <td style={{ padding:"12px 14px", color:muted }}>{t.phone}</td>
                 <td style={{ padding:"12px 14px", color:muted }}>{t.building}</td>
+                <td style={{ padding:"12px 14px", color:muted }}>{t.floor ? `Floor ${t.floor}` : 'N/A'}</td>
                 <td style={{ padding:"12px 14px", color:muted }}>{t.unit}</td>
                 <td style={{ padding:"12px 14px", fontWeight:600, color:text }}>${t.monthly_rent}/mo</td>
                 <td style={{ padding:"12px 14px" }}>

@@ -72,7 +72,7 @@ function PropertyCard({ property }: { property: Property }) {
         <img
           src={property.image}
           alt={property.title}
-          onError={(event) => applyImageFallback(event.currentTarget, property.title)}
+          onError={(event) => applyImageFallback(event, '/E-dahab.png')}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
         />
 

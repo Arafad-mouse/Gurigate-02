@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, PieChart, Pie, Cell, Legend, Label, RadialBarChart, RadialBar, PolarRadiusAxis, PolarGrid } from 'recharts';
 import { UserRoundCog, ShieldUser } from "lucide-react";
-import { getBuildingMetrics } from '@/services/buildingService';
+import { getBuildingMetrics, getDashboardTransactions, getSalesAnalytics, getDashboardExpenses } from '@/services/buildingService';
 import type { BuildingMetrics } from '@/types/building';
+import type { DashboardTransaction, SalesAnalyticsData, DashboardExpense } from '@/services/buildingService';
 
 // Import page components
 import GuriGateRentals from "./Gurigate rentals";
@@ -95,22 +96,7 @@ function BarSparkline({ data, color }: { data: number[]; color: string }) {
 
           
 // ── Sales Analytics Line Chart (Recharts) ────────────────────────────────────────
-function SalesChart() {
-  const data = [
-    { month: "Jan", income: 2000, expenses: 1200 },
-    { month: "Feb", income: 4500, expenses: 2000 },
-    { month: "Mar", income: 3200, expenses: 1800 },
-    { month: "Apr", income: 6000, expenses: 2500 },
-    { month: "May", income: 5500, expenses: 2200 },
-    { month: "Jun", income: 14000, expenses: 3000 },
-    { month: "Jul", income: 7000, expenses: 2600 },
-    { month: "Aug", income: 8500, expenses: 3200 },
-    { month: "Sep", income: 6800, expenses: 2800 },
-    { month: "Oct", income: 5200, expenses: 2400 },
-    { month: "Nov", income: 7800, expenses: 3100 },
-    { month: "Dec", income: 9500, expenses: 3600 },
-  ];
-
+function SalesChart({ data }: { data: SalesAnalyticsData[] }) {
   return (
     <ResponsiveContainer width="100%" height={160}>
       <AreaChart data={data}>
@@ -163,9 +149,9 @@ function SalesChart() {
 }
 
 // ── Goals Radial Stacked Chart (Recharts) ────────────────────────────────────────
-function GoalsChart() {
-  const chartData = [{ month: "january", mobile: 570, desktop: 1260 }];
-  const totalVisitors = chartData[0].desktop + chartData[0].mobile;
+function GoalsChart({ buildings, rooms }: { buildings: number; rooms: number }) {
+  const chartData = [{ month: "january", rooms, buildings }];
+  const totalUnits = buildings + rooms;
 
   return (
     <ResponsiveContainer width="100%" height={200}>
@@ -178,14 +164,14 @@ function GoalsChart() {
         cy="80%"
       >
         <RadialBar
-          dataKey="mobile"
+          dataKey="rooms"
           fill="#F59E0B"
           stackId="a"
           cornerRadius={5}
           className="stroke-transparent stroke-2"
         />
         <RadialBar
-          dataKey="desktop"
+          dataKey="buildings"
           stackId="a"
           cornerRadius={5}
           fill="#E8344E"
@@ -211,14 +197,14 @@ function GoalsChart() {
                       y={(viewBox.cy || 0) - 16}
                       style={{ fontSize: '20px', fontWeight: 700, fill: '#1F2937' }}
                     >
-                      {totalVisitors.toLocaleString()}
+                      {totalUnits.toLocaleString()}
                     </tspan>
                     <tspan
                       x={viewBox.cx}
                       y={(viewBox.cy || 0) + 4}
                       style={{ fontSize: '12px', fill: '#9CA3AF' }}
                     >
-                      Visitors
+                      Total Properties
                     </tspan>
                   </text>
                 )
@@ -232,12 +218,12 @@ function GoalsChart() {
 }
 
 // ── Data ──────────────────────────────────────────────────────────────────────
-const INITIAL_TRANSACTIONS = [
-  { id:1, name:"New York", type:"House", txn:"Buy", customer:"Thomas L. Fletcher", avatar:"TF", color:"#E8344E", date:"Jan 31, 2025", status:"CANCEL", img:"https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=60&q=80" },
-  { id:2, name:"Washington Residence", type:"Villa", txn:"Rent", customer:"David Lee", avatar:"DL", color:"#10B981", date:"Jan 30, 2025", status:"COMPLETED", img:"https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=60&q=80" },
-  { id:3, name:"London Residence", type:"House", txn:"Buy", customer:"Eleana Porana", avatar:"EP", color:"#E8344E", date:"Jan 30, 2025", status:"CANCEL", img:"https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=60&q=80" },
-  { id:4, name:"Grand Resort Villa", type:"Villa", txn:"Rent", customer:"Mike Hussey", avatar:"MH", color:"#10B981", date:"Jan 29, 2025", status:"COMPLETED", img:"https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=60&q=80" },
-  { id:5, name:"Tokyo Penthouse", type:"Apartment", txn:"Buy", customer:"Sara Kim", avatar:"SK", color:"#F59E0B", date:"Jan 28, 2025", status:"PENDING", img:"https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=60&q=80" },
+const INITIAL_EXPENSES_INVOICES = [
+  { id:1, description:"Roof Repair - Building A", category:"Maintenance", recordType:"Expense", amount:"$1,250.00", vendor:"ABC Contractors", avatar:"AC", color:"#E8344E", date:"Jan 31, 2025", status:"PAID" },
+  { id:2, description:"Monthly Rent - Unit 204", category:"Rent", recordType:"Invoice", amount:"$2,400.00", vendor:"David Lee", avatar:"DL", color:"#10B981", date:"Jan 30, 2025", status:"COMPLETED" },
+  { id:3, description:"Electricity Bill - Common Areas", category:"Utilities", recordType:"Expense", amount:"$480.00", vendor:"City Power Co.", avatar:"CP", color:"#E8344E", date:"Jan 30, 2025", status:"OVERDUE" },
+  { id:4, description:"Lease Payment - Unit 12B", category:"Rent", recordType:"Invoice", amount:"$1,800.00", vendor:"Mike Hussey", avatar:"MH", color:"#10B981", date:"Jan 29, 2025", status:"COMPLETED" },
+  { id:5, description:"Property Insurance Renewal", category:"Insurance", recordType:"Expense", amount:"$950.00", vendor:"SafeGuard Insurance", avatar:"SI", color:"#F59E0B", date:"Jan 28, 2025", status:"PENDING" },
 ];
 
 const NAV_ITEMS = [
@@ -246,17 +232,18 @@ const NAV_ITEMS = [
   { label:"Units", icon:<Icon.Home/>, section:"main" },
   { label:"Customers", icon:<UserRoundCog size={16}/>, section:"main" },
   { label:"Leases", icon:<Icon.Calendar/>, section:"main" },
-  { label:"Payments", icon:<Icon.CreditCard/>, section:"main" },
+  { label:"Expenses", icon:<Icon.CreditCard/>, section:"main" },
   { label:"Documents", icon:<Icon.Inbox/>, section:"main" },
   { label:"Invoices", icon:<Icon.BarChart/>, section:"main" },
-  { label:"Reports", icon:<Icon.TrendUp/>, section:"main" },
   { label:"Settings", icon:<Icon.Settings/>, section:"configuration" },
 ];
 
 const STATUS_COLORS = {
-  CANCEL: { bg:"#FEF2F2", text:"#E8344E" },
+  PAID: { bg:"#ECFDF5", text:"#059669" },
   COMPLETED: { bg:"#ECFDF5", text:"#059669" },
   PENDING: { bg:"#FFFBEB", text:"#D97706" },
+  OVERDUE: { bg:"#FEF2F2", text:"#E8344E" },
+  CANCEL: { bg:"#FEF2F2", text:"#E8344E" },
 };
 
 // ── Coming Soon Page Component ───────────────────────────────────────────────────
@@ -322,7 +309,7 @@ function ViewTransactionPanel({ transaction, onClose }: { transaction: any; onCl
         }}
       >
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
-          <h2 style={{ fontSize:20, fontWeight:700 }}>Transaction Details</h2>
+          <h2 style={{ fontSize:20, fontWeight:700 }}>{transaction.recordType === "Invoice" ? "Invoice" : "Expense"} Details</h2>
           <button 
             onClick={onClose}
             style={{ background:"none", border:"none", cursor:"pointer", color:"#9CA3AF", padding:4 }}
@@ -332,26 +319,25 @@ function ViewTransactionPanel({ transaction, onClose }: { transaction: any; onCl
         </div>
 
         <div style={{ marginBottom:20 }}>
-          <img src={transaction.img} alt={transaction.name} style={{ width:"100%", height:200, objectFit:"cover", borderRadius:12, marginBottom:16 }} />
           <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16 }}>
             <div style={{ width:48, height:48, borderRadius:"50%", background:transaction.color, display:"flex", alignItems:"center", justifyContent:"center", color:"white", fontSize:16, fontWeight:700 }}>
               {transaction.avatar}
             </div>
             <div>
-              <h3 style={{ fontSize:18, fontWeight:700, marginBottom:2 }}>{transaction.name}</h3>
-              <p style={{ fontSize:14, color:"#6B7280" }}>{transaction.customer}</p>
+              <h3 style={{ fontSize:18, fontWeight:700, marginBottom:2 }}>{transaction.description}</h3>
+              <p style={{ fontSize:14, color:"#6B7280" }}>{transaction.vendor}</p>
             </div>
           </div>
         </div>
 
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:20 }}>
           <div style={{ background:"#F8F9FC", padding:16, borderRadius:12 }}>
-            <p style={{ fontSize:12, color:"#9CA3AF", marginBottom:4 }}>Property Type</p>
-            <p style={{ fontSize:15, fontWeight:600 }}>{transaction.type}</p>
+            <p style={{ fontSize:12, color:"#9CA3AF", marginBottom:4 }}>Category</p>
+            <p style={{ fontSize:15, fontWeight:600 }}>{transaction.category}</p>
           </div>
           <div style={{ background:"#F8F9FC", padding:16, borderRadius:12 }}>
-            <p style={{ fontSize:12, color:"#9CA3AF", marginBottom:4 }}>Transaction Type</p>
-            <p style={{ fontSize:15, fontWeight:600 }}>{transaction.txn}</p>
+            <p style={{ fontSize:12, color:"#9CA3AF", marginBottom:4 }}>Amount</p>
+            <p style={{ fontSize:15, fontWeight:600 }}>{transaction.amount}</p>
           </div>
           <div style={{ background:"#F8F9FC", padding:16, borderRadius:12 }}>
             <p style={{ fontSize:12, color:"#9CA3AF", marginBottom:4 }}>Date</p>
@@ -366,7 +352,7 @@ function ViewTransactionPanel({ transaction, onClose }: { transaction: any; onCl
         </div>
 
         <div style={{ background:"#F8F9FC", padding:16, borderRadius:12, marginBottom:20 }}>
-          <p style={{ fontSize:12, color:"#9CA3AF", marginBottom:8 }}>Transaction ID</p>
+          <p style={{ fontSize:12, color:"#9CA3AF", marginBottom:8 }}>{transaction.recordType === "Invoice" ? "Invoice" : "Expense"} ID</p>
           <p style={{ fontSize:14, fontWeight:600, fontFamily:"monospace" }}>#{transaction.id.toString().padStart(6, '0')}</p>
         </div>
 
@@ -396,10 +382,11 @@ function ViewTransactionPanel({ transaction, onClose }: { transaction: any; onCl
 // ── Edit Transaction Panel ───────────────────────────────────────────────────────
 function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: any; onClose: () => void; onSave: (updated: any) => void }) {
   const [formData, setFormData] = useState({
-    name: transaction?.name || '',
-    type: transaction?.type || '',
-    txn: transaction?.txn || '',
-    customer: transaction?.customer || '',
+    description: transaction?.description || '',
+    category: transaction?.category || '',
+    recordType: transaction?.recordType || 'Expense',
+    amount: transaction?.amount || '',
+    vendor: transaction?.vendor || '',
     date: transaction?.date || '',
     status: transaction?.status || 'PENDING'
   });
@@ -436,7 +423,7 @@ function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: a
         }}
       >
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
-          <h2 style={{ fontSize:20, fontWeight:700 }}>Edit Transaction</h2>
+          <h2 style={{ fontSize:20, fontWeight:700 }}>Edit {transaction?.recordType === "Invoice" ? "Invoice" : "Expense"}</h2>
           <button 
             onClick={onClose}
             aria-label="Close edit transaction modal"
@@ -449,13 +436,13 @@ function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: a
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom:16 }}>
-            <label htmlFor="property-name" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Property Name</label>
+            <label htmlFor="property-name" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Description</label>
             <input
               id="property-name"
               type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Enter property name"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Enter description"
               style={{ 
                 width:"100%", 
                 padding:"10px 12px", 
@@ -469,12 +456,12 @@ function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: a
           </div>
 
           <div style={{ marginBottom:16 }}>
-            <label htmlFor="property-type" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Property Type</label>
+            <label htmlFor="property-type" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Category</label>
             <select
               id="property-type"
-              value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              title="Select property type"
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              title="Select category"
               style={{ 
                 width:"100%", 
                 padding:"10px 12px", 
@@ -486,20 +473,21 @@ function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: a
               }}
               required
             >
-              <option value="House">House</option>
-              <option value="Villa">Villa</option>
-              <option value="Apartment">Apartment</option>
-              <option value="Condo">Condo</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Rent">Rent</option>
+              <option value="Insurance">Insurance</option>
+              <option value="Other">Other</option>
             </select>
           </div>
 
           <div style={{ marginBottom:16 }}>
-            <label htmlFor="transaction-type" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Transaction Type</label>
+            <label htmlFor="transaction-type" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Record Type</label>
             <select
               id="transaction-type"
-              value={formData.txn}
-              onChange={(e) => setFormData({ ...formData, txn: e.target.value })}
-              title="Select transaction type"
+              value={formData.recordType}
+              onChange={(e) => setFormData({ ...formData, recordType: e.target.value })}
+              title="Select record type"
               style={{ 
                 width:"100%", 
                 padding:"10px 12px", 
@@ -511,19 +499,19 @@ function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: a
               }}
               required
             >
-              <option value="Buy">Buy</option>
-              <option value="Rent">Rent</option>
+              <option value="Expense">Expense</option>
+              <option value="Invoice">Invoice</option>
             </select>
           </div>
 
           <div style={{ marginBottom:16 }}>
-            <label htmlFor="customer-name" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Customer Name</label>
+            <label htmlFor="customer-name" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Vendor / Payee</label>
             <input
               id="customer-name"
               type="text"
-              value={formData.customer}
-              onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
-              placeholder="Enter customer name"
+              value={formData.vendor}
+              onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+              placeholder="Enter vendor or payee name"
               style={{ 
                 width:"100%", 
                 padding:"10px 12px", 
@@ -537,9 +525,29 @@ function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: a
           </div>
 
           <div style={{ marginBottom:16 }}>
-            <label htmlFor="transaction-date" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Date</label>
+            <label htmlFor="transaction-date" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Amount</label>
             <input
               id="transaction-date"
+              type="text"
+              value={formData.amount}
+              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              placeholder="Enter amount (e.g. $1,000.00)"
+              style={{ 
+                width:"100%", 
+                padding:"10px 12px", 
+                border:"1px solid #E5E7EB", 
+                borderRadius:8, 
+                fontSize:14,
+                outline:"none"
+              }}
+              required
+            />
+          </div>
+
+          <div style={{ marginBottom:16 }}>
+            <label htmlFor="record-date" style={{ display:"block", fontSize:13, fontWeight:600, color:"#374151", marginBottom:6 }}>Date</label>
+            <input
+              id="record-date"
               type="text"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -576,6 +584,8 @@ function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: a
             >
               <option value="COMPLETED">Completed</option>
               <option value="PENDING">Pending</option>
+              <option value="PAID">Paid</option>
+              <option value="OVERDUE">Overdue</option>
               <option value="CANCEL">Cancelled</option>
             </select>
           </div>
@@ -621,6 +631,83 @@ function EditTransactionPanel({ transaction, onClose, onSave }: { transaction: a
   );
 }
 
+// ── Calendar Picker ───────────────────────────────────────────────────────────
+function CalendarPicker({ selectedDate, onSelect }: { selectedDate: Date; onSelect: (date: Date) => void }) {
+  const [viewMonth, setViewMonth] = useState(selectedDate.getMonth());
+  const [viewYear, setViewYear] = useState(selectedDate.getFullYear());
+
+  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const dayNames = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+
+  const days: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) days.push(null);
+  for (let d = 1; d <= daysInMonth; d++) days.push(d);
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
+    else setViewMonth(viewMonth - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
+    else setViewMonth(viewMonth + 1);
+  };
+
+  const isSameDay = (d1: Date, d2: Date) =>
+    d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+
+  return (
+    <div onClick={(e) => e.stopPropagation()} style={{ width:260, background:"white", border:"1px solid #F1F5F9", borderRadius:8, boxShadow:"0 4px 12px rgba(0,0,0,0.1)", zIndex:100, padding:12 }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+        <button onClick={prevMonth} style={{ background:"none", border:"none", cursor:"pointer", color:"#6B7280", padding:4 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span style={{ fontSize:13, fontWeight:600, color:"#111827" }}>{monthNames[viewMonth]} {viewYear}</span>
+        <button onClick={nextMonth} style={{ background:"none", border:"none", cursor:"pointer", color:"#6B7280", padding:4 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2, marginBottom:4 }}>
+        {dayNames.map(d => (
+          <div key={d} style={{ textAlign:"center", fontSize:10, fontWeight:600, color:"#9CA3AF", padding:"4px 0" }}>{d}</div>
+        ))}
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2 }}>
+        {days.map((day, i) => {
+          if (day === null) return <div key={i} />;
+          const dateObj = new Date(viewYear, viewMonth, day);
+          const selected = isSameDay(dateObj, selectedDate);
+          const isToday = isSameDay(dateObj, new Date());
+          return (
+            <button
+              key={i}
+              onClick={() => onSelect(dateObj)}
+              style={{
+                border:"none",
+                borderRadius:6,
+                padding:"6px 0",
+                fontSize:12,
+                cursor:"pointer",
+                background: selected ? "#E8344E" : isToday ? "#F8F9FC" : "white",
+                color: selected ? "white" : "#374151",
+                fontWeight: selected ? 700 : isToday ? 600 : 400,
+              }}
+            >
+              {day}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function formatDate(d: Date) {
+  return d.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+}
+
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function GuriGateDashboard() {
   const [activeNav, setActiveNav] = useState("Dashboard");
@@ -633,10 +720,20 @@ export default function GuriGateDashboard() {
   const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelType, setPanelType] = useState<'view' | 'edit'>('view');
-  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
-  const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
+  const [selectedRecord, setSelectedRecord] = useState<any>(null);
+  const [records, setRecords] = useState<DashboardExpense[]>([]);
+  const [recordsLoading, setRecordsLoading] = useState(true);
+  const [transactions, setTransactions] = useState<DashboardTransaction[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [buildingMetrics, setBuildingMetrics] = useState<BuildingMetrics | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(true);
+  const [salesData, setSalesData] = useState<SalesAnalyticsData[]>(
+    ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map(m => ({ month: m, income: 0, expenses: 0 }))
+  );
+  const [timeFilterOpen, setTimeFilterOpen] = useState(false);
+  const [timeFilterDate, setTimeFilterDate] = useState(new Date());
+  const [salesFilterOpen, setSalesFilterOpen] = useState(false);
+  const [salesFilterDate, setSalesFilterDate] = useState(new Date());
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -646,6 +743,20 @@ export default function GuriGateDashboard() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!timeFilterOpen) return;
+    const handleClickOutside = () => setTimeFilterOpen(false);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [timeFilterOpen]);
+
+  useEffect(() => {
+    if (!salesFilterOpen) return;
+    const handleClickOutside = () => setSalesFilterOpen(false);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [salesFilterOpen]);
 
   // Load building metrics
   useEffect(() => {
@@ -661,6 +772,44 @@ export default function GuriGateDashboard() {
       }
     };
     loadMetrics();
+
+    // Load dashboard transactions
+    const loadTransactions = async () => {
+      try {
+        const data = await getDashboardTransactions(10);
+        if (mounted) setTransactions(data);
+      } catch (error) {
+        console.error('Failed to load dashboard transactions:', error);
+      } finally {
+        if (mounted) setTransactionsLoading(false);
+      }
+    };
+    loadTransactions();
+
+    // Load sales analytics
+    const loadSalesData = async () => {
+      try {
+        const data = await getSalesAnalytics();
+        if (mounted) setSalesData(data);
+      } catch (error) {
+        console.error('Failed to load sales analytics:', error);
+      }
+    };
+    loadSalesData();
+
+    // Load dashboard expenses
+    const loadExpenses = async () => {
+      try {
+        const data = await getDashboardExpenses(10);
+        if (mounted) setRecords(data);
+      } catch (error) {
+        console.error('Failed to load dashboard expenses:', error);
+      } finally {
+        if (mounted) setRecordsLoading(false);
+      }
+    };
+    loadExpenses();
+
     return () => { mounted = false; };
   }, []);
 
@@ -719,23 +868,23 @@ export default function GuriGateDashboard() {
     // You can add additional logic here like refreshing the property list
   };
 
-  const handleViewTransaction = (transaction: any) => {
-    setSelectedTransaction(transaction);
+  const handleViewRecord = (record: any) => {
+    setSelectedRecord(record);
     setPanelType('view');
     setPanelOpen(true);
     setMenuOpenId(null);
   };
 
-  const handleEditTransaction = (transaction: any) => {
-    setSelectedTransaction(transaction);
+  const handleEditRecord = (record: any) => {
+    setSelectedRecord(record);
     setPanelType('edit');
     setPanelOpen(true);
     setMenuOpenId(null);
   };
 
-  const handleSaveTransaction = (updated: any) => {
-    console.log('Transaction updated:', updated);
-    setTransactions((prev: any[]) => 
+  const handleSaveRecord = (updated: any) => {
+    console.log('Record updated:', updated);
+    setRecords((prev: any[]) => 
       prev.map((t: any) => t.id === updated.id ? updated : t)
     );
   };
@@ -755,7 +904,7 @@ export default function GuriGateDashboard() {
         return <CustomersPage />;
       case "Leases":
         return <GuriGateRentals />;
-      case "Payments":
+      case "Expenses":
         return <GuriGateTransaction />;
       case "Transactions":
         return <ComingSoonPage title="Transactions" icon={<Icon.CreditCard/>} description="Activity history for lease payments and lease actions" />;
@@ -776,7 +925,7 @@ export default function GuriGateDashboard() {
                 <p style={{ fontSize:12, color:"#9CA3AF", marginTop:2 }}>Welcome, Let's dive into your personalized setup guide.</p>
               </div>
               <button 
-                onClick={() => setShowAddPropertyModal(true)}
+                onClick={() => setActiveNav("Buildings")}
                 style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, background:"#E8344E", color:"white", border:"none", borderRadius:10, padding:"10px 18px", fontSize:13, fontWeight:600, cursor:"pointer", width:isMobile ? "100%" : "auto" }}
                 title="Add a new property to your portfolio"
               >
@@ -792,14 +941,14 @@ export default function GuriGateDashboard() {
                 </div>
               ) : buildingMetrics ? [
                 { label:"Monthly Revenue", value:`$${(buildingMetrics.monthly_revenue / 100).toLocaleString()}`, change:"+0.0%", data:[40,35,45,30,50,40,55,45,60,50,65,55], type:"line", color:"#E8344E" },
-                { label:"Occupied Units", value:buildingMetrics.occupied_units.toString(), change:"+0.0%", data:[20,35,25,45,30,60,40,55,42,65,50,70], type:"bar", color:"#10B981" },
-                { label:"Vacant Units", value:buildingMetrics.vacant_units.toString(), change:"-0.0%", data:[30,25,40,35,50,30,45,55,40,60,50,65], type:"bar", color:"#F59E0B" },
-                { label:"Total Units", value:buildingMetrics.total_units.toString(), change:"+0.0%", data:[25,40,30,50,35,55,40,60,45,65,50,70], type:"line", color:"#3B82F6" },
+                { label:"Occupied Rooms", value:buildingMetrics.occupied_units.toString(), change:"+0.0%", data:[20,35,25,45,30,60,40,55,42,65,50,70], type:"bar", color:"#10B981" },
+                { label:"Vacant Rooms", value:buildingMetrics.vacant_units.toString(), change:"-0.0%", data:[30,25,40,35,50,30,45,55,40,60,50,65], type:"bar", color:"#F59E0B" },
+                { label:"Total Buildings", value:buildingMetrics.total_buildings.toString(), change:"+0.0%", data:[25,40,30,50,35,55,40,60,45,65,50,70], type:"line", color:"#3B82F6" },
               ].map((card: any) => (
                 <div key={card.label} className="stat-card" style={{ background:"white", border:"1px solid #F1F5F9" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
                     <div style={{ width:32, height:32, background:"#FEF2F2", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      {card.label.includes("Revenue") ? <Icon.CreditCard/> : card.label.includes("Units") ? <Icon.Building/> : card.label.includes("Leases") ? <Icon.Home/> : <Icon.User/>}
+                      {card.label.includes("Revenue") ? <Icon.CreditCard/> : card.label.includes("Buildings") ? <Icon.Building/> : card.label.includes("Rooms") ? <Icon.Home/> : <Icon.User/>}
                     </div>
                     {card.type === "bar"
                       ? <BarSparkline data={card.data} color={card.color}/>
@@ -823,14 +972,27 @@ export default function GuriGateDashboard() {
               <div className="chart-card" style={{ background:"white", border:"1px solid #F1F5F9" }}>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
                   <h2 style={{ fontSize:15, fontWeight:700 }}>Sales Analytics</h2>
-                  <button style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:"#6B7280", background:"#F8F9FC", border:"none", borderRadius:8, padding:"6px 12px", cursor:"pointer" }}>
-                    Last Month <Icon.ChevronDown/>
-                  </button>
+                  <div style={{ position:"relative" }}>
+                    <button 
+                      onClick={() => setSalesFilterOpen(!salesFilterOpen)}
+                      style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:"#6B7280", background:"#F8F9FC", border:"none", borderRadius:8, padding:"6px 12px", cursor:"pointer" }}
+                    >
+                      {formatDate(salesFilterDate)} <Icon.ChevronDown/>
+                    </button>
+                    {salesFilterOpen && (
+                      <div style={{ position:"absolute", right:0, top:"100%", marginTop:4 }}>
+                        <CalendarPicker
+                          selectedDate={salesFilterDate}
+                          onSelect={(date) => { setSalesFilterDate(date); setSalesFilterOpen(false); }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div style={{ display:"flex", gap:16, marginBottom:14 }}>
                   {[
-                    { label:"Income", value:"$5,720.00", color:"#E8344E" },
-                    { label:"Expenses", value:"$5,720.00", color:"#93C5FD" },
+                    { label:"Income", value:`$${salesData.reduce((s, d) => s + d.income, 0).toLocaleString()}`, color:"#E8344E" },
+                    { label:"Expenses", value:`$${salesData.reduce((s, d) => s + d.expenses, 0).toLocaleString()}`, color:"#93C5FD" },
                   ].map((l: any) => (
                     <div key={l.label} style={{ display:"flex", alignItems:"center", gap:6 }}>
                       <div style={{ width:8, height:8, borderRadius:2, background:l.color }}/>
@@ -839,74 +1001,99 @@ export default function GuriGateDashboard() {
                     </div>
                   ))}
                 </div>
-                <SalesChart/>
+                <SalesChart data={salesData} />
               </div>
 
               {/* Goals donut */}
               <div className="chart-card" style={{ background:"white", border:"1px solid #F1F5F9" }}>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
-                  <h2 style={{ fontSize:15, fontWeight:700 }}>Goals</h2>
+                  <h2 style={{ fontSize:15, fontWeight:700 }}>Buildings & Rooms</h2>
                   <button style={{ background:"none", border:"none", cursor:"pointer", color:"#9CA3AF" }} title="More options"><Icon.MoreVert/></button>
                 </div>
-                <GoalsChart/>
+                <GoalsChart buildings={buildingMetrics?.total_buildings ?? 0} rooms={buildingMetrics?.occupied_units ?? 0} />
                 <div style={{ marginTop:16, paddingTop:16, borderTop:"1px solid #F1F5F9" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:12, fontSize:13, fontWeight:500, color:"#111827", marginBottom:4 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                       <div style={{ width:8, height:8, borderRadius:2, background:"#E8344E" }}/>
-                      <span>desktop: 1,260</span>
+                      <span>buildings: {(buildingMetrics?.total_buildings ?? 0).toLocaleString()}</span>
                     </div>
                     <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                       <div style={{ width:8, height:8, borderRadius:2, background:"#F59E0B" }}/>
-                      <span>mobile: 570</span>
+                      <span>rooms: {(buildingMetrics?.occupied_units ?? 0).toLocaleString()}</span>
                     </div>
                   </div>
                   <p style={{ fontSize:12, color:"#9CA3AF", margin:0 }}>
-                    Showing total visitors for the last 6 months
+                    Showing total buildings and occupied rooms
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Transaction Table */}
+            {/* Expenses & Invoices Table */}
             <div style={{ background:"white", borderRadius:16, border:"1px solid #F1F5F9", overflow:"hidden" }}>
               <div style={{ display:"flex", alignItems:isMobile ? "stretch" : "center", justifyContent:"space-between", flexDirection:isMobile ? "column" : "row", gap:isMobile ? 10 : 0, padding:"18px 20px 14px" }}>
-                <h2 style={{ fontSize:15, fontWeight:700 }}>Recent Transaction History</h2>
-                <button style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:"#6B7280", background:"#F8F9FC", border:"none", borderRadius:8, padding:"6px 12px", cursor:"pointer" }}>
-                  Last Month <Icon.ChevronDown/>
-                </button>
+                <h2 style={{ fontSize:15, fontWeight:700 }}>Recent Expenses & Invoices</h2>
+                <div style={{ position:"relative" }}>
+                  <button 
+                    onClick={() => setTimeFilterOpen(!timeFilterOpen)}
+                    style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:"#6B7280", background:"#F8F9FC", border:"none", borderRadius:8, padding:"6px 12px", cursor:"pointer" }}
+                  >
+                    {formatDate(timeFilterDate)} <Icon.ChevronDown/>
+                  </button>
+                  {timeFilterOpen && (
+                    <div style={{ position:"absolute", right:0, top:"100%", marginTop:4 }}>
+                      <CalendarPicker
+                        selectedDate={timeFilterDate}
+                        onSelect={(date) => { setTimeFilterDate(date); setTimeFilterOpen(false); }}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
               <div style={{ overflowX:"auto" }}>
                 <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
                   <thead>
                     <tr style={{ borderBottom:"1px solid #F1F5F9" }}>
                       <th style={{ padding:"10px 20px", textAlign:"left", fontWeight:600, fontSize:12, color:"#9CA3AF" }}>
-                        <input type="checkbox" title="Select all transactions"/>
+                        <input type="checkbox" title="Select all records"/>
                       </th>
-                      {["Properties Name","Properties Type","Transaction","Customer","Date","Status",""].map((h: any) => (
+                      {["Description","Category","Type","Amount","Vendor","Date","Status",""].map((h: any) => (
                         <th key={h} style={{ padding:"10px 12px", textAlign:"left", fontWeight:600, fontSize:12, color:"#9CA3AF", whiteSpace:"nowrap" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {transactions.map((row: any) => (
+                    {recordsLoading ? (
+                      <tr>
+                        <td colSpan={8} style={{ padding:"40px 20px", textAlign:"center", color:"#9CA3AF", fontSize:14 }}>
+                          Loading expenses...
+                        </td>
+                      </tr>
+                    ) : records.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} style={{ padding:"40px 20px", textAlign:"center", color:"#9CA3AF", fontSize:14 }}>
+                          No expenses found. Add expenses to see them here.
+                        </td>
+                      </tr>
+                    ) : records.map((row: any) => (
                       <tr key={row.id} className="txn-row" style={{ borderBottom:"1px solid #F9FAFB", transition:"background .1s" }}>
                         <td style={{ padding:"12px 20px" }}>
                           <input type="checkbox" checked={checked.includes(row.id)} onChange={()=>toggle(row.id)}/>
                         </td>
                         <td style={{ padding:"12px 12px" }}>
                           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                            <img src={row.img} alt="" style={{ width:36, height:36, borderRadius:8, objectFit:"cover" }}/>
-                            <span style={{ fontWeight:500, fontSize:13 }}>{row.name}</span>
+                            <span style={{ fontWeight:500, fontSize:13 }}>{row.description}</span>
                           </div>
                         </td>
-                        <td style={{ padding:"12px 12px", color:"#6B7280" }}>{row.type}</td>
-                        <td style={{ padding:"12px 12px", color:"#6B7280" }}>{row.txn}</td>
+                        <td style={{ padding:"12px 12px", color:"#6B7280" }}>{row.category}</td>
+                        <td style={{ padding:"12px 12px", color:"#6B7280" }}>{row.recordType}</td>
+                        <td style={{ padding:"12px 12px", color:"#6B7280", fontWeight:600 }}>{row.amount}</td>
                         <td style={{ padding:"12px 12px" }}>
                           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                             <div style={{ width:28, height:28, borderRadius:"50%", background:row.color, display:"flex", alignItems:"center", justifyContent:"center", color:"white", fontSize:10, fontWeight:700, flexShrink:0 }}>
                               {row.avatar}
                             </div>
-                            <span style={{ fontWeight:500, fontSize:12 }}>{row.customer}</span>
+                            <span style={{ fontWeight:500, fontSize:12 }}>{row.vendor}</span>
                           </div>
                         </td>
                         <td style={{ padding:"12px 12px", color:"#9CA3AF", fontSize:12, whiteSpace:"nowrap" }}>{row.date}</td>
@@ -943,7 +1130,7 @@ export default function GuriGateDashboard() {
                               }}
                             >
                               <button 
-                                onClick={() => handleViewTransaction(row)}
+                                onClick={() => handleViewRecord(row)}
                                 style={{ 
                                   display:"flex", 
                                   alignItems:"center", 
@@ -961,7 +1148,7 @@ export default function GuriGateDashboard() {
                                 <Icon.Eye/> View
                               </button>
                               <button 
-                                onClick={() => handleEditTransaction(row)}
+                                onClick={() => handleEditRecord(row)}
                                 style={{ 
                                   display:"flex", 
                                   alignItems:"center", 
@@ -1092,20 +1279,20 @@ export default function GuriGateDashboard() {
         />
       )}
 
-      {/* View/Edit Transaction Panels */}
-      {panelOpen && selectedTransaction && (
+      {/* View/Edit Record Panels */}
+      {panelOpen && selectedRecord && (
         <>
           {panelType === 'view' && (
             <ViewTransactionPanel
-              transaction={selectedTransaction}
+              transaction={selectedRecord}
               onClose={() => setPanelOpen(false)}
             />
           )}
           {panelType === 'edit' && (
             <EditTransactionPanel
-              transaction={selectedTransaction}
+              transaction={selectedRecord}
               onClose={() => setPanelOpen(false)}
-              onSave={handleSaveTransaction}
+              onSave={handleSaveRecord}
             />
           )}
         </>

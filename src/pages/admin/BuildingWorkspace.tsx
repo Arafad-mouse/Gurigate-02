@@ -1,22 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getBuilding, updateBuildingMetrics } from '@/services/buildingService';
-import { listFloors } from '@/services/floorService';
-import { getUnitsByBuilding } from '@/services/commercialUnitService';
-import type { Building, Floor, UnitWithDetails } from '@/types/building';
-import { Building as BuildingIcon, Layers, Home, ArrowLeft, DollarSign, TrendingUp, MapPin, Users, FileText, Calendar, BarChart3 } from 'lucide-react';
+import { listFloors, createFloor } from '@/services/floorService';
+import { getUnitsByBuilding, createUnit, updateUnit, deleteUnit } from '@/services/commercialUnitService';
+import type { Building, Floor, UnitWithDetails, UnitType, UnitStatus } from '@/types/building';
+import { Building as BuildingIcon, Layers, Home, ArrowLeft, DollarSign, TrendingUp, MapPin, BarChart3, Plus, X, Edit, Trash2 } from 'lucide-react';
 
-type Tab = 'overview' | 'floors' | 'units' | 'customers' | 'leases' | 'payments' | 'documents' | 'reports';
+type Tab = 'overview' | 'floors' | 'units';
 
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
   { id: 'floors', label: 'Floors', icon: Layers },
   { id: 'units', label: 'Units', icon: Home },
-  { id: 'customers', label: 'Customers', icon: Users },
-  { id: 'leases', label: 'Leases', icon: FileText },
-  { id: 'payments', label: 'Payments', icon: DollarSign },
-  { id: 'documents', label: 'Documents', icon: FileText },
-  { id: 'reports', label: 'Reports', icon: BarChart3 },
 ];
 
 export default function BuildingWorkspace() {
@@ -28,6 +23,19 @@ export default function BuildingWorkspace() {
   const [units, setUnits] = useState<UnitWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
+  
+  // Unit management state
+  const [showUnitModal, setShowUnitModal] = useState(false);
+  const [editingUnit, setEditingUnit] = useState<UnitWithDetails | null>(null);
+  const [unitForm, setUnitForm] = useState({
+    floor_id: '',
+    unit_number: '',
+    unit_type: 'office' as UnitType,
+    size: 50,
+    base_rent: 100000,
+    status: 'available' as UnitStatus,
+  });
+  const [savingUnit, setSavingUnit] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -77,6 +85,93 @@ export default function BuildingWorkspace() {
       case 'cleaning': return 'Cleaning';
       case 'blocked': return 'Blocked';
       default: return status;
+    }
+  };
+
+  const handleAddUnit = () => {
+    setEditingUnit(null);
+    setUnitForm({
+      floor_id: floors.length > 0 ? floors[0].id : '',
+      unit_number: '',
+      unit_type: 'office' as UnitType,
+      size: 50,
+      base_rent: 100000,
+      status: 'available' as UnitStatus,
+    });
+    setShowUnitModal(true);
+  };
+
+  const handleEditUnit = (unit: UnitWithDetails) => {
+    setEditingUnit(unit);
+    setUnitForm({
+      floor_id: unit.floor_id || '',
+      unit_number: unit.unit_number,
+      unit_type: unit.unit_type,
+      size: unit.size,
+      base_rent: unit.base_rent,
+      status: unit.status,
+    });
+    setShowUnitModal(true);
+  };
+
+  const handleDeleteUnit = async (unitId: string) => {
+    if (!window.confirm('Are you sure you want to delete this unit?')) return;
+    
+    try {
+      await deleteUnit(unitId);
+      // Reload units
+      const unitsData = await getUnitsByBuilding(id!);
+      setUnits(unitsData);
+      // Reload building metrics
+      const buildingData = await getBuilding(id!);
+      setBuilding(buildingData);
+    } catch (error) {
+      console.error('Failed to delete unit:', error);
+      alert('Failed to delete unit');
+    }
+  };
+
+  const handleSaveUnit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingUnit(true);
+    
+    if (!id) {
+      alert('Building ID is missing. Please try again.');
+      setSavingUnit(false);
+      return;
+    }
+    
+    try {
+      const unitData = {
+        ...unitForm,
+        building_id: id,
+      };
+      
+      console.log('Saving unit with data:', unitData);
+      
+      if (editingUnit) {
+        // Update existing unit
+        await updateUnit(editingUnit.id, unitData);
+      } else {
+        // Create new unit
+        await createUnit(unitData);
+      }
+      
+      // Reload units
+      const unitsData = await getUnitsByBuilding(id);
+      setUnits(unitsData);
+      
+      // Reload building metrics
+      const buildingData = await getBuilding(id);
+      setBuilding(buildingData);
+      
+      setShowUnitModal(false);
+      setEditingUnit(null);
+    } catch (error) {
+      console.error('Failed to save unit:', error);
+      alert('Failed to save unit');
+    } finally {
+      setSavingUnit(false);
     }
   };
 
@@ -221,6 +316,32 @@ export default function BuildingWorkspace() {
 
       {activeTab === 'floors' && (
         <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Floors</h2>
+            <button
+              onClick={async () => {
+                try {
+                  const nextFloorNumber = floors.length > 0 ? Math.max(...floors.map(f => f.floor_number)) + 1 : 1;
+                  await createFloor({
+                    building_id: id!,
+                    floor_number: nextFloorNumber,
+                    units_count: 0,
+                  });
+                  // Reload floors
+                  const floorsData = await listFloors({ buildingId: id });
+                  setFloors(floorsData);
+                } catch (error) {
+                  console.error('Failed to create floor:', error);
+                  alert('Failed to create floor');
+                }
+              }}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors hover:bg-red-600"
+              style={{ background: 'rgb(232, 52, 78)' }}
+            >
+              <Plus className="w-4 h-4" />
+              Add Floor
+            </button>
+          </div>
           {floors.map((floor) => {
             const floorUnits = unitsByFloor.get(floor.floor_number) || [];
             return (
@@ -229,7 +350,7 @@ export default function BuildingWorkspace() {
                   <h2 className="text-lg font-semibold text-gray-900">Floor {floor.floor_number}</h2>
                   <span className="text-sm text-gray-500">{floorUnits.length} units</span>
                 </div>
-                
+
                 {floorUnits.length === 0 ? (
                   <div className="text-center py-8 text-gray-500 text-sm">
                     No units on this floor
@@ -267,31 +388,70 @@ export default function BuildingWorkspace() {
 
       {activeTab === 'units' && (
         <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">All Units in {building.name}</h2>
-          <div className="space-y-2">
-            {units.map((unit) => (
-              <div
-                key={unit.id}
-                className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                onClick={() => navigate(`/manage-property/units/${unit.id}`)}
-              >
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900">{unit.unit_number}</div>
-                  <div className="text-sm text-gray-500">
-                    Floor {unit.floor_number} • {unit.unit_type} • {unit.size} sqm
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">All Units in {building.name}</h2>
+            <button
+              onClick={handleAddUnit}
+              disabled={floors.length === 0}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: 'rgb(232, 52, 78)' }}
+            >
+              <Plus className="w-4 h-4" />
+              Add Unit
+            </button>
+          </div>
+          {floors.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Layers className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p className="text-sm">No floors available. Create a floor first to add units.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {units.map((unit) => (
+                <div
+                  key={unit.id}
+                  className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                >
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">{unit.unit_number}</div>
+                    <div className="text-sm text-gray-500">
+                      Floor {unit.floor_number} • {unit.unit_type} • {unit.size} sqm
+                    </div>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getUnitStatusColor(unit.status)}`}>
+                    {getUnitStatusLabel(unit.status)}
+                  </span>
+                  {unit.status === 'occupied' && (
+                    <div className="text-sm font-medium text-gray-900">
+                      ${(unit.base_rent / 100).toLocaleString()}/mo
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEditUnit(unit)}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      title="Edit unit"
+                    >
+                      <Edit className="w-4 h-4 text-gray-500" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteUnit(unit.id)}
+                      className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete unit"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </button>
                   </div>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getUnitStatusColor(unit.status)}`}>
-                  {getUnitStatusLabel(unit.status)}
-                </span>
-                {unit.status === 'occupied' && (
-                  <div className="text-sm font-medium text-gray-900">
-                    ${(unit.base_rent / 100).toLocaleString()}/mo
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+              {units.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <Home className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p className="text-sm">No units yet. Click "Add Unit" to create your first unit.</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -304,6 +464,138 @@ export default function BuildingWorkspace() {
             {TABS.find(t => t.id === activeTab)?.label}
           </h3>
           <p className="text-sm">This feature is coming soon.</p>
+        </div>
+      )}
+
+      {/* Unit Management Modal */}
+      {showUnitModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md p-6 mx-4">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900">
+                {editingUnit ? 'Edit Unit' : 'Add New Unit'}
+              </h2>
+              <button
+                onClick={() => setShowUnitModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveUnit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Floor *</label>
+                {floors.length === 0 ? (
+                  <div className="text-sm text-gray-500 p-2 bg-gray-50 rounded-lg">
+                    No floors available. Please create floors first.
+                  </div>
+                ) : (
+                  <select
+                    required
+                    value={unitForm.floor_id}
+                    onChange={(e) => setUnitForm({ ...unitForm, floor_id: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-rose-200 bg-white"
+                  >
+                    {floors.map((floor) => (
+                      <option key={floor.id} value={floor.id}>
+                        Floor {floor.floor_number}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Unit Number *</label>
+                <input
+                  type="text"
+                  required
+                  value={unitForm.unit_number}
+                  onChange={(e) => setUnitForm({ ...unitForm, unit_number: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-rose-200"
+                  placeholder="e.g., 101"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Unit Type *</label>
+                <select
+                  required
+                  value={unitForm.unit_type}
+                  onChange={(e) => setUnitForm({ ...unitForm, unit_type: e.target.value as UnitType })}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-rose-200 bg-white"
+                >
+                  <option value="office">Office</option>
+                  <option value="retail">Retail</option>
+                  <option value="warehouse">Warehouse</option>
+                  <option value="restaurant">Restaurant</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Size (sqm) *</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={unitForm.size}
+                  onChange={(e) => setUnitForm({ ...unitForm, size: parseInt(e.target.value) || 0 })}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-rose-200"
+                  placeholder="e.g., 50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Base Rent ($) *</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={unitForm.base_rent / 100}
+                  onChange={(e) => setUnitForm({ ...unitForm, base_rent: (parseFloat(e.target.value) || 0) * 100 })}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-rose-200"
+                  placeholder="e.g., 1000"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status *</label>
+                <select
+                  required
+                  value={unitForm.status}
+                  onChange={(e) => setUnitForm({ ...unitForm, status: e.target.value as UnitStatus })}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-rose-200 bg-white"
+                >
+                  <option value="available">Available</option>
+                  <option value="occupied">Occupied</option>
+                  <option value="reserved">Reserved</option>
+                  <option value="under_maintenance">Under Maintenance</option>
+                  <option value="cleaning">Cleaning</option>
+                  <option value="blocked">Blocked</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowUnitModal(false)}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingUnit}
+                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50 transition-colors hover:bg-red-600"
+                  style={{ background: 'rgb(232, 52, 78)' }}
+                >
+                  {savingUnit ? 'Saving...' : (editingUnit ? 'Update Unit' : 'Create Unit')}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

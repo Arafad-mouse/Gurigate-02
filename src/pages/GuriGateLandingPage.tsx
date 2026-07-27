@@ -225,17 +225,23 @@ function PopularPropertyCard({ property, onClick }: { property: LandingProperty;
 
 
 
-function CustomerFilters({ resultCount }: { resultCount?: number }) {
-
-  const [bedrooms, setBedrooms] = useState<string>("Any");
-
-  const [priceMin, setPriceMin] = useState(0);
-
-  const [priceMax, setPriceMax] = useState(0);
-
-  const [sqftMin, setSqftMin] = useState(0);
-
-  const [sqftMax, setSqftMax] = useState(0);
+function CustomerFilters({ 
+  resultCount, 
+  bedrooms, 
+  setBedrooms, 
+  priceMin, 
+  setPriceMin, 
+  priceMax, 
+  setPriceMax 
+}: { 
+  resultCount?: number;
+  bedrooms: string;
+  setBedrooms: (value: string) => void;
+  priceMin: number;
+  setPriceMin: (value: number) => void;
+  priceMax: number;
+  setPriceMax: (value: number) => void;
+}) {
 
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
 
@@ -337,9 +343,9 @@ function CustomerFilters({ resultCount }: { resultCount?: number }) {
 
             type="number"
 
-            value={priceMin}
+            value={priceMin || ''}
 
-            onChange={(e) => setPriceMin(Number(e.target.value))}
+            onChange={(e) => setPriceMin(Number(e.target.value) || 0)}
 
             className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#E8344E]"
 
@@ -353,9 +359,9 @@ function CustomerFilters({ resultCount }: { resultCount?: number }) {
 
             type="number"
 
-            value={priceMax}
+            value={priceMax || ''}
 
-            onChange={(e) => setPriceMax(Number(e.target.value))}
+            onChange={(e) => setPriceMax(Number(e.target.value) || 0)}
 
             className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#E8344E]"
 
@@ -366,98 +372,6 @@ function CustomerFilters({ resultCount }: { resultCount?: number }) {
           />
 
         </div>
-
-          <input
-
-            type="range"
-
-            min={0}
-
-            max={500}
-
-            value={priceMax}
-
-            onChange={(e) => setPriceMax(Number(e.target.value))}
-
-            className="w-full accent-[#E8344E]"
-
-            title="Maximum price range"
-
-            aria-label="Maximum price range"
-
-            placeholder="Price range"
-
-          />
-
-        <p className="text-right text-[10px] text-gray-400">${priceMax}</p>
-
-      </div>
-
-
-
-      {/* Square Feet */}
-
-      <div className="mb-5">
-
-        <label className="text-xs font-semibold text-gray-700 block mb-2">
-
-          Square Feet
-
-        </label>
-
-        <div className="flex gap-2 mb-2">
-
-          <input
-
-            type="number"
-
-            value={sqftMin}
-
-            onChange={(e) => setSqftMin(Number(e.target.value))}
-
-            className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#E8344E]"
-
-            placeholder="Min sqft"
-
-            title="Minimum square feet"
-
-          />
-
-          <input
-
-            type="number"
-
-            value={sqftMax}
-
-            onChange={(e) => setSqftMax(Number(e.target.value))}
-
-            className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#E8344E]"
-
-            placeholder="Max sqft"
-
-            title="Maximum square feet"
-
-          />
-
-        </div>
-
-        <input
-
-          type="range"
-
-          min={0}
-
-          max={5000}
-
-          value={sqftMax}
-
-          onChange={(e) => setSqftMax(Number(e.target.value))}
-
-          className="w-full accent-[#E8344E]"
-
-          aria-label="Maximum square feet"
-
-        />
 
       </div>
 
@@ -680,31 +594,87 @@ function CustomerFilters({ resultCount }: { resultCount?: number }) {
 export default function GuriGateLanding() {
 
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-
+  const [bedrooms, setBedrooms] = useState<string>("Any");
+  const [priceMin, setPriceMin] = useState(0);
+  const [priceMax, setPriceMax] = useState(0);
   const [showMap, setShowMap] = useState(false);
 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
-  
+
   // Use the properties hook for data fetching
   const { featured, nairobi, hargeisa } = useProperties();
 
   const navigate = useNavigate();
 
   const filteredFeatured = useMemo(() => {
-    if (!activeFilter) return featured;
-    return featured.filter(p => p.type.toLowerCase().includes(activeFilter.toLowerCase()));
-  }, [featured, activeFilter]);
+    let result = featured;
+    if (activeFilter) {
+      result = result.filter(p => p.type.toLowerCase().includes(activeFilter.toLowerCase()));
+    }
+    if (bedrooms !== "Any") {
+      result = result.filter(p => p.beds >= parseInt(bedrooms));
+    }
+    if (priceMin > 0) {
+      result = result.filter(p => {
+        const numericPrice = parseInt(p.price.replace(/[^0-9]/g, ""));
+        return numericPrice >= priceMin;
+      });
+    }
+    if (priceMax > 0) {
+      result = result.filter(p => {
+        const numericPrice = parseInt(p.price.replace(/[^0-9]/g, ""));
+        return numericPrice <= priceMax;
+      });
+    }
+    return result;
+  }, [featured, activeFilter, bedrooms, priceMin, priceMax]);
 
   const filteredNairobi = useMemo(() => {
-    if (!activeFilter) return nairobi;
-    return nairobi.filter(p => p.type.toLowerCase().includes(activeFilter.toLowerCase()));
-  }, [nairobi, activeFilter]);
+    let result = nairobi;
+    if (activeFilter) {
+      result = result.filter(p => p.type.toLowerCase().includes(activeFilter.toLowerCase()));
+    }
+    if (bedrooms !== "Any") {
+      result = result.filter(p => p.beds >= parseInt(bedrooms));
+    }
+    if (priceMin > 0) {
+      result = result.filter(p => {
+        const numericPrice = parseInt(p.price.replace(/[^0-9]/g, ""));
+        return numericPrice >= priceMin;
+      });
+    }
+    if (priceMax > 0) {
+      result = result.filter(p => {
+        const numericPrice = parseInt(p.price.replace(/[^0-9]/g, ""));
+        return numericPrice <= priceMax;
+      });
+    }
+    return result;
+  }, [nairobi, activeFilter, bedrooms, priceMin, priceMax]);
 
   const filteredHargeisa = useMemo(() => {
-    if (!activeFilter) return hargeisa;
-    return hargeisa.filter(p => p.type.toLowerCase().includes(activeFilter.toLowerCase()));
-  }, [hargeisa, activeFilter]);
+    let result = hargeisa;
+    if (activeFilter) {
+      result = result.filter(p => p.type.toLowerCase().includes(activeFilter.toLowerCase()));
+    }
+    if (bedrooms !== "Any") {
+      result = result.filter(p => p.beds >= parseInt(bedrooms));
+    }
+    if (priceMin > 0) {
+      result = result.filter(p => {
+        const numericPrice = parseInt(p.price.replace(/[^0-9]/g, ""));
+        return numericPrice >= priceMin;
+      });
+    }
+    if (priceMax > 0) {
+      result = result.filter(p => {
+        const numericPrice = parseInt(p.price.replace(/[^0-9]/g, ""));
+        return numericPrice <= priceMax;
+      });
+    }
+    return result;
+  }, [hargeisa, activeFilter, bedrooms, priceMin, priceMax]);
 
   // Initialize map when modal opens
   useEffect(() => {
@@ -830,14 +800,30 @@ export default function GuriGateLanding() {
         <div className="flex flex-col gap-6 lg:flex-row">
 
           <div className="lg:hidden">
-            <CustomerFilters resultCount={filteredFeatured.length + filteredNairobi.length + filteredHargeisa.length} />
+            <CustomerFilters 
+              resultCount={filteredFeatured.length + filteredNairobi.length + filteredHargeisa.length}
+              bedrooms={bedrooms}
+              setBedrooms={setBedrooms}
+              priceMin={priceMin}
+              setPriceMin={setPriceMin}
+              priceMax={priceMax}
+              setPriceMax={setPriceMax}
+            />
           </div>
 
           {/* Left: Filters sidebar */}
 
           <div className="hidden lg:block w-64 flex-shrink-0">
 
-            <CustomerFilters resultCount={filteredFeatured.length + filteredNairobi.length + filteredHargeisa.length} />
+            <CustomerFilters 
+              resultCount={filteredFeatured.length + filteredNairobi.length + filteredHargeisa.length}
+              bedrooms={bedrooms}
+              setBedrooms={setBedrooms}
+              priceMin={priceMin}
+              setPriceMin={setPriceMin}
+              priceMax={priceMax}
+              setPriceMax={setPriceMax}
+            />
 
           </div>
 
@@ -866,13 +852,6 @@ export default function GuriGateLanding() {
 
               </button>
 
-            </div>
-
-            {/* Featured Properties Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
-              {filteredFeatured.map((p) => (
-                <FeaturedPropertyCard key={p.id} property={p} onClick={() => navigate(`/property/${p.id}`)} />
-              ))}
             </div>
 
             {/* Filter chips */}
@@ -930,7 +909,12 @@ export default function GuriGateLanding() {
 
             </div>
 
-
+            {/* Featured Properties Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+              {filteredFeatured.map((p) => (
+                <FeaturedPropertyCard key={p.id} property={p} onClick={() => navigate(`/property/${p.id}`)} />
+              ))}
+            </div>
 
             {/* Popular homes in Nairobi */}
 

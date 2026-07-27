@@ -16,12 +16,7 @@ export async function listUnits(params: UnitListParams = {}): Promise<{ items: U
   try {
     let q = supabase
       .from('units')
-      .select(`
-        *,
-        buildings(name),
-        floors(floor_number),
-        customers!units_current_lease_id_fkey(full_name)
-      `, { count: 'exact' })
+      .select('*, floors!inner(floor_number)', { count: 'exact' })
       .order('unit_number', { ascending: true });
 
     if (query) {
@@ -48,20 +43,20 @@ export async function listUnits(params: UnitListParams = {}): Promise<{ items: U
       .range(start, start + pageSize - 1);
 
     if (error) {
-      console.log('Units table or relationships not available, using sample data for development');
+      console.log('Units table not available, using sample data for development');
       return getSampleUnits(buildingId);
     }
 
     const items: UnitWithDetails[] = (data || []).map((unit: any) => ({
       ...unit,
-      building_name: unit.buildings?.name,
-      floor_number: unit.floors?.floor_number,
-      current_tenant: unit.customers?.full_name,
+      building_name: unit.building_id || 'Unknown',
+      floor_number: unit.floors?.floor_number || 1,
+      current_tenant: unit.current_lease_id ? 'Tenant' : undefined,
     }));
 
     return { items, total: count || 0 };
   } catch (error) {
-    console.log('Units table or relationships not available, using sample data for development');
+    console.log('Units table not available, using sample data for development');
     return getSampleUnits(buildingId);
   }
 }
@@ -69,15 +64,15 @@ export async function listUnits(params: UnitListParams = {}): Promise<{ items: U
 function getSampleUnits(buildingId?: string): { items: UnitWithDetails[]; total: number } {
   const units: UnitWithDetails[] = [
     {
-      id: 'u1',
-      building_id: buildingId || '1',
-      floor_id: 'f1',
+      id: 'u1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p',
+      building_id: buildingId || '1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p',
+      floor_id: 'f1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p',
       unit_number: '101',
       unit_type: 'office',
       size: 45,
       status: 'occupied',
       base_rent: 120000, // $1,200 in cents
-      current_lease_id: 'l1',
+      current_lease_id: 'l1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p',
       building_name: 'Burj Omar',
       floor_number: 1,
       current_tenant: 'Ahmed Ali',
@@ -87,9 +82,9 @@ function getSampleUnits(buildingId?: string): { items: UnitWithDetails[]; total:
       updated_at: new Date().toISOString(),
     },
     {
-      id: 'u2',
-      building_id: buildingId || '1',
-      floor_id: 'f1',
+      id: 'u2b3c4d5e-6f7g-8h9i-0j1k-2l3m4n5o6p7q',
+      building_id: buildingId || '1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p',
+      floor_id: 'f1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p',
       unit_number: '102',
       unit_type: 'office',
       size: 50,
@@ -101,15 +96,15 @@ function getSampleUnits(buildingId?: string): { items: UnitWithDetails[]; total:
       updated_at: new Date().toISOString(),
     },
     {
-      id: 'u3',
-      building_id: buildingId || '1',
-      floor_id: 'f2',
+      id: 'u3c4d5e6f-7g8h-9i0j-1k2l-3m4n5o6p7q8r',
+      building_id: buildingId || '1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p',
+      floor_id: 'f2b3c4d5e-6f7g-8h9i-0j1k-2l3m4n5o6p7q',
       unit_number: '204',
       unit_type: 'retail',
       size: 60,
       status: 'occupied',
       base_rent: 180000, // $1,800 in cents
-      current_lease_id: 'l2',
+      current_lease_id: 'l2b3c4d5e-6f7g-8h9i-0j1k-2l3m4n5o6p7q',
       building_name: 'Burj Omar',
       floor_number: 2,
       current_tenant: 'Abdi Elmi',
@@ -119,15 +114,15 @@ function getSampleUnits(buildingId?: string): { items: UnitWithDetails[]; total:
       updated_at: new Date().toISOString(),
     },
     {
-      id: 'u4',
-      building_id: buildingId || '1',
-      floor_id: 'f2',
+      id: 'u4d5e6f7g-8h9i-0j1k-2l3m-4n5o6p7q8r9s',
+      building_id: buildingId || '1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p',
+      floor_id: 'f2b3c4d5e-6f7g-8h9i-0j1k-2l3m4n5o6p7q',
       unit_number: '205',
       unit_type: 'retail',
       size: 55,
       status: 'occupied',
       base_rent: 160000, // $1,600 in cents
-      current_lease_id: 'l2',
+      current_lease_id: 'l2b3c4d5e-6f7g-8h9i-0j1k-2l3m4n5o6p7q',
       building_name: 'Burj Omar',
       floor_number: 2,
       current_tenant: 'Abdi Elmi',
@@ -145,30 +140,25 @@ export async function getUnitsByBuilding(buildingId: string): Promise<UnitWithDe
   try {
     const { data, error } = await supabase
       .from('units')
-      .select(`
-        *,
-        buildings(name),
-        floors(floor_number),
-        customers!units_current_lease_id_fkey(full_name)
-      `)
+      .select('*, floors!inner(floor_number)')
       .eq('building_id', buildingId)
       .order('unit_number', { ascending: true });
 
     if (error) {
-      console.log('Units table or relationships not available, using sample data for development');
+      console.log('Units table not available, using sample data for development');
       return getSampleUnits(buildingId).items;
     }
 
     const items: UnitWithDetails[] = (data || []).map((unit: any) => ({
       ...unit,
-      building_name: unit.buildings?.name,
-      floor_number: unit.floors?.floor_number,
-      current_tenant: unit.customers?.full_name,
+      building_name: unit.building_id || 'Unknown',
+      floor_number: unit.floors?.floor_number || 1,
+      current_tenant: unit.current_lease_id ? 'Tenant' : undefined,
     }));
 
     return items;
   } catch (error) {
-    console.log('Units table or relationships not available, using sample data for development');
+    console.log('Units table not available, using sample data for development');
     return getSampleUnits(buildingId).items;
   }
 }
@@ -177,33 +167,30 @@ export async function getUnit(id: string): Promise<UnitWithDetails | null> {
   try {
     const { data, error } = await supabase
       .from('units')
-      .select(`
-        *,
-        buildings(*),
-        floors(*),
-        customers!units_current_lease_id_fkey(full_name, email, phone)
-      `)
+      .select('*')
       .eq('id', id)
       .single();
 
     if (error) {
-      console.log('Units table or relationships not available, using sample data for development');
+      console.log('Units table not available, using sample data for development');
       return getSampleUnits().items.find((u: UnitWithDetails) => u.id === id) || getSampleUnits().items[0];
     }
 
     return {
       ...data,
-      building_name: data.buildings?.name,
-      floor_number: data.floors?.floor_number,
-      current_tenant: data.customers?.full_name,
+      building_name: data.building_id || 'Unknown',
+      floor_number: data.floor_id ? parseInt(data.floor_id.slice(-2)) || 1 : 1,
+      current_tenant: data.current_lease_id ? 'Tenant' : undefined,
     };
   } catch (error) {
-    console.log('Units table or relationships not available, using sample data for development');
+    console.log('Units table not available, using sample data for development');
     return getSampleUnits().items.find((u: UnitWithDetails) => u.id === id) || getSampleUnits().items[0];
   }
 }
 
 export async function createUnit(unit: Omit<Unit, 'id' | 'created_at' | 'updated_at'>): Promise<Unit> {
+  console.log('Creating unit with data:', unit);
+  
   const { data, error } = await supabase
     .from('units')
     .insert(unit)
@@ -212,8 +199,11 @@ export async function createUnit(unit: Omit<Unit, 'id' | 'created_at' | 'updated
 
   if (error) {
     console.error('Failed to create unit:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
     throw error;
   }
+
+  console.log('Unit created successfully:', data);
 
   // Update floor count
   if (unit.floor_id) {
@@ -335,9 +325,9 @@ async function updateBuildingMetrics(buildingId: string): Promise<void> {
   }
 
   const total_units = units?.length || 0;
-  const occupied_units = units?.filter(u => u.status === 'occupied').length || 0;
-  const vacant_units = total_units - occupied_units;
-  const monthly_revenue = units?.reduce((sum, u) => sum + (u.status === 'occupied' ? (u.base_rent || 0) : 0), 0) || 0;
+  const occupied_units = units?.filter((u: any) => u.status === 'occupied').length || 0;
+  const vacant_units = units?.filter((u: any) => u.status === 'available').length || 0;
+  const monthly_revenue = units?.reduce((sum: number, u: any) => sum + (u.status === 'occupied' ? (u.base_rent || 0) : 0), 0) || 0;
   const occupancy_rate = total_units > 0 ? (occupied_units / total_units) * 100 : 0;
 
   // Get floors count

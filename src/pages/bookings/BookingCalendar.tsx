@@ -1,125 +1,126 @@
-import { useEffect, useState } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-
-interface BookingEvent {
-  id: string;
-  title: string;
-  propertyTitle: string;
-  date: string;
-  status: 'confirmed' | 'pending' | 'cancelled';
-}
+import { useState, useEffect, useContext } from 'react'
+import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns'
+import { AuthContext } from '@/lib/auth-context'
+import { CalendarService } from '@/services/calendarService'
+import type { CalendarView, CalendarMode, CalendarMonth, CalendarBooking, CalendarProperty, CalendarSummary, BlockReason } from '@/types/calendar'
+import CalendarHeader from './calendar/CalendarHeader'
+import CalendarGrid from './calendar/CalendarGrid'
+import BookingDrawer from './calendar/BookingDrawer'
+import CalendarPanel from './calendar/CalendarPanel'
+import BlockDatesModal from './calendar/BlockDatesModal'
+import NewReservationModal from './calendar/NewReservationModal'
 
 export default function BookingCalendar() {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState<BookingEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const authContext = useContext(AuthContext)
+  const profile = authContext?.profile
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [view, setView] = useState<CalendarView>('month')
+  const [mode, setMode] = useState<CalendarMode>('booking')
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('all')
+  const [properties, setProperties] = useState<CalendarProperty[]>([])
+  const [calendarMonth, setCalendarMonth] = useState<CalendarMonth | null>(null)
+  const [selectedBooking, setSelectedBooking] = useState<CalendarBooking | null>(null)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [summary, setSummary] = useState<CalendarSummary | null>(null)
+  const [showPanel, setShowPanel] = useState(true)
+  const [showBlockModal, setShowBlockModal] = useState(false)
+  const [showReservationModal, setShowReservationModal] = useState(false)
+
+  useEffect(() => { loadProperties() }, [profile])
 
   useEffect(() => {
-    // TODO: Fetch calendar events from API
-    setLoading(false);
-  }, []);
+    if (profile) { loadCalendarData(); loadSummary() }
+  }, [currentDate, selectedPropertyId, profile])
 
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
-    
-    return { daysInMonth, startingDayOfWeek };
-  };
+  useEffect(() => {
+    if (!profile) return
+    const subscription = CalendarService.subscribeToBookings(() => { loadCalendarData(); loadSummary() })
+    return () => { subscription.unsubscribe() }
+  }, [profile, currentDate, selectedPropertyId])
 
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    setCurrentDate(prev => {
-      const newDate = new Date(prev);
-      newDate.setMonth(prev.getMonth() + (direction === 'next' ? 1 : -1));
-      return newDate;
-    });
-  };
+  const loadProperties = async () => {
+    if (!profile?.id) return
+    try { setProperties(await CalendarService.fetchProperties(profile.id)) }
+    catch (error) { console.error('Error loading properties:', error) }
+  }
 
-  const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentDate);
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const loadCalendarData = async () => {
+    if (!profile?.id) return
+    setLoading(true)
+    try {
+      let rangeStart: Date, rangeEnd: Date
+      if (view === 'month') { rangeStart = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 0 }); rangeEnd = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 0 }) }
+      else if (view === 'week') { rangeStart = startOfWeek(currentDate, { weekStartsOn: 0 }); rangeEnd = endOfWeek(currentDate, { weekStartsOn: 0 }) }
+      else { rangeStart = currentDate; rangeEnd = addDays(currentDate, 1) }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#BA0036]" />
-      </div>
-    );
+      const [bookings, blockedDates, pricing] = await Promise.all([
+        CalendarService.fetchBookingsForDateRange(format(rangeStart, 'yyyy-MM-dd'), format(rangeEnd, 'yyyy-MM-dd'), selectedPropertyId),
+        CalendarService.fetchBlockedDates(format(rangeStart, 'yyyy-MM-dd'), format(rangeEnd, 'yyyy-MM-dd'), selectedPropertyId),
+        CalendarService.fetchPricing(format(rangeStart, 'yyyy-MM-dd'), format(rangeEnd, 'yyyy-MM-dd'), selectedPropertyId)
+      ])
+      setCalendarMonth(CalendarService.buildCalendarMonth(currentDate.getFullYear(), currentDate.getMonth(), bookings, blockedDates, pricing))
+    } catch (error) { console.error('Error loading calendar data:', error) }
+    finally { setLoading(false) }
+  }
+
+  const loadSummary = async () => {
+    if (!profile?.id) return
+    try { setSummary(await CalendarService.getCalendarSummary(profile.id, currentDate.getFullYear(), currentDate.getMonth())) }
+    catch (error) { console.error('Error loading summary:', error) }
+  }
+
+  const handlePrevious = () => {
+    if (view === 'month') setCurrentDate(subMonths(currentDate, 1))
+    else if (view === 'week') setCurrentDate(subWeeks(currentDate, 1))
+    else setCurrentDate(subDays(currentDate, 1))
+  }
+  const handleNext = () => {
+    if (view === 'month') setCurrentDate(addMonths(currentDate, 1))
+    else if (view === 'week') setCurrentDate(addWeeks(currentDate, 1))
+    else setCurrentDate(addDays(currentDate, 1))
+  }
+  const handleToday = () => setCurrentDate(new Date())
+
+  const handleBookingClick = (booking: CalendarBooking) => { setSelectedBooking(booking); setIsDrawerOpen(true) }
+  const handleDrawerClose = () => { setIsDrawerOpen(false); setSelectedBooking(null) }
+
+  const handleBlockDates = async (propertyId: string, startDate: string, endDate: string, reason: BlockReason, notes?: string) => {
+    if (!profile?.id) throw new Error('User not authenticated')
+    await CalendarService.blockDates(propertyId, startDate, endDate, reason, profile.id, notes)
+    await loadCalendarData(); await loadSummary()
+  }
+
+  const handleCreateReservation = async (data: any) => {
+    await CalendarService.createReservation(data)
+    await loadCalendarData(); await loadSummary()
+  }
+
+  if (loading && !calendarMonth) {
+    return <div className="flex items-center justify-center h-64"><div className="text-gray-500">Loading calendar...</div></div>
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
-        <p className="text-gray-600 mt-1">View and manage booking schedule</p>
-      </div>
-
-      <div className="bg-white rounded-lg shadow p-6">
-        {/* Calendar Header */}
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => navigateMonth('prev')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <h2 className="text-xl font-semibold text-gray-900">
-            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-          </h2>
-          <button
-            onClick={() => navigateMonth('next')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-2 mb-4">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="text-center text-sm font-medium text-gray-600 py-2">
-              {day}
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 gap-2">
-          {/* Empty cells for days before the first day of the month */}
-          {Array.from({ length: startingDayOfWeek }).map((_, index) => (
-            <div key={`empty-${index}`} className="h-24 bg-gray-50 rounded-lg" />
-          ))}
-
-          {/* Days of the month */}
-          {Array.from({ length: daysInMonth }).map((_, index) => {
-            const day = index + 1;
-            const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const dayEvents = events.filter(event => event.date === dateStr);
-
-            return (
-              <div key={day} className="h-24 border border-gray-200 rounded-lg p-2 hover:bg-gray-50 transition-colors">
-                <div className="text-sm font-medium text-gray-900 mb-1">{day}</div>
-                {dayEvents.slice(0, 2).map((event) => (
-                  <div
-                    key={event.id}
-                    className={`text-xs p-1 rounded mb-1 truncate ${
-                      event.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                      event.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}
-                  >
-                    {event.title}
-                  </div>
-                ))}
-                {dayEvents.length > 2 && (
-                  <div className="text-xs text-gray-500">+{dayEvents.length - 2} more</div>
-                )}
-              </div>
-            );
-          })}
+    <div className="flex h-full overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <CalendarHeader
+          currentDate={currentDate} view={view} mode={mode}
+          selectedPropertyId={selectedPropertyId} properties={properties}
+          onPreviousMonth={handlePrevious} onNextMonth={handleNext} onToday={handleToday}
+          onPropertyChange={setSelectedPropertyId} onViewChange={setView} onModeChange={setMode}
+          onTogglePanel={() => setShowPanel(!showPanel)} showPanel={showPanel}
+          onNewReservation={() => setShowReservationModal(true)} onBlockDates={() => setShowBlockModal(true)}
+        />
+        <div className="flex-1 overflow-auto">
+          <CalendarGrid calendarMonth={calendarMonth} view={view} mode={mode} onBookingClick={handleBookingClick} />
         </div>
       </div>
+
+      {showPanel && <CalendarPanel summary={summary} currentDate={currentDate} onClose={() => setShowPanel(false)} />}
+
+      <BookingDrawer booking={selectedBooking} isOpen={isDrawerOpen} onClose={handleDrawerClose} onBookingUpdated={loadCalendarData} />
+      <BlockDatesModal isOpen={showBlockModal} onClose={() => setShowBlockModal(false)} properties={properties} selectedPropertyId={selectedPropertyId} onBlockDates={handleBlockDates} />
+      <NewReservationModal isOpen={showReservationModal} onClose={() => setShowReservationModal(false)} properties={properties} selectedPropertyId={selectedPropertyId} onCreateReservation={handleCreateReservation} />
     </div>
-  );
+  )
 }

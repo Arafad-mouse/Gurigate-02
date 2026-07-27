@@ -741,6 +741,11 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Enable RLS on profiles if not already enabled
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
+-- Users can view their own profile
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
+CREATE POLICY "Users can view own profile" ON profiles
+  FOR SELECT USING (id = auth.uid());
+
 -- Admins can view all profiles (including soft deleted)
 CREATE POLICY IF NOT EXISTS "Admins can view all profiles" ON profiles
   FOR SELECT USING (

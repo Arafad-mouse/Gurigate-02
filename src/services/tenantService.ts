@@ -25,12 +25,12 @@ export class TenantService {
         query = query.eq('building_id', building);
       }
 
-      if (status && status !== 'All' && status !== undefined) {
+      if (status && status !== 'All') {
         query = query.eq('payment_status', status);
       }
 
       if (search) {
-        query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,unit_id.ilike.%${search}%`);
+        query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,unit_id.ilike.%${search}%,building_id.ilike.%${search}%`);
       }
 
       // Apply pagination
@@ -85,6 +85,7 @@ export class TenantService {
         phone: formData.phone,
         building_id: formData.building || null,
         unit_id: formData.unit || null,
+        floor_id: formData.floor_id || null,
         monthly_rent: formData.monthly_rent,
         payment_status: 'Pending' as PaymentStatus,
         lease_status: 'active' as const,
@@ -179,9 +180,17 @@ export class TenantService {
       if (userId) pendingQuery.eq('owner_id', userId);
       const { count: pendingCount } = await pendingQuery;
 
-      // Calculate occupancy rate (assuming total_tenants / max_units)
-      // For now, we'll use active leases / total tenants
-      const occupancyRate = totalCount ? Math.round((activeCount || 0) / totalCount * 100) : 0;
+      // Calculate occupancy rate based on actual units
+      const { count: totalUnits } = await supabase
+        .from('units')
+        .select('*', { count: 'exact', head: true });
+      
+      const { count: occupiedUnits } = await supabase
+        .from('units')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'occupied');
+
+      const occupancyRate = totalUnits ? Math.round((occupiedUnits || 0) / totalUnits * 100) : 0;
 
       return {
         total_tenants: totalCount || 0,
