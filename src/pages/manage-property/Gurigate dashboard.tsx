@@ -23,8 +23,6 @@ import AdminGuests from "@/pages/admin/AdminGuests";
 import AdminVerifications from "@/pages/admin/AdminVerifications";
 import AdminDisputes from "@/pages/admin/AdminDisputes";
 import AdminNotifications from "@/pages/admin/AdminNotifications";
-import DocumentsPage from "@/pages/admin/DocumentsPage";
-import InvoicesPage from "./InvoicesPage";
 
 
 // Import modal
@@ -911,9 +909,9 @@ export default function GuriGateDashboard() {
       case "Transactions":
         return <ComingSoonPage title="Transactions" icon={<Icon.CreditCard/>} description="Activity history for lease payments and lease actions" />;
       case "Documents":
-        return <DocumentsPage />;
+        return <ComingSoonPage title="Documents" icon={<Icon.Inbox/>} description="Document management and storage" />;
       case "Invoices":
-        return <InvoicesPage />;
+        return <ComingSoonPage title="Invoices" icon={<Icon.CreditCard/>} description="Invoice management and billing" />;
       case "Settings":
         return <ProfilePage />;
       default:
