@@ -5,7 +5,7 @@
  * This is a child entity of the Property aggregate.
  */
 
-import { PropertyImage as PropertyImageType } from './PropertyTypes';
+import type { PropertyImage as PropertyImageType } from './PropertyTypes';
 
 /**
  * Property Image Entity

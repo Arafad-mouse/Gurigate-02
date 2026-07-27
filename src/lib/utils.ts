@@ -5,8 +5,8 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function applyImageFallback(event: React.SyntheticEvent<HTMLImageElement>) {
+export function applyImageFallback(event: React.SyntheticEvent<HTMLImageElement>, fallbackSrc?: string) {
   const target = event.target as HTMLImageElement;
-  target.src = '/E-dahab.png';
+  target.src = fallbackSrc || '/E-dahab.png';
   target.onerror = null;
 }

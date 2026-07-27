@@ -6,7 +6,7 @@
  * making it easier to test and replace the service layer later.
  */
 
-import {
+import type {
   PropertyFilters,
   PropertyListResult,
   PropertyMetrics,

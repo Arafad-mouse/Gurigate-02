@@ -7,6 +7,13 @@
  */
 
 import type { Database } from '@/integrations/supabase/types_utf8';
+import type {
+  CreatePropertyInput,
+  UpdatePropertyInput,
+  CreateAvailabilityInput,
+  UpdateAvailabilityInput,
+  CreateReviewInput,
+} from './PropertyTypes';
 import {
   PropertyType,
   PropertyBadge,
@@ -14,11 +21,6 @@ import {
   PricingType,
   CurrencyType,
   AvailabilityBlockType,
-  CreatePropertyInput,
-  UpdatePropertyInput,
-  CreateAvailabilityInput,
-  UpdateAvailabilityInput,
-  CreateReviewInput,
 } from './PropertyTypes';
 import { Property } from './Property';
 import { PropertyAddress } from './PropertyAddress';

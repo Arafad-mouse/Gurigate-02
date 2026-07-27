@@ -36,6 +36,10 @@ export interface AdminProperty {
   deleted_by?: string
   created_at: string
   property_category?: 'residential' | 'commercial' | 'land' | 'hospitality'
+  property_residential_details?: any
+  property_commercial_details?: any
+  property_land_details?: any
+  property_hospitality_details?: any
 }
 
 // Booking interfaces

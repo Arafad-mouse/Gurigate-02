@@ -5,7 +5,7 @@
  * This is a child entity of the Property aggregate.
  */
 
-import { PropertyFeatures as PropertyFeaturesType } from './PropertyTypes';
+import type { PropertyFeatures as PropertyFeaturesType } from './PropertyTypes';
 
 /**
  * Property Features Entity

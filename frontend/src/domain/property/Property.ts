@@ -5,12 +5,11 @@
  * This is what the UI consumes - not individual database rows.
  */
 
-import {
+import type {
   Property as PropertyType,
-  PropertyStatus,
-  PropertyBadge,
   PropertyType as PropType,
 } from './PropertyTypes';
+import { PropertyStatus, PropertyBadge } from './PropertyTypes';
 import { PropertyAddress } from './PropertyAddress';
 import { PropertyPricing } from './PropertyPricing';
 import { PropertyFeatures } from './PropertyFeatures';

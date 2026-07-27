@@ -593,10 +593,15 @@ export default function GuriGateNavbar() {
     setActiveNav(label);
     switch(label) {
       case "Homes":
-        navigate("/explore");
+        navigate("/");
         break;
       case "Commercial Management":
-        navigate("/manage-property");
+        if (auth?.session) {
+          navigate("/manage-property");
+        } else {
+          try { sessionStorage.setItem('intendedDestination', '/manage-property'); } catch {}
+          setShowEmailModal(true);
+        }
         break;
       case "Bookings":
         if (auth?.session) {

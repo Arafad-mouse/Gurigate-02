@@ -25,11 +25,23 @@ export interface GuriGateProperty {
   owner_id: string;
   created_at: string;
   updated_at: string;
+  property_category: string;
+  listing_type: string;
+  approval_status: string;
+  max_guests: number;
+  bedrooms: number;
+  beds: number;
+  deleted_at: string | null;
   // Joined fields
   address?: PropertyAddress;
   pricing?: PropertyPricing;
   features?: PropertyFeatures;
   images?: PropertyImage[];
+  profiles?: {
+    full_name: string;
+    avatar_url: string | null;
+    created_at: string;
+  };
 }
 
 export interface PropertyImage {
@@ -141,29 +153,94 @@ export class PropertyService {
     }
   }
 
-  // Get featured properties (for homepage)
+  // Get featured properties (for homepage) - only approved and active
   static async getFeaturedProperties(): Promise<GuriGateProperty[]> {
     try {
       const { data, error } = await supabase
         .from('properties')
         .select(`
           *,
-          locations!properties_city_location_id_fkey(name),
-          property_images(url, is_primary, sort_order)
+          property_images(image_url, alt_text, sort_order, is_primary),
+          profiles!inner(full_name, avatar_url)
         `)
-        .eq('status', 'active')
-        .eq('is_approved', true)
+        .eq('approval_status', 'approved')
+        .eq('status', 'available')
         .eq('is_featured', true)
-        .order('rating_avg', { ascending: false });
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching featured properties:', error);
         throw new Error(error.message || 'Failed to fetch featured properties');
       }
 
-      return data as GuriGateProperty[];
+      // Fetch addresses separately
+      const propertyIds = data?.map(p => p.id) || [];
+      const { data: addresses, error: addressError } = await supabase
+        .from('property_addresses')
+        .select('property_id, city, country')
+        .in('property_id', propertyIds);
+
+      if (addressError) {
+        console.error('Error fetching addresses:', addressError);
+      }
+
+      // Merge addresses with properties
+      const addressMap = new Map(addresses?.map(a => [a.property_id, a]) || []);
+      const propertiesWithAddresses = data?.map(p => ({
+        ...p,
+        property_addresses: addressMap.get(p.id)
+      })) || [];
+
+      return propertiesWithAddresses as GuriGateProperty[];
     } catch (error) {
       console.error('PropertyService.getFeaturedProperties error:', error);
+      throw error;
+    }
+  }
+
+  // Get all approved properties for marketplace
+  static async getMarketplaceProperties(): Promise<GuriGateProperty[]> {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select(`
+          *,
+          property_images(image_url, alt_text, sort_order, is_primary),
+          property_pricing(base_price, currency, pricing_type),
+          profiles!inner(full_name, avatar_url)
+        `)
+        .eq('approval_status', 'approved')
+        .eq('status', 'available')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching marketplace properties:', error);
+        throw new Error(error.message || 'Failed to fetch marketplace properties');
+      }
+
+      // Fetch addresses separately
+      const propertyIds = data?.map(p => p.id) || [];
+      const { data: addresses, error: addressError } = await supabase
+        .from('property_addresses')
+        .select('property_id, city, country')
+        .in('property_id', propertyIds);
+
+      if (addressError) {
+        console.error('Error fetching addresses:', addressError);
+      }
+
+      // Merge addresses with properties
+      const addressMap = new Map(addresses?.map(a => [a.property_id, a]) || []);
+      const propertiesWithAddresses = data?.map(p => ({
+        ...p,
+        property_addresses: addressMap.get(p.id)
+      })) || [];
+
+      return propertiesWithAddresses as GuriGateProperty[];
+    } catch (error) {
+      console.error('PropertyService.getMarketplaceProperties error:', error);
       throw error;
     }
   }
@@ -195,8 +272,8 @@ export class PropertyService {
     }
   }
 
-  // Get all properties for current user
-  static async getUserProperties(): Promise<Property[]> {
+  // Get all properties for current user (Host Dashboard)
+  static async getUserProperties(): Promise<GuriGateProperty[]> {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
@@ -206,27 +283,59 @@ export class PropertyService {
 
       const { data, error } = await supabase
         .from('properties')
-        .select('*')
+        .select(`
+          *,
+          property_images(image_url, alt_text, sort_order, is_primary),
+          property_pricing(base_price, currency, pricing_type)
+        `)
         .eq('owner_id', user.id)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) {
         throw new Error(error.message || 'Failed to fetch properties');
       }
 
-      return data as Property[];
+      // Fetch addresses separately
+      const propertyIds = data?.map(p => p.id) || [];
+      const { data: addresses, error: addressError } = await supabase
+        .from('property_addresses')
+        .select('property_id, city, country')
+        .in('property_id', propertyIds);
+
+      if (addressError) {
+        console.error('Error fetching addresses:', addressError);
+      }
+
+      // Merge addresses with properties
+      const addressMap = new Map(addresses?.map(a => [a.property_id, a]) || []);
+      const propertiesWithAddresses = data?.map(p => ({
+        ...p,
+        property_addresses: addressMap.get(p.id)
+      })) || [];
+
+      return propertiesWithAddresses as GuriGateProperty[];
     } catch (error) {
       console.error('PropertyService.getUserProperties error:', error);
       throw error;
     }
   }
 
-  // Get single property by ID
-  static async getPropertyById(id: string): Promise<Property> {
+  // Get single property by ID with full details
+  static async getPropertyById(id: string): Promise<GuriGateProperty> {
     try {
       const { data, error } = await supabase
         .from('properties')
-        .select('*')
+        .select(`
+          *,
+          property_images(image_url, alt_text, sort_order, is_primary),
+          property_pricing(base_price, currency, pricing_type, security_deposit, cleaning_fee, service_fee, lease_min_months),
+          property_features(bedrooms, beds, bedroom_lock, bathrooms, max_guests, amenities, rules),
+          property_bathrooms(private_attached, dedicated, shared),
+          property_host_presence(presence_types),
+          property_amenities(amenities!inner(name, category, icon)),
+          profiles!inner(full_name, avatar_url, created_at)
+        `)
         .eq('id', id)
         .single();
 
@@ -234,7 +343,24 @@ export class PropertyService {
         throw new Error(error.message || 'Property not found');
       }
 
-      return data as Property;
+      // Fetch address separately
+      const { data: address, error: addressError } = await supabase
+        .from('property_addresses')
+        .select('street, apartment, city, state, postal_code, country, latitude, longitude, show_precise_location')
+        .eq('property_id', id)
+        .single();
+
+      if (addressError) {
+        console.error('Error fetching address:', addressError);
+      }
+
+      // Merge address with property
+      const propertyWithAddress = {
+        ...data,
+        property_addresses: address
+      };
+
+      return propertyWithAddress as GuriGateProperty;
     } catch (error) {
       console.error('PropertyService.getPropertyById error:', error);
       throw error;

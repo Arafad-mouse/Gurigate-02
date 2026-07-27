@@ -26,6 +26,10 @@ export interface LandingProperty {
   guests?: number;
   category?: "residential" | "commercial" | "land" | "hospitality";
   categoryDetails?: CategoryDetails;
+  host?: {
+    full_name: string;
+    avatar_url: string | null;
+  };
 }
 
 // Dynamic data fetching from Supabase

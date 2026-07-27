@@ -5,13 +5,12 @@
  * Lists all properties owned by the host with actions to create/edit.
  */
 
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DataTable } from '../../components/admin/table/DataTable';
 import { StatusBadge } from '../../components/admin/table/StatusBadge';
 import { Link } from 'react-router-dom';
-import { AuthContext } from '@/lib/auth-context';
-import { propertyService } from '../../../frontend/src/services/propertyService';
-import type { Property } from '../../../frontend/src/domain/property/PropertyTypes';
+import { PropertyService } from '@/services/properties';
+import type { GuriGateProperty } from '@/services/properties';
 
 interface HostPropertyRow {
   id: string;
@@ -26,29 +25,21 @@ interface HostPropertyRow {
 }
 
 export function HostPropertiesPage() {
-  const authContext = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [properties, setProperties] = useState<HostPropertyRow[]>([]);
 
   useEffect(() => {
     let active = true;
-    const ownerId = authContext?.session?.user.id;
 
     async function loadProperties() {
-      if (!ownerId) {
-        setProperties([]);
-        setLoading(false);
-        return;
-      }
-
       setLoading(true);
       setError(null);
 
       try {
-        const result = await propertyService.getPropertiesByOwner(ownerId, 1, 100);
+        const result = await PropertyService.getUserProperties();
         if (active) {
-          setProperties(result.items.map(mapHostPropertyRow));
+          setProperties(result.map(mapHostPropertyRow));
         }
       } catch (err) {
         if (active) {
@@ -67,7 +58,7 @@ export function HostPropertiesPage() {
     return () => {
       active = false;
     };
-  }, [authContext?.session?.user.id]);
+  }, []);
 
   const columns = [
     {
@@ -109,7 +100,7 @@ export function HostPropertiesPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-900">My Properties</h1>
           <Link
-            to="/host/properties/create"
+            to="/become-host"
             className="px-4 py-2 bg-[#BA0036] text-white rounded-lg hover:bg-[#99002d] transition-colors"
           >
             Add New Property
@@ -133,16 +124,17 @@ export function HostPropertiesPage() {
   );
 }
 
-function mapHostPropertyRow(property: Property): HostPropertyRow {
+function mapHostPropertyRow(property: GuriGateProperty): HostPropertyRow {
+  const pricing = property.pricing?.[0] || { base_price: 0, currency: 'USD' };
   return {
     id: property.id,
     title: property.title,
     type: property.type,
-    price: `${property.pricing.currency} ${property.pricing.basePrice.toLocaleString()} ${property.priceUnitLabel}`,
+    price: `${pricing.currency} ${pricing.base_price.toLocaleString()}`,
     status: property.status,
-    approvalStatus: property.isApproved ? 'approved' : 'pending',
+    approvalStatus: property.approval_status,
     bookings: 0,
-    views: property.viewCount,
-    createdAt: property.createdAt.toLocaleDateString(),
+    views: property.view_count,
+    createdAt: new Date(property.created_at).toLocaleDateString(),
   };
 }

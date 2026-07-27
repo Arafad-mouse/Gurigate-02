@@ -5,7 +5,7 @@
  * Keeps calculations outside pages for reusability.
  */
 
-import { PropertyMetrics as PropertyMetricsType } from './PropertyTypes';
+import type { PropertyMetrics as PropertyMetricsType } from './PropertyTypes';
 import { Property } from './Property';
 
 /**

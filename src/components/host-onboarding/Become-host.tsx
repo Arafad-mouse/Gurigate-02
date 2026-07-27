@@ -479,7 +479,7 @@ export default function BecomeHost() {
           <div className="flex-1">
             {/* ✅ Conditionally pass down values based on your configuration rules */}
             {CurrentComponent ? (
-              <CurrentComponent key={`${step}-${JSON.stringify(data)}`} data={data} onChange={onChange} />
+              <CurrentComponent key={currentStepConfig?.id} data={data} onChange={onChange} />
             ) : null}
           </div>
 
